@@ -1,0 +1,27 @@
+# Build artifacts
+/target
+
+# Backup files
+*backup*.rs
+*_backup*.rs
+*Copy.*
+*.bak
+
+# Legacy/temporary files
+*.txt
+tempmain.rs
+
+# Data files (configs, outputs, test data)
+*.json
+*.jsonc
+*.csv
+
+# Editor files
+.vscode/
+*.swp
+*~
+.idea/
+
+# OS files
+Thumbs.db
+.DS_Store
