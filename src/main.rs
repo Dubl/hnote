@@ -213,7 +213,7 @@ fn initialize_midi() -> MidiOutputConnection {
         println!("port name: {}", midi_out.port_name(&port).unwrap());
     }
 
-    let port = &out_ports[1]; // Select the first available port
+    let port = &out_ports[0]; // Select the first available port
     midi_out.connect(port, "Rust MIDI").expect("Failed to connect to MIDI output")
 }
 

@@ -63,16 +63,18 @@ pub fn apply_hnote_call(
         Call::Twice { target, then } => {
             // 1. Call maketwocopies on the chosen struct
             // println!("Calling maketwocopies on object #{}", target);
-            let copies = sourcehnotes[*target].twice();
+            let mut copies = sourcehnotes[*target].twice();
 
             // 2. We store them in `results` (or do something else with them)
             // println!("Created {} copies from object #{}", copies.len(), target);
 
 
-            // 3. Apply any chained calls in `then`
+            // 3. Apply any chained calls in `then` to each copy
             if let Some(next_call) = then {
-                return apply_hnote_call(sourcehnotes, next_call, resulthnote, Some(&mut copies));
-            } 
+                for copy in &mut copies {
+                    apply_hnote_call(sourcehnotes, next_call, resulthnote, Some(copy));
+                }
+            }
 
             else {
                 resulthnote.children
@@ -81,7 +83,7 @@ pub fn apply_hnote_call(
                 .extend(copies);
 
             }
-            
+
         }
         Call::Once { target, then } => {
             // 1. Call maketwocopies on the chosen struct
