@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Run hello-rust",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=hello-rust"
+                ]
+            },
+            "args": ["generate_hnote_from_rules"],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

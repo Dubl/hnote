@@ -222,7 +222,9 @@ fn main() {
 
     let args: Vec<String> = env::args().collect();
 
-    let function = &args[1];
+    let function = args.get(1)
+        .map(|s| s.as_str())
+        .unwrap_or("generate_hnote_from_rules");
 
 
     println!("running {function}");
@@ -241,8 +243,8 @@ fn main() {
         .expect("Failed to load initial measures");
 
         let mut resulthnote = HNote {
-            start_time: 1.0,
-            end_time: 3.0,
+            start_time: 0.0,
+            end_time: 32.0,
             timing: 1.0,
             child_direction: Direction::Sequential,
             children: None,
