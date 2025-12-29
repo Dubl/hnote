@@ -21,6 +21,12 @@ pub enum Call {
         amount: usize,
         #[serde(default)]
         then: Option<Box<Call>>,
+    },
+    Combine {
+        calls: Vec<Call>,
+        direction: Direction,
+        #[serde(default)]
+        then: Option<Box<Call>>,
     }
 
 }

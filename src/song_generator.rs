@@ -97,16 +97,51 @@ pub fn apply_hnote_call(
             if let Some(next_call) = then {
                 println!("then found:{:?}", next_call);
                 apply_hnote_call(sourcehnotes, next_call, resulthnote, Some(&mut copy));
-            } 
+            }
             else {
                 println!("no then found");
                 resulthnote.children
                 .get_or_insert_with(|| Box::new(Vec::new()))
                 // Now we have &mut Box<Vec<CustomType>>, so we can push
                 .extend(vec![copy]);
-                
+
             }
-            
+
+        }
+        Call::Combine { calls, direction, then } => {
+            // Create a wrapper HNote with the specified direction
+            let mut wrapper = HNote {
+                midi_number: 0,
+                velocity: 100,
+                timing: 1.0,
+                channel: 9,
+                child_direction: direction.clone(),
+                children: Some(Box::new(Vec::new())),
+                start_time: 0.0,
+                end_time: 0.0,
+                prechildren: None,
+                anchor_prechild: None,
+                anchor_end: None,
+                timing_based_on_children: None,
+                overwrite_children: None,
+                ancestor_overwrite_level: None,
+                parent: None,
+                rolled: None,
+            };
+
+            // Process each nested call and add results as children of the wrapper
+            for nested_call in calls {
+                apply_hnote_call(sourcehnotes, nested_call, &mut wrapper, None);
+            }
+
+            // Apply any chained calls in `then`
+            if let Some(next_call) = then {
+                apply_hnote_call(sourcehnotes, next_call, resulthnote, Some(&mut wrapper));
+            } else {
+                resulthnote.children
+                    .get_or_insert_with(|| Box::new(Vec::new()))
+                    .extend(vec![wrapper]);
+            }
         }
 
     }
