@@ -29,6 +29,13 @@ pub fn load_calllist_from_file(path: &str) -> Result<Vec<Call>, Box<dyn std::err
     Ok(calllist)
 }
 
+pub fn load_prechild_library_from_file(path: &str) -> Result<Vec<HNote>, Box<dyn std::error::Error>> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let library: Vec<HNote> = from_reader(reader)?;
+    Ok(library)
+}
+
 
 
 pub fn write_to_json(resultHNote: &HNote) -> std::io::Result<()> {

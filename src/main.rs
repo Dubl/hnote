@@ -234,17 +234,25 @@ fn main() {
         let mut connection = initialize_midi();
         let timer = HighResTimer::new();
 
-        let calllistpath = "my_calllist2.jsonc".to_string();
+        let calllistpath = "calllist.jsonc".to_string();
+
         let calls = load_calllist_from_file(&calllistpath)
         .expect("Failed to load initial calls");
 
-        let measurelistpath = "my_measures_new2.json".to_string();
+        let measurelistpath = "measures.json".to_string();
         let sourcehnotes = load_hnotelist_from_file(&measurelistpath) //vec of hnote
         .expect("Failed to load initial measures");
 
+        let prechild_library_path = "prechildren_library.json".to_string();
+        let prechild_library = load_prechild_library_from_file(&prechild_library_path)
+            .unwrap_or_else(|_| {
+                println!("Warning: Could not load prechild library from {}, using empty library", prechild_library_path);
+                Vec::new()
+            });
+
         let mut resulthnote = HNote {
             start_time: 0.0,
-            end_time: 32.0,
+            end_time: 30.0,
             timing: 1.0,
             child_direction: Direction::Sequential,
             children: None,
@@ -262,7 +270,7 @@ fn main() {
         };
 
 
-        apply_hnote_calls(&sourcehnotes, &calls, &mut resulthnote);
+        apply_hnote_calls(&sourcehnotes, &prechild_library, &calls, &mut resulthnote);
 
         resulthnote.assign_parents();
 

@@ -27,6 +27,13 @@ pub enum Call {
         direction: Direction,
         #[serde(default)]
         then: Option<Box<Call>>,
+    },
+    InjectPrechildren {
+        target: usize,
+        path: Vec<usize>,
+        prechild_library_target: usize,
+        #[serde(default)]
+        then: Option<Box<Call>>,
     }
 
 }
@@ -147,6 +154,29 @@ impl HNote {
                 }
             }
         }
+        None
+    }
+
+    /// Navigate through the tree using a path of child indices.
+    /// Returns a mutable reference to the target node, or None if the path is invalid.
+    pub fn navigate_path_mut(&mut self, path: &[usize]) -> Option<&mut HNote> {
+        if path.is_empty() {
+            // Empty path means "this node"
+            return Some(self);
+        }
+
+        // Get the first index in the path
+        let index = path[0];
+
+        // Try to navigate to that child
+        if let Some(children_box) = self.children.as_mut() {
+            if index < children_box.len() {
+                // Recursively navigate the rest of the path
+                return children_box[index].navigate_path_mut(&path[1..]);
+            }
+        }
+
+        // Path was invalid (no children or index out of bounds)
         None
     }
 

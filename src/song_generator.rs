@@ -7,6 +7,7 @@ use rand::prelude::SliceRandom;
 
 pub fn apply_hnote_call(
     sourcehnotes: &[HNote],
+    prechild_library: &[HNote],
     call: &Call,
     resulthnote: &mut HNote,
     passedstruct: Option<&mut HNote>
@@ -48,7 +49,7 @@ pub fn apply_hnote_call(
       
 
             if let Some(next_call) = then {
-                return apply_hnote_call(sourcehnotes, next_call, resulthnote, Some(&mut rollee));
+                return apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(&mut rollee));
             } 
             else {
             // 4) Return hnote2
@@ -72,7 +73,7 @@ pub fn apply_hnote_call(
             // 3. Apply any chained calls in `then` to each copy
             if let Some(next_call) = then {
                 for copy in &mut copies {
-                    apply_hnote_call(sourcehnotes, next_call, resulthnote, Some(copy));
+                    apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(copy));
                 }
             }
 
@@ -96,7 +97,7 @@ pub fn apply_hnote_call(
             // 3. Apply any chained calls in `then`
             if let Some(next_call) = then {
                 println!("then found:{:?}", next_call);
-                apply_hnote_call(sourcehnotes, next_call, resulthnote, Some(&mut copy));
+                apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(&mut copy));
             }
             else {
                 println!("no then found");
@@ -131,16 +132,44 @@ pub fn apply_hnote_call(
 
             // Process each nested call and add results as children of the wrapper
             for nested_call in calls {
-                apply_hnote_call(sourcehnotes, nested_call, &mut wrapper, None);
+                apply_hnote_call(sourcehnotes, prechild_library, nested_call, &mut wrapper, None);
             }
 
             // Apply any chained calls in `then`
             if let Some(next_call) = then {
-                apply_hnote_call(sourcehnotes, next_call, resulthnote, Some(&mut wrapper));
+                apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(&mut wrapper));
             } else {
                 resulthnote.children
                     .get_or_insert_with(|| Box::new(Vec::new()))
                     .extend(vec![wrapper]);
+            }
+        }
+        Call::InjectPrechildren { target, path, prechild_library_target, then } => {
+            // 1. Clone measure from sourcehnotes[target]
+            let mut copy = sourcehnotes[*target].clone();
+
+            // 2. Navigate to target node using path
+            if let Some(target_node) = copy.navigate_path_mut(path) {
+                // 3. Get template from prechild library
+                let template = &prechild_library[*prechild_library_target];
+
+                // 4. Extract and copy fields from template
+                target_node.prechildren = template.prechildren.clone();
+                target_node.timing_based_on_children = template.timing_based_on_children;
+                target_node.anchor_prechild = template.anchor_prechild;
+                target_node.anchor_end = template.anchor_end;
+                target_node.overwrite_children = template.overwrite_children;
+                target_node.ancestor_overwrite_level = template.ancestor_overwrite_level;
+            }
+
+            // 5. Handle 'then' chaining
+            if let Some(next_call) = then {
+                apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(&mut copy));
+            } else {
+                // 6. Add to resulthnote
+                resulthnote.children
+                    .get_or_insert_with(|| Box::new(Vec::new()))
+                    .extend(vec![copy]);
             }
         }
 
@@ -150,11 +179,12 @@ pub fn apply_hnote_call(
 /// Apply a *list* of calls in sequence.
 pub fn apply_hnote_calls(
     sourcehnotes: &[HNote],
+    prechild_library: &[HNote],
     calls: &[Call],
     resulthnote: &mut HNote,
 ) {
     println!("hi");
     for call in calls {
-        apply_hnote_call(sourcehnotes, call, resulthnote, None);
+        apply_hnote_call(sourcehnotes, prechild_library, call, resulthnote, None);
     }
 }
