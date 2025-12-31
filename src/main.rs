@@ -17,6 +17,7 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use types::*;
+use types::calculate_duration_from_locked;
 use song_generator::*;
 
 //{generate_songs, generate_pattern_song, save_generated_songs, generate_chord_progression, generate_swing_beat_with_layers, generate_swing_drum_beat, generate_swing_drum_beat2, generate_swing_drum_beat3};
@@ -266,7 +267,9 @@ fn main() {
             midi_number: 0,
             velocity: 0,
             channel: 0,
-            rolled:None
+            rolled:None,
+            print_length: None,
+            name: None
         };
 
 
@@ -274,8 +277,17 @@ fn main() {
 
         resulthnote.assign_parents();
 
+        // Calculate duration from locked note if one exists
+        if let Some(duration) = calculate_duration_from_locked(&resulthnote) {
+            println!("Found locked note, calculated song duration: {:.2} seconds", duration);
+            resulthnote.end_time = duration;
+        } else {
+            println!("No locked note found, using default end_time: {:.2} seconds", resulthnote.end_time);
+        }
+
         resulthnote.recalc_times();
         resulthnote.overwrite_times();
+        resulthnote.print_lengths();
         //let mut ancestors: Vec<*mut HNote> = Vec::new();
         //resulthnote.recalc_times_with_ancestors(&mut ancestors);
 

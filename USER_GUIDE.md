@@ -4,13 +4,39 @@
 1. [Overview](#overview)
 2. [System Architecture](#system-architecture)
 3. [Core Concepts](#core-concepts)
+   - [HNote (Hierarchical Note)](#hnote-hierarchical-note)
+   - [Children vs Prechildren](#children-vs-prechildren)
+   - [Timing System](#timing-system)
 4. [File Structure](#file-structure)
 5. [Data Structures and Attributes](#data-structures-and-attributes)
-6. [Call Functions Reference](#call-functions-reference)
-7. [Creating Music](#creating-music)
-8. [Running the Program](#running-the-program)
-9. [Examples](#examples)
-10. [Tips and Best Practices](#tips-and-best-practices)
+   - [HNote Structure](#hnote-structure)
+   - [Common MIDI Drum Numbers](#common-midi-drum-numbers)
+   - [Child Direction](#child-direction)
+   - [Anchor System (for Prechildren)](#anchor-system-for-prechildren)
+   - [timing_based_on_children](#timing_based_on_children)
+6. [Debugging and Metadata Fields](#debugging-and-metadata-fields)
+   - [name](#name)
+   - [print_length](#print_length)
+7. [Call Functions Reference](#call-functions-reference)
+   - [Call Status](#call-status)
+   - [Once](#1-once)
+   - [Twice](#2-twice)
+   - [Combine](#3-combine)
+   - [InjectPrechildren](#4-injectprechildren)
+     - [How Path Navigation Works](#how-path-navigation-works)
+     - [What Gets Injected](#what-gets-injected)
+     - [Prechild Timing Deep Dive](#prechild-timing-deep-dive)
+     - [Worked Example](#worked-example)
+     - [Common Patterns](#common-patterns)
+     - [Troubleshooting InjectPrechildren](#troubleshooting-injectprechildren)
+   - [Roll (Advanced)](#5-roll-advanced)
+   - [Call Chaining with "then"](#call-chaining-with-then)
+8. [Creating Music](#creating-music)
+9. [Running the Program](#running-the-program)
+10. [Examples](#examples)
+11. [Tips and Best Practices](#tips-and-best-practices)
+12. [Troubleshooting](#troubleshooting)
+13. [Quick Reference Card](#quick-reference-card)
 
 ---
 
@@ -139,7 +165,11 @@ hello-rust/
 
   // Overwrite controls (optional)
   "overwrite_children": false, // Should prechildren silence conflicting children?
-  "ancestor_overwrite_level": 2  // How many levels up to apply overwrite
+  "ancestor_overwrite_level": 2,  // How many levels up to apply overwrite
+
+  // Debugging/metadata (optional)
+  "name": "kick pattern",      // Human-readable name for debugging
+  "print_length": true         // Print timing info for this note during recalc
 }
 ```
 
@@ -213,18 +243,163 @@ Prechildren:          [pre1][ANCHOR][pre3]
 
 #### timing_based_on_children
 
+Controls how prechild durations are calculated.
+
 - `true`: Scale prechild timing based on children's timing shares
-- `false`: Scale prechild timing based on parent's duration
+- `false`: Scale prechild timing based on parent's total duration
+
+**Detailed Logic:**
+
+When `timing_based_on_children: true`:
+1. The system calculates `base = parent_length / sum_of_children_timing_shares`
+2. Each prechild's duration becomes `base * prechild.timing`
+
+When `timing_based_on_children: false`:
+1. The system uses `base = parent_length` directly
+2. Each prechild's duration becomes `parent_length * prechild.timing`
+
+**Example Calculation:**
+
+```
+Parent: start=0.0, end=2.0 (length = 2.0 seconds)
+Children: [timing: 1.0, timing: 3.0] (total shares = 4.0)
+Prechild: timing = 0.5
+
+With timing_based_on_children: true:
+  base = 2.0 / 4.0 = 0.5
+  prechild duration = 0.5 * 0.5 = 0.25 seconds
+
+With timing_based_on_children: false:
+  base = 2.0
+  prechild duration = 2.0 * 0.5 = 1.0 seconds
+```
+
+**Fallback Behavior (No Children):**
+
+If `timing_based_on_children: true` but the HNote has **no children** (or children's timing sum is zero), the system gracefully falls back to using the parent's length as the base. This prevents division-by-zero errors and allows you to safely use prechild templates on leaf nodes.
+
+```
+// This is safe - falls back to parent_length
+{
+  "children": null,
+  "timing_based_on_children": true,  // Falls back to parent length
+  "prechildren": [...]
+}
+```
 
 **When to use:**
-- `true`: When you want the embellishment to "fit" within the children's rhythm
-- `false`: When you want the embellishment to be independent of children
+- `true`: When you want the embellishment to "fit" within the children's rhythm scale
+- `false`: When you want the embellishment sized relative to the total parent duration
+
+---
+
+## Debugging and Metadata Fields
+
+### name
+
+An optional human-readable name for any HNote. Useful for debugging and understanding complex tree structures.
+
+```json
+{
+  "midi_number": 38,
+  "name": "snare hit with fill",
+  "children": [...]
+}
+```
+
+The name appears in debug output when `print_length` is enabled.
+
+### print_length
+
+When set to `true`, this HNote will print its timing information during the `recalc_times()` phase:
+
+```json
+{
+  "midi_number": 36,
+  "name": "kick pattern",
+  "print_length": true
+}
+```
+
+**Output format:**
+```
+HNote 'kick pattern': start=1.8750, end=2.3333, length=0.4583 seconds (timing: 1.95, midi: 36)
+```
+
+If `name` is not set, it displays `(unnamed)`:
+```
+HNote '(unnamed)': start=0.0000, end=1.8750, length=1.8750 seconds (timing: 2, midi: 0)
+```
+
+**Use cases:**
+- Debugging timing calculations
+- Verifying prechild placement
+- Understanding how timing shares translate to absolute durations
 
 ---
 
 ## Call Functions Reference
 
 Call functions are instructions for building your song from base patterns.
+
+### Call Status
+
+All call functions support a `status` field that controls how the call is processed:
+
+```json
+{
+  "function": "once",
+  "target": 0,
+  "status": "active"
+}
+```
+
+**Status values:**
+
+| Status | Behavior |
+|--------|----------|
+| `active` | (Default) Normal execution - notes play as defined |
+| `silent` | Call executes but all MIDI numbers are set to 0 (silent) |
+| `inactive` | Call is completely skipped (as if it doesn't exist) |
+
+**Use cases:**
+
+- **`active`**: Normal playback
+- **`silent`**: Keep the timing/structure but mute the output (useful for creating "ghost" patterns that occupy time without sound)
+- **`inactive`**: Temporarily disable a call without deleting it (useful for A/B testing different arrangements)
+
+**Example - Testing variations:**
+```json
+[
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": 0, "function": "once"},
+      {"target": 1, "function": "once"}
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": 0, "function": "once"},
+      {
+        "target": 1,
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": 2
+      }
+    ]
+  }
+]
+```
+
+In this example, the first (plain) version is disabled and only the version with the fill plays.
+
+---
 
 ### 1. Once
 
@@ -294,39 +469,219 @@ Timeline: 0--------------------4.0
 
 ### 4. InjectPrechildren
 
-Surgically inject embellishments into specific notes using path-based targeting.
+Surgically inject embellishments into specific notes using path-based targeting. This is the most powerful function for adding fills, rolls, grace notes, and variations to your patterns.
 
 ```json
 {
-  "target": 2,
+  "target": 1,
   "function": "injectprechildren",
   "path": [0],
-  "prechild_library_target": 1
+  "prechild_library_target": 2
 }
 ```
 
 **Parameters:**
-- `target`: Base measure index
-- `path`: Navigation path (array of child indices)
-- `prechild_library_target`: Template index in prechild library
+- `target`: Base measure index in `measures.json` (0-based)
+- `path`: Navigation path to the target HNote (array of child indices, 0-based)
+- `prechild_library_target`: Template index in `prechildren_library.json` (0-based)
+
+---
+
+#### How Path Navigation Works
+
+The `path` array navigates through the children of the source measure to find the target HNote where prechildren will be injected.
 
 **Path Examples:**
-- `[]` = Target the root of the measure
-- `[0]` = Target the first child
-- `[3, 1]` = Target the second child of the fourth child
+- `[]` = Target the root of the measure itself
+- `[0]` = Target the first child of the measure
+- `[1]` = Target the second child of the measure
+- `[0, 2]` = Target the third child of the first child
+- `[3, 1, 0]` = Go to 4th child → then its 2nd child → then its 1st child
 
-**What gets injected:**
-- `prechildren` array
-- `anchor_prechild`
-- `anchor_end`
-- `timing_based_on_children`
-- `overwrite_children`
-- `ancestor_overwrite_level`
+**Visual Example:**
+
+Given this measure structure:
+```
+Measure (index 1 in measures.json)
+├── Child 0: Snare hit     ← path: [0]
+├── Child 1: Kick drum     ← path: [1]
+├── Child 2: Snare hit     ← path: [2]
+└── Child 3: Kick drum     ← path: [3]
+```
+
+To add a fill before the first snare, use `"path": [0]`.
+
+---
+
+#### What Gets Injected
+
+When InjectPrechildren runs, it copies these fields from the prechild library template to the target HNote:
+
+| Field | Purpose |
+|-------|---------|
+| `prechildren` | The array of embellishment notes to add |
+| `anchor_prechild` | Which prechild aligns with the target (1-indexed) |
+| `anchor_end` | Whether to anchor at parent's end (`true`) or start (`false`) |
+| `timing_based_on_children` | How to scale prechild durations (see below) |
+| `overwrite_children` | Whether prechildren should silence conflicting notes |
+| `ancestor_overwrite_level` | How many levels up to apply the overwrite |
+
+**Important:** The target HNote keeps its original `midi_number`, `velocity`, `timing`, and `children`. Only the prechild-related fields are overwritten.
+
+---
+
+#### Prechild Timing Deep Dive
+
+When prechildren are injected, their absolute timing is calculated during `recalc_times()`. The key setting is `timing_based_on_children`:
+
+**Case 1: `timing_based_on_children: true` (with children)**
+
+The prechild durations scale based on the target's children timing:
+
+```
+base = parent_length / sum_of_children_timing_shares
+prechild_duration = base × prechild.timing
+```
+
+**Case 2: `timing_based_on_children: false`**
+
+The prechild durations scale based on the target's total length:
+
+```
+base = parent_length
+prechild_duration = parent_length × prechild.timing
+```
+
+**Case 3: `timing_based_on_children: true` (with NO children)**
+
+Falls back to using parent_length as the base (same as `false`):
+
+```
+base = parent_length  // Fallback!
+prechild_duration = parent_length × prechild.timing
+```
+
+This fallback allows you to safely inject prechildren into leaf nodes (HNotes with no children) without worrying about division-by-zero errors.
+
+---
+
+#### Worked Example
+
+**Setup:**
+- `measures.json[1]` has a kick/snare pattern with 4 children
+- `prechildren_library.json[2]` has a 2-note fill template
+
+**Call:**
+```json
+{
+  "target": 1,
+  "function": "injectprechildren",
+  "path": [0],
+  "prechild_library_target": 2
+}
+```
+
+**Prechild Library Entry (index 2):**
+```json
+{
+  "midi_number": 38,
+  "timing_based_on_children": true,
+  "anchor_prechild": 2,
+  "anchor_end": true,
+  "prechildren": [
+    {"midi_number": 59, "timing": 0.26},
+    {"midi_number": 0, "timing": 0.20}
+  ]
+}
+```
+
+**What happens:**
+1. Clone measure 1 (the kick/snare pattern)
+2. Navigate to `path: [0]` (first child - the first snare hit)
+3. Inject prechildren from library entry 2
+4. The first snare now has 2 prechildren attached
+5. During `recalc_times()`:
+   - Anchor prechild 2 (the silent note) aligns with the snare's END time
+   - Prechild 1 (midi 59) plays just before the snare ends
+   - Prechild 2 (midi 0, silent) plays after
+
+**Result in tree_output.txt:**
+```
+├── [3.75 - 4.21 38]           ← The target snare
+│   ├── p[4.09 - 4.21 59]      ← Prechild 1 (before end)
+│   └── p[4.21 - 4.30 0]       ← Prechild 2 (anchor, after end)
+```
+
+---
+
+#### Common Patterns
+
+**Adding a drum fill at the end of a measure:**
+```json
+{
+  "target": 1,
+  "function": "injectprechildren",
+  "path": [3],
+  "prechild_library_target": 1
+}
+```
+(Injects into the 4th child of measure 1)
+
+**Adding prechildren to the root (entire measure):**
+```json
+{
+  "target": 1,
+  "function": "injectprechildren",
+  "path": [],
+  "prechild_library_target": 1
+}
+```
+(Injects at the measure level, not into a specific child)
+
+**Combining with other calls:**
+```json
+{
+  "function": "combine",
+  "direction": "sidebyside",
+  "calls": [
+    {"target": 0, "function": "once"},
+    {
+      "target": 1,
+      "function": "injectprechildren",
+      "path": [0],
+      "prechild_library_target": 2
+    }
+  ]
+}
+```
+(Layers hi-hats with a kick/snare pattern that has a fill injected)
+
+---
+
+#### Troubleshooting InjectPrechildren
+
+**Prechildren not appearing:**
+- Check that `path` correctly navigates to an existing child
+- Verify `prechild_library_target` points to a valid library entry
+- Ensure the library entry has a non-null `prechildren` array
+- Check `anchor_prechild` is within bounds (1-indexed, not 0-indexed)
+
+**Timing looks wrong:**
+- Check `anchor_end`: `true` anchors to parent's END, `false` to START
+- Check `timing_based_on_children`: affects the scaling of prechild durations
+- Verify prechild `timing` values are appropriate for the scale
+
+**Prechildren overlap with other notes:**
+- Use `overwrite_children: true` to silence conflicting notes
+- Adjust `ancestor_overwrite_level` to control scope of overwriting
+
+---
 
 **Use cases:**
 - Adding a snare roll before a particular hit
 - Adding a crash cymbal at a specific moment
 - Creating variations without duplicating entire measures
+- Building up complexity gradually across sections
 
 ---
 
@@ -733,6 +1088,11 @@ FUNCTIONS:
   combine       → Layer or sequence multiple calls
   injectprechildren → Add embellishments at specific locations
 
+CALL STATUS:
+  active        → (Default) Normal execution
+  silent        → Execute but mute all notes (MIDI = 0)
+  inactive      → Skip entirely (as if not present)
+
 DIRECTIONS:
   sequential    → One after another
   sidebyside    → Simultaneous
@@ -746,8 +1106,13 @@ ANCHORS:
   anchor_prechild: 2      → Second prechild is anchor (1-indexed)
   anchor_end: true        → Anchor to parent's end
   anchor_end: false       → Anchor to parent's start
-  timing_based_on_children: true   → Scale with children
-  timing_based_on_children: false  → Scale with parent
+  timing_based_on_children: true   → Scale with children's timing shares
+  timing_based_on_children: false  → Scale with parent's total length
+  (Note: true with no children falls back to parent length)
+
+DEBUGGING:
+  name: "my note"         → Human-readable label for debugging
+  print_length: true      → Print start/end/length during recalc
 
 RUNNING:
   cargo run                    → Build and run

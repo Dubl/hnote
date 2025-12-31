@@ -13,7 +13,11 @@ pub fn apply_hnote_call(
     passedstruct: Option<&mut HNote>
 ) {
     match call {
-        Call::Roll { target, amount, then } => {
+        Call::Roll { target, amount, then, status } => {
+            // Handle inactive status - skip entirely
+            if *status == CallStatus::Inactive {
+                return;
+            }
             println!("in roll");
             let mut from_hnote = sourcehnotes[1].clone();
             // println!("from_hnote:{:?}",from_hnote);
@@ -50,18 +54,26 @@ pub fn apply_hnote_call(
 
             if let Some(next_call) = then {
                 return apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(&mut rollee));
-            } 
+            }
             else {
+            // Handle silent status - set all midi notes to 0
+            if *status == CallStatus::Silent {
+                rollee.silence();
+            }
             // 4) Return hnote2
             resulthnote.children
             .get_or_insert_with(|| Box::new(Vec::new()))
             // Now we have &mut Box<Vec<CustomType>>, so we can push
-            .extend(vec![rollee]);     
+            .extend(vec![rollee]);
 
             }
 
         }
-        Call::Twice { target, then } => {
+        Call::Twice { target, then, status } => {
+            // Handle inactive status - skip entirely
+            if *status == CallStatus::Inactive {
+                return;
+            }
             // 1. Call maketwocopies on the chosen struct
             // println!("Calling maketwocopies on object #{}", target);
             let mut copies = sourcehnotes[*target].twice();
@@ -76,8 +88,13 @@ pub fn apply_hnote_call(
                     apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(copy));
                 }
             }
-
             else {
+                // Handle silent status - set all midi notes to 0
+                if *status == CallStatus::Silent {
+                    for copy in &mut copies {
+                        copy.silence();
+                    }
+                }
                 resulthnote.children
                 .get_or_insert_with(|| Box::new(Vec::new()))
                 // Now we have &mut Box<Vec<CustomType>>, so we can push
@@ -86,7 +103,11 @@ pub fn apply_hnote_call(
             }
 
         }
-        Call::Once { target, then } => {
+        Call::Once { target, then, status } => {
+            // Handle inactive status - skip entirely
+            if *status == CallStatus::Inactive {
+                return;
+            }
             // 1. Call maketwocopies on the chosen struct
             // println!("Calling maketwocopies on object #{}", target);
             // let copy = sourcehnotes[*target].once();
@@ -101,6 +122,10 @@ pub fn apply_hnote_call(
             }
             else {
                 println!("no then found");
+                // Handle silent status - set all midi notes to 0
+                if *status == CallStatus::Silent {
+                    copy.silence();
+                }
                 resulthnote.children
                 .get_or_insert_with(|| Box::new(Vec::new()))
                 // Now we have &mut Box<Vec<CustomType>>, so we can push
@@ -109,7 +134,11 @@ pub fn apply_hnote_call(
             }
 
         }
-        Call::Combine { calls, direction, then } => {
+        Call::Combine { calls, direction, then, status } => {
+            // Handle inactive status - skip entirely
+            if *status == CallStatus::Inactive {
+                return;
+            }
             // Create a wrapper HNote with the specified direction
             let mut wrapper = HNote {
                 midi_number: 0,
@@ -128,6 +157,8 @@ pub fn apply_hnote_call(
                 ancestor_overwrite_level: None,
                 parent: None,
                 rolled: None,
+                print_length: None,
+                name: None,
             };
 
             // Process each nested call and add results as children of the wrapper
@@ -139,12 +170,20 @@ pub fn apply_hnote_call(
             if let Some(next_call) = then {
                 apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(&mut wrapper));
             } else {
+                // Handle silent status - set all midi notes to 0
+                if *status == CallStatus::Silent {
+                    wrapper.silence();
+                }
                 resulthnote.children
                     .get_or_insert_with(|| Box::new(Vec::new()))
                     .extend(vec![wrapper]);
             }
         }
-        Call::InjectPrechildren { target, path, prechild_library_target, then } => {
+        Call::InjectPrechildren { target, path, prechild_library_target, then, status } => {
+            // Handle inactive status - skip entirely
+            if *status == CallStatus::Inactive {
+                return;
+            }
             // 1. Clone measure from sourcehnotes[target]
             let mut copy = sourcehnotes[*target].clone();
 
@@ -166,6 +205,10 @@ pub fn apply_hnote_call(
             if let Some(next_call) = then {
                 apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(&mut copy));
             } else {
+                // Handle silent status - set all midi notes to 0
+                if *status == CallStatus::Silent {
+                    copy.silence();
+                }
                 // 6. Add to resulthnote
                 resulthnote.children
                     .get_or_insert_with(|| Box::new(Vec::new()))

@@ -1,32 +1,53 @@
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
+#[derive(Debug, Clone, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum CallStatus {
+    Active,
+    Silent,
+    Inactive,
+}
+
+impl Default for CallStatus {
+    fn default() -> Self {
+        CallStatus::Active
+    }
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "function")]
 #[serde(rename_all = "lowercase")]
 pub enum Call {
     Twice {
-        target: usize,        
+        target: usize,
         #[serde(default)]
         then: Option<Box<Call>>,
+        #[serde(default)]
+        status: CallStatus,
     },
     Once {
-        target: usize,        
+        target: usize,
         #[serde(default)]
         then: Option<Box<Call>>,
-    },    
+        #[serde(default)]
+        status: CallStatus,
+    },
     Roll {
         target: usize,
         amount: usize,
         #[serde(default)]
         then: Option<Box<Call>>,
+        #[serde(default)]
+        status: CallStatus,
     },
     Combine {
         calls: Vec<Call>,
         direction: Direction,
         #[serde(default)]
         then: Option<Box<Call>>,
+        #[serde(default)]
+        status: CallStatus,
     },
     InjectPrechildren {
         target: usize,
@@ -34,6 +55,8 @@ pub enum Call {
         prechild_library_target: usize,
         #[serde(default)]
         then: Option<Box<Call>>,
+        #[serde(default)]
+        status: CallStatus,
     }
 
 }
@@ -75,9 +98,9 @@ pub struct HNote {
     pub ancestor_overwrite_level: Option<usize>,
     #[serde(skip)]
     pub parent: Option<*mut HNote>,
-    pub rolled: Option<bool>
-    //             ^^^^^^^
-    // Boxed child measure to allow recursion
+    pub rolled: Option<bool>,
+    pub print_length: Option<bool>,
+    pub name: Option<String>,
 }
 
 fn layout_children_sequentially_in_range(children: &mut [HNote], start: f64, end: f64) {
@@ -120,6 +143,31 @@ fn compute_sum_of_children_shares(note: &HNote) -> f64 {
     }
 }
 
+/// Calculate the song duration based on a locked note.
+/// Returns the total duration in seconds, or None if no locked note or invalid timing.
+pub fn calculate_duration_from_locked(root: &HNote) -> Option<f64> {
+    // Find the locked note
+    let locked = root.find_locked_note()?;
+
+    // The locked note's duration is exactly (end_time - start_time), regardless of timing
+    let locked_duration = locked.end_time - locked.start_time;
+    if locked_duration <= 0.0 {
+        return None;
+    }
+    // seconds_per_timing_unit is the locked duration (not divided by timing)
+    let seconds_per_timing_unit = locked_duration;
+
+    // Sum all top-level children timing values
+    let total_timing_units: f64 = if let Some(children) = &root.children {
+        children.iter().map(|c| c.timing).sum()
+    } else {
+        root.timing
+    };
+
+    // Calculate total song duration
+    Some(total_timing_units * seconds_per_timing_unit)
+}
+
 fn overwrite_midi_recursive(note: &mut HNote, clearingtime: f64) {
     println!("Checking {} at {} vs clearingtime of {}", note.midi_number,note.start_time, clearingtime);
     if note.start_time > clearingtime {
@@ -157,6 +205,37 @@ impl HNote {
         None
     }
 
+    /// Find the last locked note in the tree (where end_time > 0).
+    /// Returns a reference to the locked note if found.
+    pub fn find_locked_note(&self) -> Option<&HNote> {
+        let mut last_locked: Option<&HNote> = None;
+
+        // Check if this node is locked (only end_time needs to be set)
+        if self.end_time > 0.0 {
+            last_locked = Some(self);
+        }
+
+        // Search children for locked notes (last one wins)
+        if let Some(children_box) = &self.children {
+            for child in children_box.iter() {
+                if let Some(found) = child.find_locked_note() {
+                    last_locked = Some(found);
+                }
+            }
+        }
+
+        // Search prechildren for locked notes (last one wins)
+        if let Some(prechildren_box) = &self.prechildren {
+            for prechild in prechildren_box.iter() {
+                if let Some(found) = prechild.find_locked_note() {
+                    last_locked = Some(found);
+                }
+            }
+        }
+
+        last_locked
+    }
+
     /// Navigate through the tree using a path of child indices.
     /// Returns a mutable reference to the target node, or None if the path is invalid.
     pub fn navigate_path_mut(&mut self, path: &[usize]) -> Option<&mut HNote> {
@@ -188,6 +267,44 @@ impl HNote {
         vec![self.clone()]
     }
 
+    /// Recursively sets all midi_number values to 0 (for silent mode).
+    pub fn silence(&mut self) {
+        self.midi_number = 0;
+
+        if let Some(children_box) = &mut self.children {
+            for child in children_box.iter_mut() {
+                child.silence();
+            }
+        }
+
+        if let Some(prechildren_box) = &mut self.prechildren {
+            for prechild in prechildren_box.iter_mut() {
+                prechild.silence();
+            }
+        }
+    }
+
+    /// Recursively prints the absolute length of any HNote with print_length set to true.
+    pub fn print_lengths(&self) {
+        if self.print_length.unwrap_or(false) {
+            let length = self.end_time - self.start_time;
+            let name_str = self.name.as_deref().unwrap_or("(unnamed)");
+            println!("HNote '{}': start={:.4}, end={:.4}, length={:.4} seconds (timing: {}, midi: {})",
+                name_str, self.start_time, self.end_time, length, self.timing, self.midi_number);
+        }
+
+        if let Some(children_box) = &self.children {
+            for child in children_box.iter() {
+                child.print_lengths();
+            }
+        }
+
+        if let Some(prechildren_box) = &self.prechildren {
+            for prechild in prechildren_box.iter() {
+                prechild.print_lengths();
+            }
+        }
+    }
 
     pub fn format_time(&self) -> String {
         match (self.start_time, self.end_time) {
