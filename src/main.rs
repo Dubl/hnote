@@ -308,7 +308,8 @@ fn main() {
 
         play_song(&mut connection, &timer, &resulthnote);
 
-
+        // Buffer time to let the last note finish playing
+        std::thread::sleep(Duration::from_millis(1500));
 
     }
 

@@ -8,8 +8,8 @@
 *.bak
 
 # Legacy/temporary files
-*.txt
 tempmain.rs
+GIT_WORKFLOW_GUIDE.md
 
 # Data files (configs, outputs, test data)
 *.json
