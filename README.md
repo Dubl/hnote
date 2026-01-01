@@ -1,5 +1,28 @@
 # MIDI Music Generation System - User Guide
 
+> **Platform Note:** This project is currently built and tested on Windows. The MIDI output port is hardcoded to port 0 in `src/main.rs` at line 220 (`let port = &out_ports[0];`), which typically outputs to the Microsoft GS Wavetable Synth. If you're using a DAW or other MIDI software, change the `[0]` to `[1]` or another port index as needed.
+
+## Quick Start
+
+1. Clone the repository
+2. Run `cargo run`
+
+That's it! The program will generate and play MIDI output based on the included configuration files.
+
+### How It Works
+
+The output is controlled by three JSON files:
+
+| File | Purpose |
+|------|---------|
+| `measures.json` | Defines base patterns (e.g., hi-hat rhythms, kick/snare grooves) |
+| `prechildren_library.json` | Defines embellishments (fills, rolls, grace notes) |
+| `calllist.jsonc` | The "song composition" - instructions for combining and modifying patterns |
+
+Edit these files to change what music is generated. The call list is where you compose by referencing measures and injecting embellishments. See the full documentation below for details.
+
+---
+
 ## Table of Contents
 1. [Overview](#overview)
 2. [System Architecture](#system-architecture)
@@ -10,10 +33,12 @@
 4. [File Structure](#file-structure)
 5. [Data Structures and Attributes](#data-structures-and-attributes)
    - [HNote Structure](#hnote-structure)
+   - [Optional Fields and Defaults](#optional-fields-and-defaults)
    - [Common MIDI Drum Numbers](#common-midi-drum-numbers)
    - [Child Direction](#child-direction)
    - [Anchor System (for Prechildren)](#anchor-system-for-prechildren)
    - [timing_based_on_children](#timing_based_on_children)
+   - [Overwrite System (Silencing Conflicting Notes)](#overwrite-system-silencing-conflicting-notes)
 6. [Debugging and Metadata Fields](#debugging-and-metadata-fields)
    - [name](#name)
    - [print_length](#print_length)
@@ -129,7 +154,7 @@ Child B gets: (3.0 / 4.0) × 4.0 = 3.0 seconds
 ### Project Files
 
 ```
-hello-rust/
+hnote/
 ├── src/
 │   ├── main.rs                    # Entry point
 │   ├── types.rs                   # HNote and Call definitions
@@ -150,12 +175,13 @@ hello-rust/
 
 ```json
 {
-  "midi_number": 36,           // MIDI note (36 = kick, 38 = snare, 42/43 = hi-hat)
-  "velocity": 100,             // Volume (0-127)
-  "timing": 2.0,               // Proportional time share
-  "channel": 9,                // MIDI channel (9 = drums)
-  "child_direction": "sequential",  // How children are arranged
-  "children": [...],           // Array of child HNotes
+  // Core fields (all optional with sensible defaults)
+  "midi_number": 36,           // MIDI note (default: 0 = silent)
+  "velocity": 100,             // Volume 0-127 (default: 0)
+  "timing": 2.0,               // Proportional time share (default: 1.0)
+  "channel": 9,                // MIDI channel (default: 0, use 9 for drums)
+  "child_direction": "sequential",  // How children are arranged (default: "sequential")
+  "children": [...],           // Array of child HNotes (default: null)
   "prechildren": [...],        // Array of embellishment HNotes
 
   // Prechild timing controls (optional)
@@ -164,14 +190,55 @@ hello-rust/
   "timing_based_on_children": true,  // Scale prechildren based on children's timing
 
   // Overwrite controls (optional)
-  "overwrite_children": false, // Should prechildren silence conflicting children?
-  "ancestor_overwrite_level": 2,  // How many levels up to apply overwrite
+  "overwrite_children": false, // Should prechildren silence conflicting notes?
+  "ancestor_overwrite_level": 2,  // How many levels up to find the silencing scope
+  "end_of_silence_prechild": 3,   // Which prechild marks the end of silencing (1-indexed)
 
   // Debugging/metadata (optional)
-  "name": "kick pattern",      // Human-readable name for debugging
+  "name": "kick pattern",      // Human-readable name for debugging and lookups
   "print_length": true         // Print timing info for this note during recalc
 }
 ```
+
+### Optional Fields and Defaults
+
+Many HNote fields are optional and will use sensible defaults if omitted. This is especially useful when creating prechild library templates where you only care about the prechild-related fields.
+
+| Field | Default | Rationale |
+|-------|---------|-----------|
+| `midi_number` | 0 | Silent note (won't produce sound) |
+| `velocity` | 0 | No volume |
+| `timing` | 1.0 | Standard timing share |
+| `channel` | 0 | Default channel (override to 9 for drums) |
+| `child_direction` | "sequential" | Children play one after another |
+| `children` | null | No children |
+
+**Example - Minimal prechild library entry:**
+
+Instead of specifying all fields:
+```json
+{
+  "midi_number": 0,
+  "velocity": 100,
+  "timing": 2,
+  "channel": 9,
+  "children": null,
+  "name": "my fill template",
+  "anchor_prechild": 2,
+  "prechildren": [...]
+}
+```
+
+You can simply write:
+```json
+{
+  "name": "my fill template",
+  "anchor_prechild": 2,
+  "prechildren": [...]
+}
+```
+
+The omitted fields will use their defaults. This makes prechild library entries cleaner and easier to maintain.
 
 ### Common MIDI Drum Numbers
 
@@ -290,6 +357,183 @@ If `timing_based_on_children: true` but the HNote has **no children** (or childr
 **When to use:**
 - `true`: When you want the embellishment to "fit" within the children's rhythm scale
 - `false`: When you want the embellishment sized relative to the total parent duration
+
+---
+
+### Overwrite System (Silencing Conflicting Notes)
+
+When you inject prechildren, they may overlap with existing notes in the tree. The overwrite system allows prechildren to **silence** conflicting notes within a specified scope and time range.
+
+#### The Problem
+
+Imagine you have a hi-hat pattern and a kick/snare pattern playing simultaneously (sidebyside). You want to add a tom fill that replaces some hi-hat notes during a specific time window. Without the overwrite system, both the fill AND the hi-hats would play, creating a cluttered sound.
+
+#### How It Works
+
+The overwrite system uses three fields working together:
+
+1. **`overwrite_children`**: Enables the silencing behavior (boolean)
+2. **`ancestor_overwrite_level`**: Determines the SCOPE - how far up the tree to look for notes to silence (integer)
+3. **`end_of_silence_prechild`**: Determines the TIME RANGE - which prechild marks where silencing stops (1-indexed integer)
+
+#### overwrite_children
+
+Set to `true` to enable the silencing behavior. When enabled, notes within the calculated time range and scope will have their `midi_number` set to 0 (silent).
+
+```json
+{
+  "overwrite_children": true,
+  "prechildren": [...]
+}
+```
+
+#### ancestor_overwrite_level
+
+This controls the **scope** of silencing - how many levels UP the tree to go to find the node whose children should be checked for silencing.
+
+| Level | Target Node | What Gets Checked |
+|-------|-------------|-------------------|
+| 0 | The node with prechildren itself | Only its own children |
+| 1 | Parent of the node | Parent's children (siblings) |
+| 2 | Grandparent | Grandparent's children (aunts/uncles) |
+| 3 | Great-grandparent | All descendants of great-grandparent |
+
+**Visual Example:**
+
+```
+Root (level 3 from Snare)
+├── Measure (level 2 from Snare)
+│   ├── HiHats (level 1 from Snare) ← "cousin" pattern
+│   │   ├── [0.00 - 0.12 43]  ← These could be silenced with level 2+
+│   │   ├── [0.12 - 0.23 43]
+│   │   └── ...
+│   └── KickSnare
+│       ├── Snare [0.00 - 0.47 38] ← INJECTED HERE (has prechildren)
+│       │   ├── p[...] ← prechild 1
+│       │   └── p[...] ← prechild 2
+│       ├── Kick [0.47 - 1.17 36]  ← sibling, silenced with level 1+
+│       └── ...
+```
+
+With `ancestor_overwrite_level: 1`:
+- Target = KickSnare (parent of Snare)
+- Only KickSnare's children (Snare's siblings) are checked for silencing
+
+With `ancestor_overwrite_level: 2`:
+- Target = Measure (grandparent of Snare)
+- Measure's children (HiHats and KickSnare) AND their descendants are checked
+- This means hi-hat notes can be silenced too!
+
+With `ancestor_overwrite_level: 3`:
+- Target = Root (great-grandparent)
+- ALL notes in the entire song within the time range could be silenced
+
+#### end_of_silence_prechild
+
+This controls the **time range** for silencing. Notes are silenced based on when they start relative to the prechildren.
+
+**The silencing range is:**
+- **Start**: The first prechild's `start_time`
+- **End**: The `end_of_silence_prechild`'s `start_time`
+
+Notes are silenced if: `note.start_time >= silence_start AND note.start_time < silence_end`
+
+**Key insight**: This is a half-open interval `[start, end)`. Notes that start AT or AFTER the end prechild's start time are NOT silenced.
+
+**Default behavior**: If `end_of_silence_prechild` is not specified, it defaults to `anchor_prechild`.
+
+**Example:**
+
+```json
+{
+  "anchor_prechild": 1,
+  "end_of_silence_prechild": 2,
+  "prechildren": [
+    {"midi_number": 58, "timing": 0.5, ...},  // prechild 1 (anchor)
+    {"midi_number": 58, "timing": 0.5, ...}   // prechild 2 (end of silence)
+  ]
+}
+```
+
+If the prechildren calculate to:
+- Prechild 1: starts at 3.75
+- Prechild 2: starts at 3.98
+
+Then notes are silenced if their `start_time` is in the range `[3.75, 3.98)`.
+
+Notes starting at 3.75, 3.80, 3.90 would be silenced.
+Notes starting at 3.98 or later would NOT be silenced.
+
+#### Complete Example
+
+**Scenario**: You have hi-hats and kick/snare playing sidebyside. You want to add a fill on the first snare that silences hi-hat notes during the fill, but lets hi-hats resume after.
+
+**Prechild library entry:**
+```json
+{
+  "name": "tom fill with hihat cutoff",
+  "anchor_prechild": 1,
+  "end_of_silence_prechild": 2,
+  "anchor_end": false,
+  "overwrite_children": true,
+  "ancestor_overwrite_level": 2,
+  "prechildren": [
+    {"midi_number": 58, "timing": 0.5, "channel": 9},
+    {"midi_number": 58, "timing": 0.5, "channel": 9}
+  ]
+}
+```
+
+**What happens:**
+1. Prechildren are positioned (prechild 1 = anchor at snare's start)
+2. `overwrite_children: true` enables silencing
+3. `ancestor_overwrite_level: 2` targets the Measure (grandparent), so hi-hats are in scope
+4. Silencing range = `[prechild_1.start_time, prechild_2.start_time)`
+5. Any hi-hat or kick notes starting in that range get `midi_number = 0`
+6. Notes starting at or after prechild 2's start time play normally
+
+**Result in tree_output.txt:**
+```
+├── [5.62 - 7.50 0]                     [5.62 - 7.50 0]
+│   ├── [5.62 - 5.75 0]      ← Silenced (was 43)
+│   ├── [5.75 - 5.86 0]      ← Silenced (was 43)
+│   ├── [5.86 - 5.98 43]     ← NOT silenced (after end_of_silence_prechild)
+│   ...
+│   │   ├── p[5.62 - 5.75 58]   ← prechild 1 (anchor)
+│   │   └── p[5.75 - 5.98 58]   ← prechild 2 (end of silence marker)
+```
+
+#### Why Use end_of_silence_prechild?
+
+Without `end_of_silence_prechild`, the silencing would use `anchor_prechild` as the default, which often means very little gets silenced (since anchor is usually the first note of the embellishment).
+
+By setting `end_of_silence_prechild` to a later prechild, you control exactly how much of the surrounding pattern gets "cleared out" to make room for your fill.
+
+**Common patterns:**
+
+1. **Silence during entire fill**: Set `end_of_silence_prechild` to the last prechild
+2. **Silence only before the main hit**: Set it to the anchor prechild
+3. **Partial silence**: Set it somewhere in the middle
+
+#### Troubleshooting Overwrite
+
+**Notes not being silenced:**
+- Check `overwrite_children: true` is set
+- Verify `ancestor_overwrite_level` is high enough to reach the target notes
+- Check that the notes' `start_time` falls within the silence range
+- Remember: `end_of_silence_prechild` defaults to `anchor_prechild` if not set
+
+**Too many notes silenced:**
+- Lower the `ancestor_overwrite_level` to reduce scope
+- Set `end_of_silence_prechild` to an earlier prechild
+- Check that your prechildren timing doesn't extend too far
+
+**Debug tip**: The console prints silencing info:
+```
+Silencing notes in range [5.62, 5.86) (end_of_silence_prechild index: 2)
+Checking 43 at 5.62 vs silence range [5.62, 5.86)
+changing 43 at 5.62 to 0
+```
 
 ---
 
@@ -521,6 +765,7 @@ When InjectPrechildren runs, it copies these fields from the prechild library te
 |-------|---------|
 | `prechildren` | The array of embellishment notes to add |
 | `anchor_prechild` | Which prechild aligns with the target (1-indexed) |
+| `end_of_silence_prechild` | Which prechild marks the end of the silencing range (1-indexed) |
 | `anchor_end` | Whether to anchor at parent's end (`true`) or start (`false`) |
 | `timing_based_on_children` | How to scale prechild durations (see below) |
 | `overwrite_children` | Whether prechildren should silence conflicting notes |
@@ -854,7 +1099,7 @@ To specify which call list to use:
          "request": "launch",
          "name": "Debug",
          "cargo": {
-           "args": ["build", "--bin=hello-rust", "--package=hello-rust"]
+           "args": ["build", "--bin=hnote", "--package=hnote"]
          },
          "args": ["generate_hnote_from_rules"],
          "cwd": "${workspaceFolder}"
@@ -913,71 +1158,77 @@ After running, check `tree_output.txt` to see the complete hierarchical structur
 
 ## Examples
 
-### Example 1: Simple Layering
+The included files provide a working example you can run immediately with `cargo run`.
 
-**Goal:** Hi-hats with kick/snare for 4 measures
+### Included measures.json
 
-```json
-[
-  {"function": "combine", "direction": "sidebyside", "calls": [
-    {"target": 0, "function": "once"},
-    {"target": 1, "function": "once"}
-  ]},
-  {"function": "combine", "direction": "sidebyside", "calls": [
-    {"target": 0, "function": "once"},
-    {"target": 1, "function": "once"}
-  ]},
-  {"function": "combine", "direction": "sidebyside", "calls": [
-    {"target": 0, "function": "once"},
-    {"target": 1, "function": "once"}
-  ]},
-  {"function": "combine", "direction": "sidebyside", "calls": [
-    {"target": 0, "function": "once"},
-    {"target": 1, "function": "once"}
-  ]}
-]
-```
+Defines two base patterns:
 
-### Example 2: Adding a Fill
+- **"running hihats"** (index 0): A 16-note hi-hat pattern with varying velocities and a mix of closed hi-hats (43, 44) and a tom accent (48)
+- **"kick-snare"** (index 1): A basic 4-note kick/snare groove (snare-kick-snare-kick pattern using MIDI 38 and 36)
 
-**Goal:** 3 normal measures + 1 with a fill
+### Included prechildren_library.json
 
-```json
-[
-  {"function": "combine", "direction": "sidebyside", "calls": [
-    {"target": 0, "function": "once"},
-    {"target": 1, "function": "once"}
-  ]},
-  {"function": "combine", "direction": "sidebyside", "calls": [
-    {"target": 0, "function": "once"},
-    {"target": 1, "function": "once"}
-  ]},
-  {"function": "combine", "direction": "sidebyside", "calls": [
-    {"target": 0, "function": "once"},
-    {"target": 1, "function": "once"}
-  ]},
-  {"function": "combine", "direction": "sidebyside", "calls": [
-    {"target": 0, "function": "once"},
-    {
-      "target": 1,
-      "function": "injectprechildren",
-      "path": [3],
-      "prechild_library_target": 0
-    }
-  ]}
-]
-```
+Defines three embellishment templates:
 
-### Example 3: Surgical Injection at Root
+- **"prechild variant 2"**: A hi-hat roll leading into a splash cymbal (55), anchored to the end
+- **"prechild variant 3"**: A bongo fill (61, 63) with `overwrite_children: true` to silence conflicting notes
+- **"prechild variant 4"**: A vibraslap hit (58) that silences surrounding notes in a wider scope
 
-**Goal:** Add prechildren to an entire measure (not just one note)
+### Included calllist.jsonc
 
+The call list creates a 7-measure composition:
+
+1. **Measure 1**: Plain hi-hats + kick-snare (basic groove)
+2. **Measure 2**: Hi-hats + kick-snare with "prechild variant 2" injected at root (adds splash cymbal)
+3. **Measure 3**: Plain hi-hats + kick-snare
+4. **Measure 4**: Hi-hats + kick-snare with "prechild variant 3" on first beat (bongo fill)
+5. **Measure 5**: Plain hi-hats + kick-snare
+6. **Measure 6**: Hi-hats + kick-snare with "prechild variant 4" on first beat (vibraslap accent)
+7. **Measure 7**: Plain hi-hats + kick-snare
+
+The remaining entries have `"status": "inactive"` and are skipped during playback.
+
+### Example Patterns from the Included Files
+
+**Simple layering (from calllist.jsonc):**
 ```json
 {
-  "target": 1,
+  "function": "combine",
+  "direction": "sidebyside",
+  "status": "active",
+  "calls": [
+    {"target": "running hihats", "function": "once"},
+    {"target": "kick-snare", "function": "once"}
+  ]
+}
+```
+
+**Injecting a fill at the root level:**
+```json
+{
+  "function": "combine",
+  "direction": "sidebyside",
+  "status": "active",
+  "calls": [
+    {"target": "running hihats", "function": "once"},
+    {
+      "target": "kick-snare",
+      "function": "injectprechildren",
+      "path": [],
+      "prechild_library_target": "prechild variant 2"
+    }
+  ]
+}
+```
+
+**Injecting a fill on a specific child (first beat):**
+```json
+{
+  "target": "kick-snare",
   "function": "injectprechildren",
-  "path": [],
-  "prechild_library_target": 0
+  "path": [0],
+  "prechild_library_target": "prechild variant 3"
 }
 ```
 
@@ -1109,6 +1360,21 @@ ANCHORS:
   timing_based_on_children: true   → Scale with children's timing shares
   timing_based_on_children: false  → Scale with parent's total length
   (Note: true with no children falls back to parent length)
+
+OVERWRITE (SILENCING):
+  overwrite_children: true         → Enable silencing of conflicting notes
+  ancestor_overwrite_level: 2      → Go up 2 levels to find scope
+  end_of_silence_prechild: 3       → Silence ends at prechild 3's start_time
+  (Defaults to anchor_prechild if not set)
+  Silencing range: [first_prechild.start, end_of_silence_prechild.start)
+
+OPTIONAL FIELDS (with defaults):
+  midi_number    → 0 (silent)
+  velocity       → 0
+  timing         → 1.0
+  channel        → 0
+  child_direction → "sequential"
+  children       → null
 
 DEBUGGING:
   name: "my note"         → Human-readable label for debugging
