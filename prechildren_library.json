@@ -1,0 +1,149 @@
+[
+    {
+        "name": "prechild variant 2",
+        "timing_based_on_children": true,
+        "anchor_prechild": 4,
+        "anchor_end": true,
+        "overwrite_children": false,
+        "ancestor_overwrite_level": 1,
+        "prechildren": [
+            {
+                "midi_number": 0,
+                "velocity": 80,
+                "timing": 1.0,
+                "channel": 9,
+                "name": "prechild basing on 1",
+                "print_length": true,
+                "children": [
+            {
+                "midi_number": 42,
+                "velocity": 80,
+                "timing": 1.0,
+                "channel": 9,
+                "name": "prechild basing on 1",
+                "print_length": true,
+                "children": null
+
+            },
+            {
+                "midi_number": 42,
+                "velocity": 50,
+                "timing": 1.0,
+                "channel": 9,
+                "name": "prechild basing on 1",
+                "print_length": true,
+                "children": null
+
+            },
+            {
+                "midi_number": 42,
+                "velocity": 60,
+                "timing": 1.0,
+                "channel": 9,
+                "name": "prechild basing on 2",
+                "print_length": true,
+                "children": null
+            }
+        ]
+
+            },
+            {
+                "midi_number": 42,
+                "velocity": 80,
+                "timing": 2.0,
+                "channel": 9,
+                "name": "prechild basing on 2",
+                "print_length": true,
+                "children": null
+            },
+            {
+                "midi_number": 42,
+                "velocity": 80,
+                "timing": 1.0,
+                "channel": 9,
+                "name": "prechild basing on 3",
+                "print_length": true,
+                "children": null
+            },
+            {
+                "midi_number": 55,
+                "velocity": 120,
+                "timing": 2.0,
+                "channel": 9,
+                "name": "prechild basing on 4",
+                "print_length": true,
+                "children": null
+            }
+        ]
+    },
+    {
+        "name": "prechild variant 3",
+        "timing_based_on_children": true,
+        "anchor_prechild": 4,
+        "anchor_end": true,
+        "overwrite_children": true,
+        "ancestor_overwrite_level": 2,
+        "prechildren": [
+            {
+                "midi_number": 63,
+                "velocity": 80,
+                "timing": 0.45,
+                "channel": 9,
+                "children": null
+            },
+            {
+                "midi_number": 61,
+                "velocity": 80,
+                "timing": 0.4,
+                "channel": 9,
+                "children": null
+            },
+            {
+                "midi_number": 63,
+                "velocity": 80,
+                "timing": 0.35,
+                "channel": 9,
+                "children": null
+            },
+                        {
+                "midi_number": 61,
+                "velocity": 80,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+            },
+            {
+                "midi_number": 0,
+                "velocity": 80,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+            }
+        ]
+    },
+    {
+        "name": "prechild variant 4",
+        "timing_based_on_children": false,
+        "anchor_prechild": 1,
+        "end_of_silence_prechild": 2,
+        "anchor_end": false,
+        "overwrite_children": true,
+        "ancestor_overwrite_level": 3,
+        "prechildren": [
+            {
+                "midi_number": 58,
+                "velocity": 80,
+                "timing": 0.5,
+                "channel": 9,
+                "children": null
+            },
+            {
+                "midi_number": 58,
+                "velocity": 80,
+                "timing": 0.5,
+                "channel": 9,
+                "children": null
+            }
+        ]
+    }
+]

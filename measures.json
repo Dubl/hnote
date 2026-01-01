@@ -1,0 +1,172 @@
+[
+    {
+                "midi_number": 0,
+                "velocity": 100,
+                "timing": 2,
+                "name": "running hihats",
+                "channel": 9,
+                "child_direction": "sequential",
+                "start_time": 0.0,
+                "end_time": 1.875,
+                "children": [
+                    {
+                        "midi_number": 43,
+                        "velocity": 60,
+                        "timing": 2.1,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 43,
+                        "velocity": 40,
+                        "timing": 1.9,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 43,
+                        "velocity": 60,
+                        "timing": 2.1,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 43,
+                        "velocity": 40,
+                        "timing": 1.9,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 43,
+                        "velocity": 60,
+                        "timing": 2.1,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 43,
+                        "velocity": 40,
+                        "timing": 1.9,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 43,
+                        "velocity": 50,
+                        "timing": 1.75,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 48,
+                        "velocity": 60,
+                        "timing": 2.25,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 44,
+                        "velocity": 30,
+                        "timing": 2.1,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 44,
+                        "velocity": 60,
+                        "timing": 1.9,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 44,
+                        "velocity": 30,
+                        "timing": 2.1,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 44,
+                        "velocity": 65,
+                        "timing": 1.9,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 44,
+                        "velocity": 30,
+                        "timing": 2.1,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 44,
+                        "velocity": 65,
+                        "timing": 1.9,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 44,
+                        "velocity": 30,
+                        "timing": 2.1,
+                        "channel": 9,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 44,
+                        "velocity": 60,
+                        "timing": 1.9,
+                        "channel": 9,
+                        "children": null
+                    }
+                ]
+            },
+            {
+                "midi_number": 0,
+                "velocity": 100,
+                "timing": 2,
+                "channel": 9,
+                "child_direction": "sequential",
+                "name": "kick-snare",
+                "children": [
+                    {
+                        "midi_number": 38,
+                        "velocity": 80,
+                        "timing": 2.0,
+                        "channel": 9,
+                        "name": "child 1 of hnote based on",
+                        "print_length": true,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 36,
+                        "velocity": 80,
+                        "timing": 3.0,
+                        "channel": 9,
+                        "name": "child 2 of hnote based on",
+                        "print_length": true,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 38,
+                        "velocity": 65,
+                        "timing": 2.0,
+                        "channel": 9,
+                        "name": "child 3 of hnote based on",
+                        "print_length": true,
+                        "children": null
+                    },
+                    {
+                        "midi_number": 36,
+                        "velocity": 100,
+                        "timing": 1.0,
+                        "channel": 9,
+                        "name": "child 4 of hnote based on",
+                        "print_length": true,
+                        "children": null
+                    }
+                ]
+            }
+]

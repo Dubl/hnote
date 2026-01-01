@@ -1,0 +1,196 @@
+[
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {"target": "kick-snare", "function": "once"}
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [],
+        "prechild_library_target": "prechild variant 2"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {"target": "kick-snare", "function": "once"}
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": "prechild variant 3"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {"target": "kick-snare", "function": "once"}
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": "prechild variant 4"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {"target": "kick-snare", "function": "once"}
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [],
+        "prechild_library_target": "prechild variant 2"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {"target": "kick-snare", "function": "once"}
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": "prechild variant 3"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {"target": "kick-snare", "function": "once"}
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": "prechild variant 4"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": "prechild variant 4"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": "prechild variant 4"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": "prechild variant 4"
+      }
+    ]
+  },
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "inactive",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {
+        "target": "kick-snare",
+        "function": "injectprechildren",
+        "path": [0],
+        "prechild_library_target": "prechild variant 4"
+      }
+    ]
+  }
+]

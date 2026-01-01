@@ -16,6 +16,11 @@ tempmain.rs
 *.jsonc
 *.csv
 
+# Exceptions - track these specific config files
+!calllist.jsonc
+!measures.json
+!prechildren_library.json
+
 # Editor files
 .vscode/
 *.swp
