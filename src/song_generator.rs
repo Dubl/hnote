@@ -19,7 +19,9 @@ pub fn apply_hnote_call(
                 return;
             }
             println!("in roll");
-            let mut from_hnote = sourcehnotes[1].clone();
+            let source = find_hnote_by_name(sourcehnotes, target)
+                .expect(&format!("Could not find measure with name '{}'", target));
+            let mut from_hnote = source.clone();
             // println!("from_hnote:{:?}",from_hnote);
             let mut rollee =passedstruct.unwrap().clone();
             println!("from_hnote:{:?}",from_hnote);
@@ -74,9 +76,10 @@ pub fn apply_hnote_call(
             if *status == CallStatus::Inactive {
                 return;
             }
-            // 1. Call maketwocopies on the chosen struct
-            // println!("Calling maketwocopies on object #{}", target);
-            let mut copies = sourcehnotes[*target].twice();
+            // 1. Find the source HNote by name and make two copies
+            let source = find_hnote_by_name(sourcehnotes, target)
+                .expect(&format!("Could not find measure with name '{}'", target));
+            let mut copies = source.twice();
 
             // 2. We store them in `results` (or do something else with them)
             // println!("Created {} copies from object #{}", copies.len(), target);
@@ -108,10 +111,10 @@ pub fn apply_hnote_call(
             if *status == CallStatus::Inactive {
                 return;
             }
-            // 1. Call maketwocopies on the chosen struct
-            // println!("Calling maketwocopies on object #{}", target);
-            // let copy = sourcehnotes[*target].once();
-            let mut copy= sourcehnotes[*target].clone();
+            // 1. Find the source HNote by name and clone it
+            let source = find_hnote_by_name(sourcehnotes, target)
+                .expect(&format!("Could not find measure with name '{}'", target));
+            let mut copy = source.clone();
             // 2. We store them in `results` (or do something else with them)
             // println!("Created {} copies from object #{}", copies.len(), target);
 
@@ -184,13 +187,16 @@ pub fn apply_hnote_call(
             if *status == CallStatus::Inactive {
                 return;
             }
-            // 1. Clone measure from sourcehnotes[target]
-            let mut copy = sourcehnotes[*target].clone();
+            // 1. Find the source HNote by name and clone it
+            let source = find_hnote_by_name(sourcehnotes, target)
+                .expect(&format!("Could not find measure with name '{}'", target));
+            let mut copy = source.clone();
 
             // 2. Navigate to target node using path
             if let Some(target_node) = copy.navigate_path_mut(path) {
-                // 3. Get template from prechild library
-                let template = &prechild_library[*prechild_library_target];
+                // 3. Get template from prechild library by name
+                let template = find_hnote_by_name(prechild_library, prechild_library_target)
+                    .expect(&format!("Could not find prechild template with name '{}'", prechild_library_target));
 
                 // 4. Extract and copy fields from template
                 target_node.prechildren = template.prechildren.clone();

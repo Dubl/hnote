@@ -20,21 +20,21 @@ impl Default for CallStatus {
 #[serde(rename_all = "lowercase")]
 pub enum Call {
     Twice {
-        target: usize,
+        target: String,
         #[serde(default)]
         then: Option<Box<Call>>,
         #[serde(default)]
         status: CallStatus,
     },
     Once {
-        target: usize,
+        target: String,
         #[serde(default)]
         then: Option<Box<Call>>,
         #[serde(default)]
         status: CallStatus,
     },
     Roll {
-        target: usize,
+        target: String,
         amount: usize,
         #[serde(default)]
         then: Option<Box<Call>>,
@@ -50,15 +50,23 @@ pub enum Call {
         status: CallStatus,
     },
     InjectPrechildren {
-        target: usize,
+        target: String,
         path: Vec<usize>,
-        prechild_library_target: usize,
+        prechild_library_target: String,
         #[serde(default)]
         then: Option<Box<Call>>,
         #[serde(default)]
         status: CallStatus,
     }
 
+}
+
+/// Find an HNote in a slice by its name field.
+/// Returns a reference to the HNote if found, or None if not found.
+pub fn find_hnote_by_name<'a>(hnotes: &'a [HNote], name: &str) -> Option<&'a HNote> {
+    hnotes.iter().find(|hnote| {
+        hnote.name.as_ref().map_or(false, |n| n == name)
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
