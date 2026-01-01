@@ -7,24 +7,13 @@
 1. Clone the repository
 2. Run `cargo run`
 
-That's it! The program will generate and play MIDI output based on the included configuration files.
-
-### How It Works
-
-The output is controlled by three JSON files:
-
-| File | Purpose |
-|------|---------|
-| `measures.json` | Defines base patterns (e.g., hi-hat rhythms, kick/snare grooves) |
-| `prechildren_library.json` | Defines embellishments (fills, rolls, grace notes) |
-| `calllist.jsonc` | The "song composition" - instructions for combining and modifying patterns |
-
-Edit these files to change what music is generated. The call list is where you compose by referencing measures and injecting embellishments. See the full documentation below for details.
+That's it! The included examples should output the `tree_output.txt` file, and generate the same audio you hear in the `example_beat.mp3` file. Note that no audio file is generated with this program. It simply sends notes to an engine (in the example's case, the Windows MIDI player)
 
 ---
 
 ## Table of Contents
-1. [Overview](#overview)
+1. [How It Works](#how-it-works)
+   - [Included Example](#included-example)  
 2. [System Architecture](#system-architecture)
 3. [Core Concepts](#core-concepts)
    - [HNote (Hierarchical Note)](#hnote-hierarchical-note)
@@ -64,18 +53,117 @@ Edit these files to change what music is generated. The call list is where you c
 13. [Quick Reference Card](#quick-reference-card)
 
 ---
+## How It Works
 
-## Overview
+The output is controlled by three JSON files. Edit these files to change what music is generated:
 
-This system allows you to compose drum patterns (or any MIDI music) using a hierarchical, rule-based approach. Instead of manually placing every note, you define:
+| File | Purpose |
+|------|---------|
+| `calllist.jsonc` | The "song composition" - instructions for combining and modifying patterns |
+| `measures.json` | Defines base patterns (e.g., hi-hat rhythms, kick/snare grooves) |
+| `prechildren_library.json` | Defines embellishments (fills, rolls, grace notes) |
 
-1. **Base patterns** (measures) - reusable building blocks
-2. **Embellishments** (prechild library) - fills, rolls, and variations
-3. **Composition rules** (call lists) - how to combine and modify patterns
+## Included Example
 
-The system then generates the complete MIDI note tree with precise timing.
+The `calllist.jsonc` file represents an array of nested calls. In the example, there are 8 calls.
+Those calls reference the `measures.json` file for their base loops, and you can augment those with fills from the `prechildren_library.json` file. Both the `measures.json` and `prechildren_library.json` files represent arrays of HNotes, while the `calllist.jsonc`file represents a list of calls.
 
----
+Let's look at the first nested call, which we see/hear represented in four ways:
+-`tree_output.txt` shows the final structure in ASCII as a hierarchy
+-`calllist.jsonc` shows what is called
+-`measures.json` shows the definitions of what's called
+-`example_beat.mp3`: the first loop is the audio (0-1.875 seconds), where you can hear how it comes together
+
+
+### In `calllist.jsonc` (line 2): 
+```
+  {
+    "function": "combine",
+    "direction": "sidebyside",
+    "status": "active",
+    "calls": [
+      {"target": "running hihats", "function": "once"},
+      {"target": "kick-snare", "function": "once"}
+    ]
+  }
+```
+
+the call here shows that two HNotes are being combined, side-by-side. Let's look at exactly what these HNotes are
+
+
+### In `measures.json` (line 2):
+```
+    {
+        "name": "running hihats",
+        "child_direction": "sequential",
+        "start_time": 0.0,
+        "end_time": 1.875,
+        "children": [
+            {"midi_number": 43,"velocity": 60,"timing": 2.1,"channel": 9,"children": null},
+            {"midi_number": 43,"velocity": 40,"timing": 1.9,"channel": 9,"children": null},
+            {"midi_number": 43,"velocity": 60,"timing": 2.1,"channel": 9,"children": null},
+            {"midi_number": 43,"velocity": 40,"timing": 1.9,"channel": 9,"children": null},
+            {"midi_number": 43,"velocity": 60,"timing": 2.1,"channel": 9,"children": null},
+            {"midi_number": 43,"velocity": 40,"timing": 1.9,"channel": 9,"children": null},
+            {"midi_number": 43,"velocity": 50,"timing": 1.75,"channel": 9,"children": null},
+            {"midi_number": 48,"velocity": 60,"timing": 2.25,"channel": 9,"children": null},
+            {"midi_number": 44,"velocity": 30,"timing": 2.1,"channel": 9,"children": null},
+            {"midi_number": 44,"velocity": 60,"timing": 1.9,"channel": 9,"children": null},
+            {"midi_number": 44,"velocity": 30,"timing": 2.1,"channel": 9,"children": null},
+            {"midi_number": 44,"velocity": 65,"timing": 1.9,"channel": 9,"children": null},
+            {"midi_number": 44,"velocity": 30,"timing": 2.1,"channel": 9,"children": null},
+            {"midi_number": 44,"velocity": 65,"timing": 1.9,"channel": 9,"children": null},
+            {"midi_number": 44,"velocity": 30,"timing": 2.1,"channel": 9,"children": null},
+            {"midi_number": 44,"velocity": 60,"timing": 1.9,"channel": 9,"children": null}
+        ]
+    },
+    {
+        "child_direction": "sequential",
+        "name": "kick-snare",
+        "children": [
+            {"midi_number": 38,"velocity": 80,"timing": 2.0,"channel": 9,"children": null},
+            {"midi_number": 36,"velocity": 80,"timing": 3.0,"channel": 9,"children": null},
+            {"midi_number": 38,"velocity": 65,"timing": 2.0,"channel": 9,"children": null},
+            {"midi_number": 36,"velocity": 100,"timing": 1.0,"channel": 9,"children": null}
+        ]
+    }
+```
+
+
+These are our two nested HNote objects being called. An HNote object can be a note, or a container for a note. In the above, the parents and children are the same class, but some fields/arguments are optional. So in this case we see two containers: one holding 16 notes, and one holding 4. The timing is locked to the container. Note that, in this case, the first container defines its absolute start and end tinme. Its children therefore proportion out that time based on their 'timing' amount. These numbers can be whatever you want. Each child will simply take up the amount of time that their 'timing' amount is as a proportion of the total of all the children's values (e.g. if a note's 'timing' is 2 units, and there are 32 total units, then that note takes up 1/16 of the container's time) 
+
+### In `tree_output.txt` (line 0):
+```
+[0.00 - 15.00 0]                                                                                                           
+├── [0.00 - 1.88 0]                                                                                                        
+│       |-----------------------------------┐                                                                              
+│       [0.00 - 1.88 0]                     [0.00 - 1.88 0]                                                                
+│       ├── [0.00 - 0.12 43]                ├── [0.00 - 0.47 38]                                                           
+│       ├── [0.12 - 0.23 43]                ├── [0.47 - 1.17 36]                                                           
+│       ├── [0.23 - 0.36 43]                ├── [1.17 - 1.64 38]                                                           
+│       ├── [0.36 - 0.47 43]                └── [1.64 - 1.88 36]                                                           
+│       ├── [0.47 - 0.59 43]                                                                                               
+│       ├── [0.59 - 0.70 43]                                                                                               
+│       ├── [0.70 - 0.81 43]                                                                                               
+│       ├── [0.81 - 0.94 48]                                                                                               
+│       ├── [0.94 - 1.06 44]                                                                                               
+│       ├── [1.06 - 1.17 44]                                                                                               
+│       ├── [1.17 - 1.29 44]                                                                                               
+│       ├── [1.29 - 1.41 44]                                                                                               
+│       ├── [1.41 - 1.53 44]                                                                                               
+│       ├── [1.53 - 1.64 44]                                                                                               
+│       ├── [1.64 - 1.76 44]                                                                                               
+│       └── [1.76 - 1.88 44]                                 
+```
+
+the tree output shows the two hnotes being called side-by-side (i.e. siumultaneously). 
+
+-The first is 'running hi-hats'.. and you see those on the left side of the tree output as 16 notes, with time durations and MIDi number
+
+-The second is 'kick-snare'.. and you see those on the right side as 4 notes (kick-snare-kick-snare)
+
+Note that, while the number of notes is different, the length of the two will always be, by definition, the same. This gets to the heart of the timing engine of HNote. It's proportional. There are no grids or time signatures. This allows a very flexible but robust way for creating rhythms.
+
 
 ## System Architecture
 
