@@ -262,6 +262,7 @@ fn main() {
             children: None,
             prechildren: None,
             anchor_prechild: None,
+            end_of_silence_prechild: None,
             anchor_end: None,
             timing_based_on_children: None,
             overwrite_children: None,

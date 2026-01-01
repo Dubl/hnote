@@ -154,6 +154,7 @@ pub fn apply_hnote_call(
                 end_time: 0.0,
                 prechildren: None,
                 anchor_prechild: None,
+                end_of_silence_prechild: None,
                 anchor_end: None,
                 timing_based_on_children: None,
                 overwrite_children: None,
@@ -202,6 +203,7 @@ pub fn apply_hnote_call(
                 target_node.prechildren = template.prechildren.clone();
                 target_node.timing_based_on_children = template.timing_based_on_children;
                 target_node.anchor_prechild = template.anchor_prechild;
+                target_node.end_of_silence_prechild = template.end_of_silence_prechild;
                 target_node.anchor_end = template.anchor_end;
                 target_node.overwrite_children = template.overwrite_children;
                 target_node.ancestor_overwrite_level = template.ancestor_overwrite_level;

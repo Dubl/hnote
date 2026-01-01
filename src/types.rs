@@ -106,6 +106,7 @@ pub struct HNote {
     pub end_time: f64,
     pub prechildren: Option<Box<Vec<HNote>>>,
     pub anchor_prechild: Option<usize>, //1 index
+    pub end_of_silence_prechild: Option<usize>, //1 index, defaults to anchor_prechild if not set
     pub anchor_end: Option<bool>,
     pub timing_based_on_children: Option<bool>,
     pub overwrite_children: Option<bool>,
@@ -182,22 +183,18 @@ pub fn calculate_duration_from_locked(root: &HNote) -> Option<f64> {
     Some(total_timing_units * seconds_per_timing_unit)
 }
 
-fn overwrite_midi_recursive(note: &mut HNote, clearingtime: f64) {
-    println!("Checking {} at {} vs clearingtime of {}", note.midi_number,note.start_time, clearingtime);
-    if note.start_time > clearingtime {
-        println!("changing {} at {} to 0", note.midi_number, note.start_time);       
+fn overwrite_midi_recursive(note: &mut HNote, silence_start: f64, silence_end: f64) {
+    println!("Checking {} at {} vs silence range [{}, {})", note.midi_number, note.start_time, silence_start, silence_end);
+    // Silence notes that are >= silence_start AND < silence_end
+    if note.start_time >= silence_start && note.start_time < silence_end {
+        println!("changing {} at {} to 0", note.midi_number, note.start_time);
         note.midi_number = 0;
     }
     if let Some(ref mut children) = note.children {
         for child in children.iter_mut() {
-            overwrite_midi_recursive(child, clearingtime);
+            overwrite_midi_recursive(child, silence_start, silence_end);
         }
     }
-    // if let Some(ref mut prechildren) = note.prechildren {
-    //     for prechild in prechildren.iter_mut() {
-    //         overwrite_midi_recursive(prechild);
-    //     }
-    // }
 }
 
 impl HNote {
@@ -533,16 +530,26 @@ impl HNote {
             unsafe {println!("target_node_ptr is {},{}", (*target_node_ptr).start_time,(*target_node_ptr).end_time);}
             unsafe {
                 if let Some(ref mut target_children) = (*target_node_ptr).children {
-                    // For each child in the target node, if its start_time is after the first prechild's start_time, overwrite.
                     if let Some(ref prechildren_box) = self.prechildren {
                         if !prechildren_box.is_empty() {
-                            let first_prechild_start = prechildren_box[0].start_time;
-                            for child in target_children.iter_mut() { //need to keep recursing regardless of start time
-                                // if child.start_time > first_prechild_start {
-                                    overwrite_midi_recursive(child, first_prechild_start);
-                                // }
+                            // Silence start is always the first prechild's start_time
+                            let silence_start = prechildren_box[0].start_time;
+
+                            // Silence end is determined by end_of_silence_prechild, or anchor_prechild if not set
+                            let silence_end_idx = self.end_of_silence_prechild
+                                .or(self.anchor_prechild)
+                                .unwrap_or(1); // default to first prechild if neither is set
+
+                            // Convert to 0-indexed and clamp to valid range
+                            let idx = silence_end_idx.saturating_sub(1).min(prechildren_box.len() - 1);
+                            let silence_end = prechildren_box[idx].start_time;
+
+                            println!("Silencing notes in range [{}, {}) (end_of_silence_prechild index: {})",
+                                silence_start, silence_end, silence_end_idx);
+
+                            for child in target_children.iter_mut() {
+                                overwrite_midi_recursive(child, silence_start, silence_end);
                             }
-                            
                         }
                     }
                 }
