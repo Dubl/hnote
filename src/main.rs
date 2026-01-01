@@ -148,7 +148,10 @@ fn play_song(connection: &mut MidiOutputConnection, timer: &HighResTimer, song: 
     //    - active_notes: notes that have been triggered and are waiting to be turned off.
     let mut inactive_notes: Vec<HNote> = flat_notes;
     let mut active_notes: Vec<(HNote, f64)> = Vec::new();
-    
+
+    // Small buffer before playback to ensure MIDI device is ready
+    std::thread::sleep(Duration::from_millis(100));
+
     let start_time = timer.now();
     
     loop {

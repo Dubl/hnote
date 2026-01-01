@@ -84,11 +84,17 @@ impl Default for Direction {
 }
 
 
+fn default_timing() -> f64 { 1.0 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HNote {
+    #[serde(default)]
     pub midi_number: u8,
+    #[serde(default)]
     pub velocity: u8,
-    pub timing: f64,         // 'l' or 's'
+    #[serde(default = "default_timing")]
+    pub timing: f64,
+    #[serde(default)]
     pub channel: u8,
     #[serde(default)]  
     pub child_direction: Direction,
