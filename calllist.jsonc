@@ -80,7 +80,7 @@
   {
     "function": "combine",
     "direction": "sidebyside",
-    "status": "inactive",
+    "status": "active",
     "calls": [
       {"target": "running hihats", "function": "once"},
       {

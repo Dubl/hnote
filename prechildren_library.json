@@ -85,28 +85,28 @@
         "ancestor_overwrite_level": 2,
         "prechildren": [
             {
-                "midi_number": 63,
+                "midi_number": 36,
                 "velocity": 80,
                 "timing": 0.45,
                 "channel": 9,
                 "children": null
             },
             {
-                "midi_number": 61,
+                "midi_number": 38,
                 "velocity": 80,
                 "timing": 0.4,
                 "channel": 9,
                 "children": null
             },
             {
-                "midi_number": 63,
+                "midi_number": 36,
                 "velocity": 80,
                 "timing": 0.35,
                 "channel": 9,
                 "children": null
             },
                         {
-                "midi_number": 61,
+                "midi_number": 38,
                 "velocity": 80,
                 "timing": 1.0,
                 "channel": 9,
