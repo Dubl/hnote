@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HNote Player</title>
+<style>
+  :root{
+    --bg:#17151d; --surface:#201d28; --surface2:#2a2635; --line:#38334a;
+    --text:#efeae2; --muted:#8d8798;
+    --kick:#f5a524; --snare:#ef6351; --hat:#3ec9b0; --openhat:#7fe0cf;
+    --tom:#9d7bea; --cym:#e9d26a; --perc:#e26fb4; --rim:#c9c2b8;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px 14px 40px; max-width:720px; margin-inline:auto;}
+  header{margin-bottom:16px;}
+  h1{font-size:15px; letter-spacing:.28em; text-transform:uppercase; margin:0; font-weight:700;}
+  h1 span{color:var(--kick);}
+  .sub{color:var(--muted); font-size:12px; letter-spacing:.08em; margin-top:4px;}
+  .transport{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
+  button{border:1px solid var(--line); background:var(--surface); color:var(--text);
+    border-radius:10px; padding:12px 20px; font-size:15px; font-weight:600; cursor:pointer;}
+  button:active{transform:translateY(1px);}
+  #playBtn{background:var(--kick); border-color:var(--kick); color:#1a1207; min-width:96px;}
+  #playBtn.playing{background:var(--snare); border-color:var(--snare); color:#fff;}
+  .toggle{display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px;}
+  .toggle input{width:18px; height:18px; accent-color:var(--kick);}
+  .durRow{display:flex; align-items:center; gap:10px; margin-bottom:16px;}
+  .durRow label{font-size:12px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; white-space:nowrap;}
+  .durRow input[type=range]{flex:1; accent-color:var(--kick);}
+  .durRow output{font-family:ui-monospace,Menlo,monospace; font-size:13px; min-width:48px; text-align:right;}
+  .mapWrap{position:relative; background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; padding:10px 8px 8px; margin-bottom:16px; overflow:hidden;}
+  .mapTitle{font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin:0 0 8px 4px;}
+  #map{position:relative;}
+  .row{position:relative; height:24px; margin-bottom:4px;}
+  .seg{position:absolute; top:0; bottom:0; border-radius:5px; border:1px solid var(--line);
+    background:var(--surface2); font-size:9px; color:var(--muted); overflow:hidden;
+    white-space:nowrap; display:flex; align-items:center; padding-left:5px;
+    transition:filter .08s, box-shadow .08s;}
+  .seg.leaf{color:#141018; font-weight:700;}
+  .seg.pre{border-style:dashed; opacity:.85;}
+  .seg.silent{opacity:.32;}
+  .seg.flash{filter:brightness(1.6); box-shadow:0 0 10px rgba(255,255,255,.4); z-index:2;}
+  #playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--text);
+    opacity:0; pointer-events:none; box-shadow:0 0 8px rgba(239,234,226,.8); z-index:3;}
+  .edTitle{font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin:0 0 8px 2px;}
+  textarea{width:100%; min-height:280px; background:var(--surface); color:var(--text);
+    border:1px solid var(--line); border-radius:12px; padding:12px;
+    font-family:ui-monospace,Menlo,monospace; font-size:12px; line-height:1.5; resize:vertical;}
+  textarea:focus{outline:2px solid var(--kick); outline-offset:-1px;}
+  .edRow{display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap;}
+  #err{color:var(--snare); font-size:12px; font-family:ui-monospace,monospace; flex:1; min-width:120px;}
+  #ok{color:var(--hat); font-size:12px;}
+  .legend{display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:18px;}
+  .legend div{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted);}
+  .dot{width:10px; height:10px; border-radius:3px;}
+  .hint{color:var(--muted); font-size:12px; line-height:1.6; margin-top:14px;}
+  .hint code{background:var(--surface); padding:1px 5px; border-radius:4px; font-size:11px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>HNOTE <span>PLAYER</span></h1>
+  <div class="sub">proportional time &middot; native HNote JSON &middot; paste &amp; play</div>
+</header>
+
+<div class="transport">
+  <button id="playBtn" type="button" onclick="window.HN&&HN.play()">Play</button>
+  <button id="stopBtn" type="button" onclick="window.HN&&HN.stop()">Stop</button>
+  <label class="toggle"><input type="checkbox" id="loopChk" checked> Loop</label>
+</div>
+
+<div class="durRow">
+  <label for="dur">Root duration</label>
+  <input type="range" id="dur" min="0.8" max="8" step="0.025" value="3.428">
+  <output id="durOut">3.43s</output>
+</div>
+
+<div class="mapWrap">
+  <p class="mapTitle">Share map</p>
+  <div id="map"></div>
+  <div id="playhead"></div>
+</div>
+
+<p class="edTitle">Composition (HNote JSON &mdash; single node or array)</p>
+<textarea id="editor" spellcheck="false"></textarea>
+<div class="edRow">
+  <button id="applyBtn" type="button" onclick="window.HN&&HN.apply()">Apply</button>
+  <span id="ok"></span><span id="err"></span>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<p class="hint">
+  Fields: <code>midi_number</code> (0 = silent rest), <code>velocity</code> 0&ndash;127,
+  <code>timing</code> (share of parent), <code>child_direction</code>
+  (<code>sequential</code> / <code>sidebyside</code>), <code>children</code>,
+  and <code>prechildren</code> with <code>anchor_prechild</code>, <code>anchor_end</code>,
+  <code>timing_based_on_children</code>. Root <code>start_time</code>/<code>end_time</code>
+  set the duration slider. Edit the JSON, tap <b>Apply</b>, then <b>Play</b>.
+</p>
+
+<!-- Composition lives here as text so a phone "Save as HTML" can't strip it from a JS object. -->
+
+<script type="application/json" id="seed">
+{
+  "name": "b1.roll(aa)",
+  "child_direction": "sidebyside",
+  "start_time": 0.0,
+  "end_time": 3.428,
+  "children": [
+    {
+      "name": "hats",
+      "child_direction": "sequential",
+      "children": [
+        {"midi_number": 42, "velocity": 82, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 42, "velocity": 74, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 42, "velocity": 80, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 42, "velocity": 72, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 42, "velocity": 80, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 42, "velocity": 72, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 42, "velocity": 70, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 42, "velocity": 58, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,  "timing": 1, "channel": 9, "children": null}
+      ]
+    },
+    {
+      "name": "kick-snare",
+      "child_direction": "sequential",
+      "children": [
+        {"midi_number": 36, "velocity": 100, "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 38, "velocity": 96,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 36, "velocity": 90,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 36, "velocity": 88,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 38, "velocity": 96,  "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 0,  "velocity": 0,   "timing": 1, "channel": 9, "children": null},
+        {"midi_number": 36, "velocity": 92,  "timing": 1, "channel": 9, "children": null}
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+"use strict";
+/* ---------- audio ---------- */
+var ctx = null;
+function ac(){ if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; }
+var noiseBuf = null;
+function noise(){
+  var c = ac();
+  if(!noiseBuf){
+    noiseBuf = c.createBuffer(1, Math.floor(c.sampleRate*0.7), c.sampleRate);
+    var d = noiseBuf.getChannelData(0);
+    for(var i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  }
+  var s = c.createBufferSource(); s.buffer = noiseBuf; return s;
+}
+function env(t, vel, a, dec){
+  var g = ac().createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vel, t + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+  g.connect(ac().destination); return g;
+}
+function oscHit(t, v, type, f0, f1, glide, dec){
+  var o = ac().createOscillator(); o.type = type;
+  o.frequency.setValueAtTime(f0, t);
+  if(f1) o.frequency.exponentialRampToValueAtTime(f1, t + glide);
+  o.connect(env(t, v, 0.002, dec)); o.start(t); o.stop(t + dec + 0.05);
+}
+function noiseHit(t, v, ftype, freq, q, dec){
+  var n = noise(), f = ac().createBiquadFilter();
+  f.type = ftype; f.frequency.value = freq; if(q) f.Q.value = q;
+  n.connect(f); f.connect(env(t, v, 0.001, dec)); n.start(t); n.stop(t + dec + 0.05);
+}
+function tomFreq(n){ return 70 + (n - 41) * 13; }
+function playMidi(n, t, v){
+  v = Math.min(1, v);
+  if(n===35||n===36){ oscHit(t, v*0.95, "sine", 155, 42, 0.10, 0.38); return; }
+  if(n===38||n===40){ noiseHit(t, v*0.5, "highpass", 1600, 0, 0.19);
+    oscHit(t, v*0.28, "triangle", 210, 160, 0.08, 0.10); return; }
+  if(n===37){ oscHit(t, v*0.22, "square", 1750, 0, 0, 0.035); return; }
+  if(n===39){ for(var k=0;k<3;k++){ var dt=[0,0.011,0.024][k]; noiseHit(t+dt, v*0.4, "bandpass", 1500, 1.4, 0.12);} return; }
+  if(n===42||n===44){ noiseHit(t, v*0.32, "highpass", 7200, 0, n===44?0.04:0.055); return; }
+  if(n===46){ noiseHit(t, v*0.3, "highpass", 6400, 0, 0.34); return; }
+  if(n>=41&&n<=50){ var f=tomFreq(n); oscHit(t, v*0.7, "sine", f*2.1, f*0.85, 0.14, 0.3); return; }
+  if(n===49||n===55||n===57){ noiseHit(t, v*0.35, "highpass", 5200, 0, n===55?0.5:0.9); return; }
+  if(n===51||n===53||n===59){ noiseHit(t, v*0.18, "highpass", 8000, 0, 0.6);
+    oscHit(t, v*0.12, "triangle", 620, 0, 0, 0.4); return; }
+  if(n>=60&&n<=65){ var ff=420-(n-60)*32; oscHit(t, v*0.55, "sine", ff*1.4, ff, 0.03, 0.16); return; }
+  var g=Math.min(1200, Math.max(80, 440*Math.pow(2,(n-69)/12)));
+  oscHit(t, v*0.4, "sine", g, g*0.9, 0.05, 0.2);
+}
+function midiColor(n){
+  if(n===35||n===36) return "--kick";
+  if(n===38||n===40) return "--snare";
+  if(n===37) return "--rim";
+  if(n===42||n===44) return "--hat";
+  if(n===46) return "--openhat";
+  if(n>=41&&n<=50) return "--tom";
+  if(n===49||n===51||n===53||n===55||n===57||n===59) return "--cym";
+  return "--perc";
+}
+
+/* ---------- HNote semantics ---------- */
+var events = [], segs = [], totalRows = 0;
+function shr(k){ return (typeof k.timing==="number" && k.timing>0) ? k.timing : 1.0; }
+function kids(n){ return Array.isArray(n.children) ? n.children : []; }
+function pres(n){ return Array.isArray(n.prechildren) ? n.prechildren : []; }
+function height(node){
+  var k = kids(node); if(!k.length) return 1;
+  var hs = k.map(height);
+  if((node.child_direction||"sequential")==="sidebyside") return 1 + hs.reduce(function(a,b){return a+b;},0);
+  return 1 + Math.max.apply(null, hs);
+}
+function flatten(node, f0, f1, row){
+  var w = f1 - f0;
+  totalRows = Math.max(totalRows, row + 1);
+  var midi = node.midi_number || 0;
+  var vel = (node.velocity || 0) / 127;
+  var playable = midi > 0 && vel > 0;
+  var segIdx = segs.length;
+  segs.push({row:row, f0:f0, w:w, label: node.name || (playable?String(midi):""),
+             midi: playable?midi:null, silent: !playable && !kids(node).length});
+  if(playable) events.push({frac:f0, midi:midi, vel:vel, seg:segIdx});
+  var p = pres(node);
+  if(p.length){
+    var k0 = kids(node);
+    var sum = k0.reduce(function(s,c){return s+shr(c);},0);
+    var tboc = node.timing_based_on_children === true;
+    var base = (tboc && sum>0) ? w/sum : w;
+    var durs = p.map(function(pc){ return base*shr(pc); });
+    var a = Math.min(p.length, Math.max(1, node.anchor_prechild||1)) - 1;
+    var anchorPt = node.anchor_end===true ? f1 : f0;
+    var starts = new Array(p.length); starts[a] = anchorPt;
+    for(var i=a-1;i>=0;i--) starts[i]=starts[i+1]-durs[i];
+    for(var j=a+1;j<p.length;j++) starts[j]=starts[j-1]+durs[j-1];
+    totalRows = Math.max(totalRows, row+2);
+    for(var m=0;m<p.length;m++){
+      var pc=p[m], pm=pc.midi_number||0, pv=(pc.velocity||0)/127, pPlay=pm>0&&pv>0;
+      var sIdx=segs.length;
+      segs.push({row:row+1, f0:starts[m], w:durs[m], label:"p"+(pPlay?pm:""),
+                 midi:pPlay?pm:null, pre:true, silent:!pPlay});
+      if(pPlay) events.push({frac:starts[m], midi:pm, vel:pv, seg:sIdx});
+    }
+  }
+  var k = kids(node); if(!k.length) return;
+  if((node.child_direction||"sequential")==="sidebyside"){
+    var r = row+1;
+    for(var x=0;x<k.length;x++){ flatten(k[x], f0, f1, r); r += height(k[x]); }
+  } else {
+    var total = k.reduce(function(s,c){return s+shr(c);},0) || 1;
+    var f = f0;
+    for(var y=0;y<k.length;y++){ var kw=w*shr(k[y])/total; flatten(k[y], f, f+kw, row+1); f+=kw; }
+  }
+}
+function rebuild(parsed){
+  var root = parsed;
+  if(Array.isArray(parsed)) root = {name:"song", child_direction:"sequential", children:parsed};
+  events = []; segs = []; totalRows = 0;
+  flatten(root, 0, 1, 0);
+  events.sort(function(a,b){ return a.frac - b.frac; });
+  if(typeof root.start_time==="number" && typeof root.end_time==="number"){
+    var len = root.end_time - root.start_time;
+    if(len > 0){
+      var s = document.getElementById("dur");
+      s.value = Math.min(parseFloat(s.max), Math.max(parseFloat(s.min), len));
+      document.getElementById("durOut").textContent = parseFloat(s.value).toFixed(2)+"s";
+    }
+  }
+  renderMap();
+  document.getElementById("err").textContent = "";
+  document.getElementById("ok").textContent = "\u2713 " + events.length + " notes";
+}
+var segEls = [];
+function renderMap(){
+  var map = document.getElementById("map");
+  map.innerHTML = ""; segEls = [];
+  var rows = [];
+  for(var r=0;r<totalRows;r++){ var el=document.createElement("div"); el.className="row"; map.appendChild(el); rows.push(el); }
+  for(var i=0;i<segs.length;i++){
+    var s=segs[i], el=document.createElement("div"); el.className="seg";
+    var left=Math.max(-0.02,s.f0), right=Math.min(1.02,s.f0+s.w);
+    el.style.left=(left*100)+"%";
+    el.style.width="calc("+(Math.max(0,right-left)*100)+"% - 2px)";
+    if(s.midi){ el.className+=" leaf"; el.style.background="var("+midiColor(s.midi)+")"; el.style.borderColor="transparent"; }
+    if(s.pre) el.className+=" pre";
+    if(s.silent) el.className+=" silent";
+    if(s.w>0.05) el.textContent=s.label;
+    rows[s.row].appendChild(el); segEls.push(el);
+  }
+}
+
+/* ---------- playback ---------- */
+var playing=false, loopStart=0, timer=null, raf=null, flashed=[];
+function $(id){ return document.getElementById(id); }
+function rootDur(){ return parseFloat($("dur").value); }
+function scheduleLoop(t0){
+  var d=rootDur();
+  for(var i=0;i<events.length;i++){
+    var e=events[i], t=t0+e.frac*d;
+    if(t >= ac().currentTime - 0.005) playMidi(e.midi, Math.max(t, ac().currentTime), e.vel);
+  }
+}
+function play(){
+  if(!applyEditor()) return;
+  var c=ac(); if(c.resume) c.resume();
+  playing=true;
+  $("playBtn").textContent="Playing"; $("playBtn").className="playing";
+  $("playhead").style.opacity=1;
+  loopStart=c.currentTime+0.08;
+  scheduleLoop(loopStart); tick(); animate();
+}
+function tick(){
+  if(!playing) return;
+  var d=rootDur(), next=loopStart+d, now=ac().currentTime;
+  if($("loopChk").checked){ if(now>next-0.25){ loopStart=next; scheduleLoop(next); } }
+  else if(now>next+0.4){ stop(); return; }
+  timer=setTimeout(tick,60);
+}
+function animate(){
+  if(!playing) return;
+  var d=rootDur(), now=ac().currentTime, p=(now-loopStart)/d;
+  if(p>=0 && p<=1){ var mapEl=$("map"); $("playhead").style.left=(mapEl.offsetLeft+p*mapEl.offsetWidth)+"px"; }
+  for(var i=0;i<events.length;i++){
+    var e=events[i];
+    if(Math.abs((loopStart+e.frac*d)-now)<0.05){
+      var el=segEls[e.seg];
+      if(el && el.className.indexOf("flash")<0){ el.className+=" flash"; flashed.push(el); }
+    }
+  }
+  while(flashed.length>16){ var f=flashed.shift(); f.className=f.className.replace(" flash",""); }
+  raf=requestAnimationFrame(animate);
+}
+function stop(){
+  playing=false; clearTimeout(timer); cancelAnimationFrame(raf);
+  for(var i=0;i<flashed.length;i++) flashed[i].className=flashed[i].className.replace(" flash","");
+  flashed=[];
+  $("playBtn").textContent="Play"; $("playBtn").className=""; $("playhead").style.opacity=0;
+}
+function applyEditor(){
+  try{
+    rebuild(JSON.parse($("editor").value));
+    // visible confirmation the tap registered
+    var btn=$("applyBtn");
+    if(btn){ var o=btn.textContent; btn.textContent="Applied \u2713";
+      setTimeout(function(){ btn.textContent="Apply"; }, 700); }
+    return true;
+  }catch(ex){
+    $("ok").textContent=""; $("err").textContent=String(ex.message||ex);
+    return false;
+  }
+}
+/* global handle so inline onclick works even if addEventListener never ran */
+window.HN = { play: play, stop: stop, apply: applyEditor };
+
+/* ---------- init (defensive: run whether or not DOM already parsed) ---------- */
+function init(){
+  var legend=$("legend");
+  var fams=[["kick","--kick"],["snare","--snare"],["closed hat","--hat"],["open hat","--openhat"],
+            ["toms","--tom"],["cymbals","--cym"],["perc","--perc"],["rim","--rim"]];
+  for(var i=0;i<fams.length;i++){
+    var d=document.createElement("div");
+    d.innerHTML='<span class="dot" style="background:var('+fams[i][1]+')"></span>'+fams[i][0];
+    legend.appendChild(d);
+  }
+  var seed=$("seed") ? $("seed").textContent.trim() : "";
+  if(seed) $("editor").value = seed;
+  $("playBtn").addEventListener("click", play);
+  $("stopBtn").addEventListener("click", stop);
+  $("applyBtn").addEventListener("click", applyEditor);
+  $("dur").addEventListener("input", function(){ $("durOut").textContent=rootDur().toFixed(2)+"s"; });
+  applyEditor();
+}
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
+else init();
+</script>
+
+</body>
+</html>
