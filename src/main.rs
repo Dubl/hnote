@@ -326,8 +326,8 @@ fn main() {
         let out_path = args.get(2).map(|s| s.clone()).unwrap_or_else(|| "output.mid".to_string());
         // Optional 3rd arg: total song duration in seconds (controls tempo).
         let duration_override = args.get(3).and_then(|s| s.parse::<f64>().ok());
-
-        let calllistpath = "calllist.jsonc".to_string();
+        // Optional 4th arg: calllist path (defaults to calllist.jsonc).
+        let calllistpath = args.get(4).map(|s| s.clone()).unwrap_or_else(|| "calllist.jsonc".to_string());
         let calls = load_calllist_from_file(&calllistpath)
             .expect("Failed to load initial calls");
 
