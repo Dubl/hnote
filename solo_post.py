@@ -13,7 +13,10 @@ PATH = sys.argv[1] if len(sys.argv) > 1 else "levee_solo.mid"
 BAR = 4 * 0.869565
 TPS = 480 * 1_000_000 / 500_000  # ticks per second at the writer's fixed tempo
 
-DRUM_MAP = {35:36, 38:40, 42:70, 57:52, 49:55, 41:64, 43:63, 45:62}
+# Electronic kit is selected via a ch9 program change (GS Electronic set);
+# only kick/snare need remapping to their electric variants.
+DRUM_MAP = {35:36, 38:40}
+DRUM_VEL_SCALE = 1.25  # drums louder
 
 def key_offset(bar):  # 1-indexed bar -> semitone offset from E
     if bar <= 20: return 0    # E
@@ -48,6 +51,7 @@ PROGRAM_PLAN = [
     (3,1,93),(3,46,95),(3,75,89),(3,105,93),      # metallic -> sweep -> warm -> back
     (4,1,98),(4,40,104),(4,70,108),(4,93,98),     # crystal -> sitar -> kalimba -> back
     (5,1,101),(5,48,103),(5,75,102),(5,105,101),  # goblins -> sci-fi -> echoes -> back
+    (9,1,24),                                     # ch9: GS Electronic drum kit
 ]
 
 def vlq(v):
@@ -99,6 +103,7 @@ for tick, order, kind, *rest in events:
         is_on = hi == 0x90 and v > 0
         if ch == 9:
             n2 = DRUM_MAP.get(n, n)
+            if is_on: v = min(127, int(v * DRUM_VEL_SCALE) + 4)
         elif 1 <= ch <= 5:
             if is_on:
                 bar = int((tick / TPS) / BAR) + 1
