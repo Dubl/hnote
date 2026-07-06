@@ -16,5 +16,20 @@
     {"target": "b1", "function": "once"},
     {"target": "b23", "function": "once", "then": {"function": "roll", "target": "bb", "amount": 1}},
     {"target": "b23", "function": "once"},
-    {"target": "b4", "function": "twice"}
+    {"target": "b4", "function": "twice"},
+    {"target": "b5", "function": "once"},
+    {"target": "b6", "function": "twice"},
+    {"target": "b6c", "function": "once"},
+    {"target": "b6", "function": "once", "then": {"function": "roll", "target": "ee", "amount": 1}},
+    {"target": "b6c", "function": "once", "then": {"function": "roll", "target": "gg", "amount": 1}},
+    {"target": "b6", "function": "once", "then": {"function": "roll", "target": "ff", "amount": 1}},
+    {"target": "b6c", "function": "once", "then": {"function": "roll", "target": "gg", "amount": 1}},
+    {"target": "b7", "function": "once"},
+    {"target": "b1", "function": "thrice"},
+    {"target": "b1b", "function": "twice"},
+    {"target": "b1", "function": "fource"},
+    {"target": "b1", "function": "fource"},
+    {"target": "b1", "function": "once"},
+    {"target": "b23", "function": "once", "then": {"function": "roll", "target": "bb", "amount": 1}},
+    {"target": "b23", "function": "once"}
 ]
