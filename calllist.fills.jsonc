@@ -196,7 +196,7 @@
   "function": "once",
   "then": {
    "function": "roll",
-   "target": "hh",
+   "target": "hh2",
    "amount": 1
   }
  },
@@ -205,7 +205,7 @@
   "function": "once",
   "then": {
    "function": "roll",
-   "target": "ii",
+   "target": "ii2",
    "amount": 1
   }
  },
@@ -218,7 +218,7 @@
   "function": "once",
   "then": {
    "function": "roll",
-   "target": "jj",
+   "target": "jj2",
    "amount": 1
   }
  },
@@ -232,7 +232,12 @@
  },
  {
   "target": "b12",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "mm",
+   "amount": 1
+  }
  },
  {
   "target": "b11a",
@@ -247,7 +252,7 @@
   "function": "once",
   "then": {
    "function": "roll",
-   "target": "kk",
+   "target": "kk2",
    "amount": 1
   }
  },
@@ -260,7 +265,7 @@
   "function": "once",
   "then": {
    "function": "roll",
-   "target": "ll",
+   "target": "ll2",
    "amount": 1
   }
  },
