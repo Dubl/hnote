@@ -1,10 +1,10 @@
 [
+    {"target": "b1b", "function": "once"},
+    {"target": "b1b", "function": "once"},
     {"target": "b1", "function": "once"},
     {"target": "b1", "function": "once"},
     {"target": "b1", "function": "once"},
-    {"target": "b1", "function": "once"},
-    {"target": "b1", "function": "once"},
-    {"target": "b1", "function": "once"},
-    {"target": "b1", "function": "once"},
+    {"target": "b1b", "function": "once"},
+    {"target": "b1b", "function": "once"},
     {"target": "b1", "function": "once"}
 ]
