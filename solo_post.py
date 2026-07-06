@@ -26,6 +26,21 @@ def key_offset(bar):  # 1-indexed bar -> semitone offset from E
     if bar <= 92: return -2   # D
     return 0                  # home: E
 
+# Tempo breathing: bar -> multiplier of the base tempo (>1 = slower).
+def tempo_mult(bar):
+    if bar == 25: return 1.30            # first stop lingers
+    if bar in (44, 45): return 1.25      # double stop lingers
+    if 21 <= bar <= 24 or 40 <= bar <= 43 or 70 <= bar <= 73:
+        return 1.06                      # crash sections broaden
+    if 75 <= bar <= 92:                  # jam presses forward
+        return 1.0 - 0.06 * (bar - 75) / 17
+    if bar == 94: return 1.18            # climax gets weight
+    if bar in (95, 96): return 1.05
+    if 120 <= bar <= 129:                # fade ritardando
+        return 1.02 + 0.33 * (bar - 120) / 9
+    if bar == 130: return 1.9            # fermata
+    return 1.0
+
 # (channel, bar, program) — tick-0 entries replace the writer's defaults
 PROGRAM_PLAN = [
     (1,1,38),(1,48,39),(1,75,87),(1,105,38),      # synth bass 1 -> 2 -> bass+lead -> back
@@ -101,6 +116,17 @@ for tick, order, kind, *rest in events:
 for ch, bar, prog in PROGRAM_PLAN:
     t = 0 if bar == 1 else int(round((bar - 1) * BAR * TPS))
     out_ev.append((t, 0, bytes([0xC0 | ch, prog])))
+
+# ---- tempo curve: one tempo meta per bar where the multiplier changes ----
+BASE_US = 500_000
+prev = None
+for bar in range(1, 131):
+    m = tempo_mult(bar)
+    if m != prev:
+        us = int(BASE_US * m)
+        t = 0 if bar == 1 else int(round((bar - 1) * BAR * TPS))
+        out_ev.append((t, 0, bytes([0xFF, 0x51, 0x03, (us >> 16) & 0xFF, (us >> 8) & 0xFF, us & 0xFF])))
+        prev = m
 
 out_ev.sort(key=lambda e: (e[0], e[1]))
 
