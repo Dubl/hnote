@@ -46,7 +46,7 @@ def tempo_mult(bar):
 
 # (channel, bar, program) — tick-0 entries replace the writer's defaults
 PROGRAM_PLAN = [
-    (1,1,38),(1,48,39),(1,75,87),(1,105,38),      # synth bass 1 -> 2 -> bass+lead -> back
+    (1,1,87),(1,48,30),(1,75,39),(1,105,87),      # bass+lead -> distortion -> synth bass 2 -> back (rough)
     (2,1,86),(2,26,84),(2,56,80),(2,93,86),       # fifths -> charang -> square -> back
     (3,1,93),(3,46,95),(3,75,89),(3,105,93),      # metallic -> sweep -> warm -> back
     (4,1,98),(4,40,104),(4,70,108),(4,93,98),     # crystal -> sitar -> kalimba -> back
