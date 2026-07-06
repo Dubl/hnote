@@ -33,6 +33,20 @@ pub enum Call {
         #[serde(default)]
         status: CallStatus,
     },
+    Thrice {
+        target: String,
+        #[serde(default)]
+        then: Option<Box<Call>>,
+        #[serde(default)]
+        status: CallStatus,
+    },
+    Fource {
+        target: String,
+        #[serde(default)]
+        then: Option<Box<Call>>,
+        #[serde(default)]
+        status: CallStatus,
+    },
     Roll {
         target: String,
         amount: usize,

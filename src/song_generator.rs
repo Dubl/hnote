@@ -106,6 +106,62 @@ pub fn apply_hnote_call(
             }
 
         }
+        Call::Thrice { target, then, status } => {
+            // Handle inactive status - skip entirely
+            if *status == CallStatus::Inactive {
+                return;
+            }
+            // 1. Find the source HNote by name and make three copies
+            let source = find_hnote_by_name(sourcehnotes, target)
+                .expect(&format!("Could not find measure with name '{}'", target));
+            let mut copies: Vec<HNote> = (0..3).map(|_| source.clone()).collect();
+
+            // 2. Apply any chained calls in `then` to each copy
+            if let Some(next_call) = then {
+                for copy in &mut copies {
+                    apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(copy));
+                }
+            }
+            else {
+                // Handle silent status - set all midi notes to 0
+                if *status == CallStatus::Silent {
+                    for copy in &mut copies {
+                        copy.silence();
+                    }
+                }
+                resulthnote.children
+                .get_or_insert_with(|| Box::new(Vec::new()))
+                .extend(copies);
+            }
+        }
+        Call::Fource { target, then, status } => {
+            // Handle inactive status - skip entirely
+            if *status == CallStatus::Inactive {
+                return;
+            }
+            // 1. Find the source HNote by name and make four copies
+            let source = find_hnote_by_name(sourcehnotes, target)
+                .expect(&format!("Could not find measure with name '{}'", target));
+            let mut copies: Vec<HNote> = (0..4).map(|_| source.clone()).collect();
+
+            // 2. Apply any chained calls in `then` to each copy
+            if let Some(next_call) = then {
+                for copy in &mut copies {
+                    apply_hnote_call(sourcehnotes, prechild_library, next_call, resulthnote, Some(copy));
+                }
+            }
+            else {
+                // Handle silent status - set all midi notes to 0
+                if *status == CallStatus::Silent {
+                    for copy in &mut copies {
+                        copy.silence();
+                    }
+                }
+                resulthnote.children
+                .get_or_insert_with(|| Box::new(Vec::new()))
+                .extend(copies);
+            }
+        }
         Call::Once { target, then, status } => {
             // Handle inactive status - skip entirely
             if *status == CallStatus::Inactive {
