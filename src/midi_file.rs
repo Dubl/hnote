@@ -82,6 +82,13 @@ pub fn write_midi_file(notes: &[HNote], path: &str) -> std::io::Result<()> {
         TEMPO_US_PER_QUARTER as u8,
     ]);
 
+    // Program changes at tick 0 for melodic channels (channel 9 = drums, unaffected).
+    // ch1 finger bass, ch2 overdriven guitar, ch3 drawbar organ, ch4 harmonica, ch5 electric piano
+    for (ch, prog) in [(1u8, 33u8), (2, 29), (3, 16), (4, 22), (5, 4)] {
+        write_vlq(&mut track, 0);
+        track.extend_from_slice(&[0xC0 | ch, prog]);
+    }
+
     let mut last_tick: u64 = 0;
     for ev in &events {
         let delta = (ev.tick - last_tick) as u32;
