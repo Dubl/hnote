@@ -6152,7 +6152,7 @@
           {
             "midi_number": 38,
             "velocity": 60,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -6274,7 +6274,7 @@
               {
                 "midi_number": 38,
                 "velocity": 80,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -6336,7 +6336,7 @@
           {
             "midi_number": 38,
             "velocity": 65,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -6380,7 +6380,7 @@
               {
                 "midi_number": 45,
                 "velocity": 80,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -6419,7 +6419,7 @@
               {
                 "midi_number": 45,
                 "velocity": 80,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -6502,7 +6502,7 @@
               {
                 "midi_number": 38,
                 "velocity": 70,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -6541,7 +6541,7 @@
               {
                 "midi_number": 43,
                 "velocity": 80,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -6580,13 +6580,6 @@
               {
                 "midi_number": 41,
                 "velocity": 85,
-                "timing": 1.0,
-                "channel": 9,
-                "children": null
-              },
-              {
-                "midi_number": 41,
-                "velocity": 95,
                 "timing": 1.0,
                 "channel": 9,
                 "children": null
@@ -6665,7 +6658,7 @@
           {
             "midi_number": 38,
             "velocity": 70,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -6688,7 +6681,7 @@
           {
             "midi_number": 45,
             "velocity": 85,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -6762,7 +6755,7 @@
           {
             "midi_number": 38,
             "velocity": 70,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -6808,7 +6801,7 @@
           {
             "midi_number": 45,
             "velocity": 85,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -6898,7 +6891,7 @@
           {
             "midi_number": 43,
             "velocity": 85,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -6995,7 +6988,7 @@
           {
             "midi_number": 38,
             "velocity": 75,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -7041,7 +7034,7 @@
           {
             "midi_number": 35,
             "velocity": 88,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -7124,7 +7117,7 @@
           {
             "midi_number": 45,
             "velocity": 85,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -7170,7 +7163,7 @@
           {
             "midi_number": 41,
             "velocity": 90,
-            "timing": 2.0,
+            "timing": 1.0,
             "channel": 9,
             "children": null
           },
@@ -7221,7 +7214,7 @@
               {
                 "midi_number": 38,
                 "velocity": 60,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -7244,7 +7237,7 @@
               {
                 "midi_number": 38,
                 "velocity": 72,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -7276,7 +7269,7 @@
               {
                 "midi_number": 38,
                 "velocity": 82,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -7299,7 +7292,7 @@
               {
                 "midi_number": 38,
                 "velocity": 88,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -7331,7 +7324,7 @@
               {
                 "midi_number": 45,
                 "velocity": 88,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -7354,7 +7347,7 @@
               {
                 "midi_number": 45,
                 "velocity": 92,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -7386,7 +7379,7 @@
               {
                 "midi_number": 43,
                 "velocity": 96,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },
@@ -7409,7 +7402,7 @@
               {
                 "midi_number": 41,
                 "velocity": 100,
-                "timing": 2.0,
+                "timing": 1.0,
                 "channel": 9,
                 "children": null
               },

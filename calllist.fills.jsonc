@@ -28,7 +28,7 @@
   "function": "once",
   "then": {
    "function": "roll",
-   "target": "aa2",
+   "target": "aa",
    "amount": 1
   }
  },
