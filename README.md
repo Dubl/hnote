@@ -63,7 +63,7 @@ The output is controlled by three JSON files. Edit these files to change what mu
 | `measures.json` | Defines base patterns (e.g., hi-hat rhythms, kick/snare grooves) |
 | `prechildren_library.json` | Defines embellishments (fills, rolls, grace notes) |
 
-## Included Example
+### Included Example
 
 The `calllist.jsonc` file represents an array of nested calls. In the example, there are 8 calls.
 Those calls reference the `measures.json` file for their base loops, and you can augment those with fills from the `prechildren_library.json` file. Both the `measures.json` and `prechildren_library.json` files represent arrays of HNotes, while the `calllist.jsonc`file represents a list of calls.
@@ -75,7 +75,7 @@ Let's look at the first nested call, which we see/hear represented in four ways:
 -`example_beat.mp3`: the first loop is the audio (0-1.875 seconds), where you can hear how it comes together
 
 
-### In `calllist.jsonc` (line 2): 
+#### In `calllist.jsonc` (line 2): 
 ```
   {
     "function": "combine",
@@ -91,7 +91,7 @@ Let's look at the first nested call, which we see/hear represented in four ways:
 the call here shows that two HNotes are being combined, side-by-side. Let's look at exactly what these HNotes are
 
 
-### In `measures.json` (line 2):
+#### In `measures.json` (line 2):
 ```
     {
         "name": "running hihats",
@@ -132,7 +132,7 @@ the call here shows that two HNotes are being combined, side-by-side. Let's look
 
 These are our two nested HNote objects being called. An HNote object can be a note, or a container for a note. In the above, the parents and children are the same class, but some fields/arguments are optional. So in this case we see two containers: one holding 16 notes, and one holding 4. The timing is locked to the container. Note that, in this case, the first container defines its absolute start and end tinme. Its children therefore proportion out that time based on their 'timing' amount. These numbers can be whatever you want. Each child will simply take up the amount of time that their 'timing' amount is as a proportion of the total of all the children's values (e.g. if a note's 'timing' is 2 units, and there are 32 total units, then that note takes up 1/16 of the container's time) 
 
-### In `tree_output.txt` (line 0):
+#### In `tree_output.txt` (line 0):
 ```
 [0.00 - 15.00 0]                                                                                                           
 ├── [0.00 - 1.88 0]                                                                                                        

@@ -1,6 +1,7 @@
 mod song_generator;
 mod csv_manager;
 mod types;
+mod midi_file;
 
 
 use std::env;
@@ -19,6 +20,7 @@ use serde::Deserialize;
 use types::*;
 use types::calculate_duration_from_locked;
 use song_generator::*;
+use midi_file::write_midi_file;
 
 //{generate_songs, generate_pattern_song, save_generated_songs, generate_chord_progression, generate_swing_beat_with_layers, generate_swing_drum_beat, generate_swing_drum_beat2, generate_swing_drum_beat3};
 use csv_manager::*;
@@ -316,6 +318,74 @@ fn main() {
 
 
     
+    else if function=="generate_midi_file" {
+        // Same build/resolve pipeline as generate_hnote_from_rules, but writes a
+        // .mid file instead of streaming to a live MIDI port. No port is opened,
+        // so this runs headless (e.g. a phone-driven remote session).
+
+        let out_path = args.get(2).map(|s| s.clone()).unwrap_or_else(|| "output.mid".to_string());
+
+        let calllistpath = "calllist.jsonc".to_string();
+        let calls = load_calllist_from_file(&calllistpath)
+            .expect("Failed to load initial calls");
+
+        let measurelistpath = "measures.json".to_string();
+        let sourcehnotes = load_hnotelist_from_file(&measurelistpath)
+            .expect("Failed to load initial measures");
+
+        let prechild_library_path = "prechildren_library.json".to_string();
+        let prechild_library = load_prechild_library_from_file(&prechild_library_path)
+            .unwrap_or_else(|_| {
+                println!("Warning: Could not load prechild library from {}, using empty library", prechild_library_path);
+                Vec::new()
+            });
+
+        let mut resulthnote = HNote {
+            start_time: 0.0,
+            end_time: 30.0,
+            timing: 1.0,
+            child_direction: Direction::Sequential,
+            children: None,
+            prechildren: None,
+            anchor_prechild: None,
+            end_of_silence_prechild: None,
+            anchor_end: None,
+            timing_based_on_children: None,
+            overwrite_children: None,
+            ancestor_overwrite_level: None,
+            parent: None,
+            midi_number: 0,
+            velocity: 0,
+            channel: 0,
+            rolled: None,
+            print_length: None,
+            name: None
+        };
+
+        apply_hnote_calls(&sourcehnotes, &prechild_library, &calls, &mut resulthnote);
+        resulthnote.assign_parents();
+
+        if let Some(duration) = calculate_duration_from_locked(&resulthnote) {
+            println!("Found locked note, calculated song duration: {:.2} seconds", duration);
+            resulthnote.end_time = duration;
+        } else {
+            println!("No locked note found, using default end_time: {:.2} seconds", resulthnote.end_time);
+        }
+
+        resulthnote.recalc_times();
+        resulthnote.overwrite_times();
+
+        let flat_notes = flatten_hnotes(&resulthnote);
+        let sounding = flat_notes.iter().filter(|n| n.midi_number != 0).count();
+
+        write_midi_file(&flat_notes, &out_path)
+            .expect("Failed to write MIDI file");
+
+        println!("Wrote {} ({} sounding notes)", out_path, sounding);
+    }
+
+
+
     else {
             println!("what's this?");
     }
