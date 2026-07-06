@@ -324,6 +324,8 @@ fn main() {
         // so this runs headless (e.g. a phone-driven remote session).
 
         let out_path = args.get(2).map(|s| s.clone()).unwrap_or_else(|| "output.mid".to_string());
+        // Optional 3rd arg: total song duration in seconds (controls tempo).
+        let duration_override = args.get(3).and_then(|s| s.parse::<f64>().ok());
 
         let calllistpath = "calllist.jsonc".to_string();
         let calls = load_calllist_from_file(&calllistpath)
@@ -365,7 +367,10 @@ fn main() {
         apply_hnote_calls(&sourcehnotes, &prechild_library, &calls, &mut resulthnote);
         resulthnote.assign_parents();
 
-        if let Some(duration) = calculate_duration_from_locked(&resulthnote) {
+        if let Some(duration) = duration_override {
+            println!("Using duration override: {:.2} seconds", duration);
+            resulthnote.end_time = duration;
+        } else if let Some(duration) = calculate_duration_from_locked(&resulthnote) {
             println!("Found locked note, calculated song duration: {:.2} seconds", duration);
             resulthnote.end_time = duration;
         } else {
