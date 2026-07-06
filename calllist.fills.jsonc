@@ -1,0 +1,319 @@
+[
+ {
+  "target": "b1b",
+  "function": "twice"
+ },
+ {
+  "target": "b1",
+  "function": "thrice"
+ },
+ {
+  "target": "b1b",
+  "function": "twice"
+ },
+ {
+  "target": "b1",
+  "function": "fource"
+ },
+ {
+  "target": "b1",
+  "function": "fource"
+ },
+ {
+  "target": "b1",
+  "function": "fource"
+ },
+ {
+  "target": "b1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "aa2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "bb",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b23",
+  "function": "once"
+ },
+ {
+  "target": "b4",
+  "function": "once"
+ },
+ {
+  "target": "b1",
+  "function": "thrice"
+ },
+ {
+  "target": "b1b",
+  "function": "twice"
+ },
+ {
+  "target": "b1",
+  "function": "fource"
+ },
+ {
+  "target": "b1",
+  "function": "fource"
+ },
+ {
+  "target": "b1",
+  "function": "once"
+ },
+ {
+  "target": "b23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "bb",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b23",
+  "function": "once"
+ },
+ {
+  "target": "b4",
+  "function": "twice"
+ },
+ {
+  "target": "b5",
+  "function": "once"
+ },
+ {
+  "target": "b6",
+  "function": "twice"
+ },
+ {
+  "target": "b6c",
+  "function": "once"
+ },
+ {
+  "target": "b6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "ee2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b6c",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "gg",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "ff2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b6c",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "gg",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b7",
+  "function": "once"
+ },
+ {
+  "target": "b1",
+  "function": "thrice"
+ },
+ {
+  "target": "b1b",
+  "function": "twice"
+ },
+ {
+  "target": "b1",
+  "function": "fource"
+ },
+ {
+  "target": "b1",
+  "function": "fource"
+ },
+ {
+  "target": "b1",
+  "function": "once"
+ },
+ {
+  "target": "b23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "bb",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b23",
+  "function": "once"
+ },
+ {
+  "target": "b0",
+  "function": "once"
+ },
+ {
+  "target": "b8",
+  "function": "thrice"
+ },
+ {
+  "target": "b8b",
+  "function": "twice"
+ },
+ {
+  "target": "b8",
+  "function": "fource"
+ },
+ {
+  "target": "b8",
+  "function": "fource"
+ },
+ {
+  "target": "b8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "hh",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b8b",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "ii",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b9",
+  "function": "once"
+ },
+ {
+  "target": "b8b",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "jj",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b10",
+  "function": "once"
+ },
+ {
+  "target": "b11",
+  "function": "once"
+ },
+ {
+  "target": "b12",
+  "function": "once"
+ },
+ {
+  "target": "b11a",
+  "function": "once"
+ },
+ {
+  "target": "b13",
+  "function": "once"
+ },
+ {
+  "target": "b8b",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "kk",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b14",
+  "function": "once"
+ },
+ {
+  "target": "b8b",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "ll",
+   "amount": 1
+  }
+ },
+ {
+  "target": "b15",
+  "function": "once"
+ },
+ {
+  "target": "b16",
+  "function": "once"
+ },
+ {
+  "target": "b17",
+  "function": "once"
+ },
+ {
+  "target": "b18",
+  "function": "once"
+ },
+ {
+  "target": "b19",
+  "function": "once"
+ },
+ {
+  "target": "b8b",
+  "function": "fource"
+ },
+ {
+  "target": "b8b",
+  "function": "fource"
+ },
+ {
+  "target": "b8b",
+  "function": "fource"
+ },
+ {
+  "target": "b8b",
+  "function": "fource"
+ },
+ {
+  "target": "b8b",
+  "function": "fource"
+ },
+ {
+  "target": "b8b",
+  "function": "fource"
+ },
+ {
+  "target": "b8b",
+  "function": "once"
+ },
+ {
+  "target": "bend",
+  "function": "once"
+ }
+]
