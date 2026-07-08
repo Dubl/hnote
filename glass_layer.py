@@ -166,7 +166,7 @@ msgs = []                                  # (tick, order, bytes)
 def tick(sec): return int(round(sec * 1e6 * PPQ / TEMPO))
 
 msgs.append((0, 0, bytes([0xFF, 0x51, 0x03]) + TEMPO.to_bytes(3, "big")))
-for ch, prog in ((0, 4), (1, 52), (2, 73), (3, 38)):   # epiano, choir, flute, synth bass
+for ch, prog in ((0, 4), (1, 52), (2, 92), (3, 38)):   # epiano, choir, bowed-glass pad, synth bass
     msgs.append((0, 0, bytes([0xC0 | ch, prog])))
 for sec, ch, p, v in ons:
     msgs.append((tick(sec), 2, bytes([0x90 | ch, p, v])))
