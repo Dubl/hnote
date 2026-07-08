@@ -103,13 +103,24 @@ for bar in range(NBARS):
             pattern = pattern[::-1]
         next_mut = bar + rng.randint(2, 4)
     c = coll_by_bar[bar]
-    swell = 50 + 10 * math.sin(2 * math.pi * bar / 64.0)
+    swell = 46 + 10 * math.sin(2 * math.pi * bar / 64.0)
     for k in range(int(BAR / pulse)):
         idx = pattern[phase % len(pattern)]
         phase += 1
         oct_up = 12 if (phase // (len(pattern) * 16)) % 3 == 2 else 0
         v = int(swell + rng.randint(-4, 4))
-        events.append((bar * BAR + k * pulse, 0, c[idx] + oct_up, v, pulse * 0.9))
+        # pulse a 3-voice chord: an inversion of the collection with the
+        # pattern-selected tone on top, voices stacked strictly descending
+        # from it so the additive process still draws the top-line contour
+        top = c[idx] + 12
+        chord = [top]
+        for step in (1, 2):
+            tone = c[(idx - step) % 4]
+            while tone >= chord[-1]: tone -= 12
+            chord.append(tone)
+        for vi, p in enumerate(chord):
+            events.append((bar * BAR + k * pulse, 0, p + oct_up,
+                           max(28, v - (0 if vi == 0 else 6)), pulse * 0.9))
 
 # --- V2: drone --------------------------------------------------------------
 bar = 0
