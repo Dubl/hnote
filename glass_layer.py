@@ -149,12 +149,16 @@ while bar < NBARS:
     bar += span
     present = not present
 
-# --- V4: bass pulse ---------------------------------------------------------
+# --- V4: bass pulse (prominent, octave-doubled) ------------------------------
+def bass_hit(t, pitch, vel, dur):
+    events.append((t, 3, pitch, vel, dur))
+    if pitch - 12 >= 19:                       # sub-octave double
+        events.append((t, 3, pitch - 12, vel - 6, dur))
 for bar in range(0, NBARS, 2):
     c = coll_by_bar[bar]
-    events.append((bar * BAR, 3, c[0] - 24, 56, 2.0))
+    bass_hit(bar * BAR, c[0] - 24, 96, 2.0)
     if rng.random() < 0.35:
-        events.append((bar * BAR + 2.0, 3, c[1] - 24, 48, 1.5))
+        bass_hit(bar * BAR + 2.0, c[1] - 24, 84, 1.5)
 
 # --- merge with drums and write ---------------------------------------------
 ons, offs = parse(SRC)
