@@ -50,6 +50,8 @@ pub fn apply_hnote_call(
                 descendant.anchor_end=Some(true);
                 descendant.overwrite_children=Some(true);
                 descendant.ancestor_overwrite_level=Some(1);
+                // The roll measure may whitelist midi numbers (e.g. hi-hats) to keep through the silencing.
+                descendant.overwrite_whitelist=from_hnote.overwrite_whitelist.clone();
             }
 
       
@@ -215,6 +217,7 @@ pub fn apply_hnote_call(
                 timing_based_on_children: None,
                 overwrite_children: None,
                 ancestor_overwrite_level: None,
+                overwrite_whitelist: None,
                 parent: None,
                 rolled: None,
                 print_length: None,

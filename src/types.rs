@@ -125,6 +125,8 @@ pub struct HNote {
     pub timing_based_on_children: Option<bool>,
     pub overwrite_children: Option<bool>,
     pub ancestor_overwrite_level: Option<usize>,
+    #[serde(default)]
+    pub overwrite_whitelist: Option<Vec<u8>>, // midi numbers the overwrite must NOT silence (e.g. hi-hats)
     #[serde(skip)]
     pub parent: Option<*mut HNote>,
     pub rolled: Option<bool>,
@@ -197,16 +199,17 @@ pub fn calculate_duration_from_locked(root: &HNote) -> Option<f64> {
     Some(total_timing_units * seconds_per_timing_unit)
 }
 
-fn overwrite_midi_recursive(note: &mut HNote, silence_start: f64, silence_end: f64) {
-    println!("Checking {} at {} vs silence range [{}, {})", note.midi_number, note.start_time, silence_start, silence_end);
-    // Silence notes that are >= silence_start AND < silence_end
+fn overwrite_midi_recursive(note: &mut HNote, silence_start: f64, silence_end: f64, whitelist: &[u8]) {
+    // Silence notes that are >= silence_start AND < silence_end,
+    // unless their midi number is whitelisted (e.g. hi-hats keep playing through the roll).
     if note.start_time >= silence_start && note.start_time < silence_end {
-        println!("changing {} at {} to 0", note.midi_number, note.start_time);
-        note.midi_number = 0;
+        if !whitelist.contains(&note.midi_number) {
+            note.midi_number = 0;
+        }
     }
     if let Some(ref mut children) = note.children {
         for child in children.iter_mut() {
-            overwrite_midi_recursive(child, silence_start, silence_end);
+            overwrite_midi_recursive(child, silence_start, silence_end, whitelist);
         }
     }
 }
@@ -535,6 +538,8 @@ impl HNote {
             println!("set to true");
             let level = self.ancestor_overwrite_level.unwrap_or(0);
             println!("level: {}", level);
+            // Notes with these midi numbers survive the silencing (e.g. hi-hats play through the roll).
+            let whitelist: Vec<u8> = self.overwrite_whitelist.clone().unwrap_or_default();
             // If level == 0, target is self; otherwise, get the ancestor.
             let target_node_ptr = if level == 0 {
                 self as *mut _
@@ -562,7 +567,7 @@ impl HNote {
                                 silence_start, silence_end, silence_end_idx);
 
                             for child in target_children.iter_mut() {
-                                overwrite_midi_recursive(child, silence_start, silence_end);
+                                overwrite_midi_recursive(child, silence_start, silence_end, &whitelist);
                             }
                         }
                     }
