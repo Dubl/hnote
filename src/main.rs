@@ -331,7 +331,8 @@ fn main() {
         let calls = load_calllist_from_file(&calllistpath)
             .expect("Failed to load initial calls");
 
-        let measurelistpath = "measures.json".to_string();
+        // Optional 5th arg: measures path (defaults to measures.json).
+        let measurelistpath = args.get(5).map(|s| s.clone()).unwrap_or_else(|| "measures.json".to_string());
         let sourcehnotes = load_hnotelist_from_file(&measurelistpath)
             .expect("Failed to load initial measures");
 
