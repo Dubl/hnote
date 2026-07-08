@@ -31,9 +31,6 @@
     --md-sys-color-primary:var(--kick); --md-sys-color-on-primary:#1a1207;
     --md-sys-color-surface-container-highest:var(--surface2);
     --md-sys-color-on-surface:var(--text); --md-sys-color-on-surface-variant:var(--muted);}
-  midi-visualizer{display:block; width:100%; height:70px; overflow:hidden;
-    border:1px solid var(--line); border-radius:10px; background:#131119;}
-  midi-visualizer svg rect{fill:var(--hat);}
   .dl{font-size:12px; color:var(--muted);}
   .dl a{color:var(--snare); text-decoration:none;}
   footer{margin-top:30px; color:var(--muted); font-size:11.5px; text-align:center;}
@@ -56,7 +53,7 @@
      ~8 bars (voice-leading, never a cadence); a slow two-tone choir drone; a flute
      descant that arcs in and out over ~40-bar spans; a quiet bass pulse every two bars.</p>
   <midi-player src="random_beats_glass.mid" sound-font></midi-player>
-  <div class="dl"><a href="random_beats_glass.mid" download>download .mid</a> · visualizer off — 42k notes made it thrash</div>
+  <div class="dl"><a href="random_beats_glass.mid" download>download .mid</a></div>
 </div>
 
 <div class="card">
@@ -67,8 +64,7 @@
      bar's opening, erasing everything under it except the whitelisted hi-hats. Rolls 2 and 4
      stay contained, so spill and containment alternate. 4 bars = 16.0s/unit; unit <em>n</em>
      at (n-1)x16s.</p>
-  <midi-player src="random_beats_spill.mid" sound-font visualizer="#v_spill"></midi-player>
-  <midi-visualizer id="v_spill" type="piano-roll"></midi-visualizer>
+  <midi-player src="random_beats_spill.mid" sound-font></midi-player>
   <div class="dl"><a href="random_beats_spill.mid" download>download .mid</a></div>
 </div>
 
@@ -79,8 +75,7 @@
   <p style="margin:0 0 4px"><strong style="color:var(--text)">MP3</strong> — pre-rendered (FluidSynth + GeneralUser GS), plays instantly:</p>
   <audio controls preload="none" src="random_beats_steam.mp3" style="width:100%; margin-bottom:12px;"></audio>
   <p style="margin:0 0 4px"><strong style="color:var(--text)">MIDI</strong> — in-browser synth with piano roll:</p>
-  <midi-player src="random_beats_steam.mid" sound-font visualizer="#v_steam"></midi-player>
-  <midi-visualizer id="v_steam" type="piano-roll"></midi-visualizer>
+  <midi-player src="random_beats_steam.mid" sound-font></midi-player>
   <div class="dl"><a href="random_beats_steam.mid" download>download .mid</a> · <a href="random_beats_steam.mp3" download>download .mp3</a></div>
 </div>
 
@@ -88,8 +83,7 @@
   <div class="tag">Browse · Rich kit</div>
   <h2>100 beats x 4 rolls - full percussion</h2>
   <p>Same fource approach (4 distinct rolls, dense irregular hats) but with a wider kit: each beat gains an aux-percussion voice - ride, cowbell, tambourine, congas, bongos, shaker, clave, woodblock, rimshot, claps, open-hat - and the rolls pick up those colors too. 23 instruments. 4 bars = 16.0s/unit; unit <em>n</em> at (n-1)x16s.</p>
-  <midi-player src="random_beats_rich.mid" sound-font visualizer="#v_rich"></midi-player>
-  <midi-visualizer id="v_rich" type="piano-roll"></midi-visualizer>
+  <midi-player src="random_beats_rich.mid" sound-font></midi-player>
   <div class="dl"><a href="random_beats_rich.mid" download>download .mid</a></div>
 </div>
 
@@ -97,8 +91,7 @@
   <div class="tag">Browse · Fource</div>
   <h2>100 beats x 4 rolls</h2>
   <p>Each beat played four times, each ending in a distinct roll, in fixed order: buzz (snare) / tumble (toms) / stutter (kick) / build (dense). Hear one beat resolve four ways. 4 bars = 16.0s/unit; unit <em>n</em> at (n-1)x16s. 26.7 min. Index: <a href="beats_index2f.md" style="color:var(--snare)">beats_index2f.md</a>.</p>
-  <midi-player src="random_beats_fource.mid" sound-font visualizer="#v_4x"></midi-player>
-  <midi-visualizer id="v_4x" type="piano-roll"></midi-visualizer>
+  <midi-player src="random_beats_fource.mid" sound-font></midi-player>
   <div class="dl"><a href="random_beats_fource.mid" download>download .mid</a></div>
 </div>
 
@@ -106,8 +99,7 @@
   <div class="tag">Browse · Half-time</div>
   <h2>100 wild beats — half tempo, 2x busy</h2>
   <p>The wild set at half tempo with ~2x the hits: slow backbone, fast filigree (offbeats filled at each voice's own density; rolls densified). Same beats/units as the wild set (2 bars = 8.0s). Unit <em>n</em> at (n-1)x8s. Index: <a href="beats_index2.md" style="color:var(--snare)">beats_index2.md</a> (halve the listed grid-density read; times are now doubled).</p>
-  <midi-player src="random_beats2b.mid" sound-font visualizer="#v_rand2b"></midi-player>
-  <midi-visualizer id="v_rand2b" type="piano-roll"></midi-visualizer>
+  <midi-player src="random_beats2b.mid" sound-font></midi-player>
   <div class="dl"><a href="random_beats2b.mid" download>download .mid</a></div>
 </div>
 
@@ -115,8 +107,7 @@
   <div class="tag">Browse · Wild</div>
   <h2>100 wild beats — faster</h2>
   <p>Batch 2: ~120&nbsp;BPM feel, 32nd-note grids, 32nd/64th flurries, ghost notes, tom cascades, denser rolls (2 bars = 4.0s each). Unit&nbsp;<em>n</em> at (n−1)×4s. Character index: <a href="beats_index2.md" style="color:var(--snare)">beats_index2.md</a>.</p>
-  <midi-player src="random_beats2.mid" sound-font visualizer="#v_rand2"></midi-player>
-  <midi-visualizer id="v_rand2" type="piano-roll"></midi-visualizer>
+  <midi-player src="random_beats2.mid" sound-font></midi-player>
   <div class="dl"><a href="random_beats2.mid" download>download .mid</a></div>
 </div>
 
@@ -124,8 +115,7 @@
   <div class="tag">Browse</div>
   <h2>100 random beats</h2>
   <p>100 randomly generated beats, each played twice with a random roll on the second (2 bars = 7.0s each). Unit&nbsp;<em>n</em> starts at (n−1)×7s. Note the timestamps of any that grab you — the character index is in <a href="beats_index.md" style="color:var(--snare)">beats_index.md</a>.</p>
-  <midi-player src="random_beats.mid" sound-font visualizer="#v_rand"></midi-player>
-  <midi-visualizer id="v_rand" type="piano-roll"></midi-visualizer>
+  <midi-player src="random_beats.mid" sound-font></midi-player>
   <div class="dl"><a href="random_beats.mid" download>download .mid</a></div>
 </div>
 
@@ -133,8 +123,7 @@
   <div class="tag">The Experiment</div>
   <h2>Solo — full generative build</h2>
   <p>Five voices treating the whole song as one solo: recursive ornaments, key arch, evolving synth patches, electronic kit, tempo breathing, hypnotic bass pedal. The current playground.</p>
-  <midi-player src="levee_solo.mid" sound-font visualizer="#v_solo"></midi-player>
-  <midi-visualizer id="v_solo" type="piano-roll"></midi-visualizer>
+  <midi-player src="levee_solo.mid" sound-font></midi-player>
   <div class="dl"><a href="levee_solo.mid" download>download .mid</a></div>
 </div>
 
@@ -142,8 +131,7 @@
   <div class="tag">Arrangement</div>
   <h2>Band — 5 instruments</h2>
   <p>Bass, guitar, organ, harmonica, e-piano composed over the drums in E blues, section-aware. The first melodic layer.</p>
-  <midi-player src="levee_band.mid" sound-font visualizer="#v_band"></midi-player>
-  <midi-visualizer id="v_band" type="piano-roll"></midi-visualizer>
+  <midi-player src="levee_band.mid" sound-font></midi-player>
   <div class="dl"><a href="levee_band.mid" download>download .mid</a></div>
 </div>
 
@@ -151,8 +139,7 @@
   <div class="tag">Drums +</div>
   <h2>Fills — embellished drums</h2>
   <p>The verified drum track with recursive 32nd-note fills sprinkled into the roll slots, climaxing at bar 94 (5:23).</p>
-  <midi-player src="levee_fills.mid" sound-font visualizer="#v_fills"></midi-player>
-  <midi-visualizer id="v_fills" type="piano-roll"></midi-visualizer>
+  <midi-player src="levee_fills.mid" sound-font></midi-player>
   <div class="dl"><a href="levee_fills.mid" download>download .mid</a></div>
 </div>
 
@@ -160,8 +147,7 @@
   <div class="tag">Verified</div>
   <h2>Groove — bare drums</h2>
   <p>The canonical render: 1748 hits, machine-diffed note-for-note against the source MIDI. The foundation everything else sits on.</p>
-  <midi-player src="levee_groove.mid" sound-font visualizer="#v_groove"></midi-player>
-  <midi-visualizer id="v_groove" type="piano-roll"></midi-visualizer>
+  <midi-player src="levee_groove.mid" sound-font></midi-player>
   <div class="dl"><a href="levee_groove.mid" download>download .mid</a></div>
 </div>
 
@@ -169,8 +155,7 @@
   <div class="tag">Reference</div>
   <h2>Source transcription</h2>
   <p>The original drum MIDI used as ground truth. Compare against Groove — they should be identical.</p>
-  <midi-player src="WhenTheLeveeBreaks.mid" sound-font visualizer="#v_src"></midi-player>
-  <midi-visualizer id="v_src" type="piano-roll"></midi-visualizer>
+  <midi-player src="WhenTheLeveeBreaks.mid" sound-font></midi-player>
   <div class="dl"><a href="WhenTheLeveeBreaks.mid" download>download .mid</a></div>
 </div>
 
