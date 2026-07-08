@@ -1,0 +1,3602 @@
+[
+ {
+  "target": "beat1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll1_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll1_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll1_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll1_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll2_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll2_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll2_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll2_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll3_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll3_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll3_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll3_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll4_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll4_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll4_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll4_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll5_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll5_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll5_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll5_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll6_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll6_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll6_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll6_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll7_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll7_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll7_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll7_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll8_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll8_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll8_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll8_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll9_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll9_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll9_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll9_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll10_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll10_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll10_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll10_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll11_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll11_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll11_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll11_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll12_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll12_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll12_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll12_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll13_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll13_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll13_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll13_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll14_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll14_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll14_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll14_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat15",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll15_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat15",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll15_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat15",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll15_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat15",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll15_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll16_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll16_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll16_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll16_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat17",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll17_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat17",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll17_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat17",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll17_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat17",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll17_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat18",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll18_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat18",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll18_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat18",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll18_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat18",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll18_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat19",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll19_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat19",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll19_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat19",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll19_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat19",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll19_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat20",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll20_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat20",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll20_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat20",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll20_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat20",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll20_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat21",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll21_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat21",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll21_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat21",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll21_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat21",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll21_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat22",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll22_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat22",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll22_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat22",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll22_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat22",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll22_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll23_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll23_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll23_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll23_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat24",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll24_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat24",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll24_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat24",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll24_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat24",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll24_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat25",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll25_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat25",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll25_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat25",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll25_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat25",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll25_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat26",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll26_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat26",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll26_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat26",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll26_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat26",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll26_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat27",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll27_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat27",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll27_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat27",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll27_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat27",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll27_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat28",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll28_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat28",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll28_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat28",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll28_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat28",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll28_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat29",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll29_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat29",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll29_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat29",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll29_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat29",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll29_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat30",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll30_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat30",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll30_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat30",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll30_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat30",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll30_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat31",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll31_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat31",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll31_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat31",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll31_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat31",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll31_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat32",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll32_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat32",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll32_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat32",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll32_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat32",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll32_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat33",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll33_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat33",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll33_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat33",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll33_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat33",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll33_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat34",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll34_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat34",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll34_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat34",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll34_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat34",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll34_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat35",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll35_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat35",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll35_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat35",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll35_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat35",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll35_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat36",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll36_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat36",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll36_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat36",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll36_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat36",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll36_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat37",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll37_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat37",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll37_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat37",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll37_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat37",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll37_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat38",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll38_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat38",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll38_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat38",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll38_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat38",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll38_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat39",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll39_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat39",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll39_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat39",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll39_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat39",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll39_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat40",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll40_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat40",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll40_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat40",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll40_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat40",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll40_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat41",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll41_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat41",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll41_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat41",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll41_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat41",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll41_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat42",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll42_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat42",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll42_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat42",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll42_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat42",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll42_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat43",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll43_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat43",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll43_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat43",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll43_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat43",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll43_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat44",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll44_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat44",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll44_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat44",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll44_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat44",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll44_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat45",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll45_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat45",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll45_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat45",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll45_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat45",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll45_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat46",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll46_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat46",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll46_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat46",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll46_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat46",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll46_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat47",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll47_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat47",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll47_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat47",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll47_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat47",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll47_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat48",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll48_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat48",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll48_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat48",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll48_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat48",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll48_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat49",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll49_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat49",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll49_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat49",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll49_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat49",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll49_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat50",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll50_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat50",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll50_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat50",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll50_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat50",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll50_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat51",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll51_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat51",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll51_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat51",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll51_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat51",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll51_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat52",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll52_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat52",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll52_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat52",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll52_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat52",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll52_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat53",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll53_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat53",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll53_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat53",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll53_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat53",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll53_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat54",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll54_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat54",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll54_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat54",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll54_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat54",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll54_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat55",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll55_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat55",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll55_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat55",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll55_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat55",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll55_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat56",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll56_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat56",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll56_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat56",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll56_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat56",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll56_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat57",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll57_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat57",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll57_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat57",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll57_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat57",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll57_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat58",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll58_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat58",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll58_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat58",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll58_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat58",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll58_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat59",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll59_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat59",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll59_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat59",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll59_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat59",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll59_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat60",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll60_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat60",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll60_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat60",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll60_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat60",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll60_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat61",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll61_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat61",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll61_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat61",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll61_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat61",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll61_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat62",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll62_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat62",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll62_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat62",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll62_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat62",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll62_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat63",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll63_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat63",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll63_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat63",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll63_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat63",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll63_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat64",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll64_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat64",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll64_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat64",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll64_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat64",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll64_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat65",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll65_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat65",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll65_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat65",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll65_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat65",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll65_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat66",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll66_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat66",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll66_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat66",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll66_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat66",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll66_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat67",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll67_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat67",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll67_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat67",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll67_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat67",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll67_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat68",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll68_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat68",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll68_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat68",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll68_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat68",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll68_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat69",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll69_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat69",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll69_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat69",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll69_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat69",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll69_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat70",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll70_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat70",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll70_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat70",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll70_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat70",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll70_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat71",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll71_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat71",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll71_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat71",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll71_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat71",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll71_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat72",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll72_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat72",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll72_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat72",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll72_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat72",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll72_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat73",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll73_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat73",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll73_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat73",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll73_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat73",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll73_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat74",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll74_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat74",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll74_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat74",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll74_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat74",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll74_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat75",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll75_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat75",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll75_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat75",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll75_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat75",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll75_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat76",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll76_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat76",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll76_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat76",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll76_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat76",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll76_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat77",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll77_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat77",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll77_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat77",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll77_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat77",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll77_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat78",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll78_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat78",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll78_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat78",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll78_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat78",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll78_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat79",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll79_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat79",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll79_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat79",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll79_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat79",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll79_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat80",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll80_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat80",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll80_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat80",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll80_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat80",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll80_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat81",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll81_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat81",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll81_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat81",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll81_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat81",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll81_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat82",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll82_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat82",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll82_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat82",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll82_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat82",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll82_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat83",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll83_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat83",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll83_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat83",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll83_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat83",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll83_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat84",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll84_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat84",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll84_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat84",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll84_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat84",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll84_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat85",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll85_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat85",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll85_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat85",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll85_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat85",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll85_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat86",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll86_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat86",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll86_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat86",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll86_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat86",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll86_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat87",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll87_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat87",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll87_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat87",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll87_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat87",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll87_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat88",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll88_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat88",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll88_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat88",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll88_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat88",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll88_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat89",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll89_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat89",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll89_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat89",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll89_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat89",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll89_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat90",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll90_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat90",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll90_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat90",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll90_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat90",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll90_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat91",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll91_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat91",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll91_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat91",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll91_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat91",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll91_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat92",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll92_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat92",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll92_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat92",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll92_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat92",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll92_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat93",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll93_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat93",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll93_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat93",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll93_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat93",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll93_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat94",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll94_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat94",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll94_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat94",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll94_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat94",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll94_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat95",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll95_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat95",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll95_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat95",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll95_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat95",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll95_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat96",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll96_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat96",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll96_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat96",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll96_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat96",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll96_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat97",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll97_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat97",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll97_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat97",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll97_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat97",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll97_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat98",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll98_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat98",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll98_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat98",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll98_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat98",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll98_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat99",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll99_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat99",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll99_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat99",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll99_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat99",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll99_4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat100",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll100_1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat100",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll100_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat100",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll100_3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "beat100",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "roll100_4",
+   "amount": 1
+  }
+ }
+]
