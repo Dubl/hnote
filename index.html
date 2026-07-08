@@ -47,6 +47,19 @@
 </header>
 
 <div class="card">
+  <div class="tag">Browse · Spillover</div>
+  <h2>100 beats — every other roll spills</h2>
+  <p>The rich set's beats and rolls, structure intact, but rolls 1 and 3 of each beat now
+     roll past their bar line: a decaying tail in the roll's own colors falls into the next
+     bar's opening, erasing everything under it except the whitelisted hi-hats. Rolls 2 and 4
+     stay contained, so spill and containment alternate. 4 bars = 16.0s/unit; unit <em>n</em>
+     at (n-1)x16s.</p>
+  <midi-player src="random_beats_spill.mid" sound-font visualizer="#v_spill"></midi-player>
+  <midi-visualizer id="v_spill" type="piano-roll"></midi-visualizer>
+  <div class="dl"><a href="random_beats_spill.mid" download>download .mid</a></div>
+</div>
+
+<div class="card">
   <div class="tag">Browse · Steamroller</div>
   <h2>100 beats — rolls that break the bar line</h2>
   <p>Same beats as the rich set, but the rolls now erase beyond their own bar: each unit is plain / <em>steamF</em> (fill crashes through the bar line and clears the next bar's opening, its spillover landing in the gap) / the sandwiched bar / <em>steamB</em> (a rising buildup that reaches back to eat the previous bar's tail and fills its whole bar, cresting on the next unit's downbeat). Hi-hats whitelisted through every erasure. 4 bars = 16.0s/unit; unit <em>n</em> at (n-1)x16s.</p>
