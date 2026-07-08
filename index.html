@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HNote — Levee Renders</title>
+<!-- In-browser MIDI synth (tone.js + magenta core + html-midi-player) from CDN.
+     GitHub Pages has no CSP, so external scripts + the default GM soundfont load fine. -->
+<script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.77,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
+<style>
+  :root{
+    --bg:#17151d; --surface:#201d28; --surface2:#2a2635; --line:#38334a;
+    --text:#efeae2; --muted:#8d8798; --kick:#f5a524; --snare:#ef6351; --hat:#3ec9b0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:20px 14px 60px; max-width:760px; margin-inline:auto; line-height:1.5;}
+  header{margin-bottom:22px;}
+  h1{font-size:15px; letter-spacing:.28em; text-transform:uppercase; margin:0; font-weight:700;}
+  h1 span{color:var(--kick);}
+  .sub{color:var(--muted); font-size:12.5px; letter-spacing:.04em; margin-top:6px;}
+  .note{color:var(--muted); font-size:12px; background:var(--surface); border:1px solid var(--line);
+    border-radius:10px; padding:10px 12px; margin-top:14px;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:14px 14px 16px; margin-top:16px;}
+  .card h2{font-size:16px; margin:0 0 2px; font-weight:700;}
+  .card .tag{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--kick); font-weight:700;}
+  .card p{font-size:13px; color:var(--muted); margin:6px 0 12px;}
+  midi-player{width:100%; display:block; margin-bottom:8px;
+    --md-sys-color-primary:var(--kick); --md-sys-color-on-primary:#1a1207;
+    --md-sys-color-surface-container-highest:var(--surface2);
+    --md-sys-color-on-surface:var(--text); --md-sys-color-on-surface-variant:var(--muted);}
+  midi-visualizer{display:block; width:100%; height:70px; overflow:hidden;
+    border:1px solid var(--line); border-radius:10px; background:#131119;}
+  midi-visualizer svg rect{fill:var(--hat);}
+  .dl{font-size:12px; color:var(--muted);}
+  .dl a{color:var(--snare); text-decoration:none;}
+  footer{margin-top:30px; color:var(--muted); font-size:11.5px; text-align:center;}
+</style>
+</head>
+<body>
+<header>
+  <h1><span>H</span>Note — When the Levee Breaks</h1>
+  <div class="sub">Drum track reproduced note-for-note from the HNote tree, then elaborated. Tap play.</div>
+  <div class="note">First play loads a ~5&nbsp;MB instrument soundfont, so give it a couple seconds. Sound needs a tap to start (phone browsers block auto-audio). GM synth — timbres are honest, not hi-fi.</div>
+</header>
+
+<div class="card">
+  <div class="tag">The Experiment</div>
+  <h2>Solo — full generative build</h2>
+  <p>Five voices treating the whole song as one solo: recursive ornaments, key arch, evolving synth patches, electronic kit, tempo breathing, hypnotic bass pedal. The current playground.</p>
+  <midi-player src="levee_solo.mid" sound-font visualizer="#v_solo"></midi-player>
+  <midi-visualizer id="v_solo" type="piano-roll"></midi-visualizer>
+  <div class="dl"><a href="levee_solo.mid" download>download .mid</a></div>
+</div>
+
+<div class="card">
+  <div class="tag">Arrangement</div>
+  <h2>Band — 5 instruments</h2>
+  <p>Bass, guitar, organ, harmonica, e-piano composed over the drums in E blues, section-aware. The first melodic layer.</p>
+  <midi-player src="levee_band.mid" sound-font visualizer="#v_band"></midi-player>
+  <midi-visualizer id="v_band" type="piano-roll"></midi-visualizer>
+  <div class="dl"><a href="levee_band.mid" download>download .mid</a></div>
+</div>
+
+<div class="card">
+  <div class="tag">Drums +</div>
+  <h2>Fills — embellished drums</h2>
+  <p>The verified drum track with recursive 32nd-note fills sprinkled into the roll slots, climaxing at bar 94 (5:23).</p>
+  <midi-player src="levee_fills.mid" sound-font visualizer="#v_fills"></midi-player>
+  <midi-visualizer id="v_fills" type="piano-roll"></midi-visualizer>
+  <div class="dl"><a href="levee_fills.mid" download>download .mid</a></div>
+</div>
+
+<div class="card">
+  <div class="tag">Verified</div>
+  <h2>Groove — bare drums</h2>
+  <p>The canonical render: 1748 hits, machine-diffed note-for-note against the source MIDI. The foundation everything else sits on.</p>
+  <midi-player src="levee_groove.mid" sound-font visualizer="#v_groove"></midi-player>
+  <midi-visualizer id="v_groove" type="piano-roll"></midi-visualizer>
+  <div class="dl"><a href="levee_groove.mid" download>download .mid</a></div>
+</div>
+
+<div class="card">
+  <div class="tag">Reference</div>
+  <h2>Source transcription</h2>
+  <p>The original drum MIDI used as ground truth. Compare against Groove — they should be identical.</p>
+  <midi-player src="WhenTheLeveeBreaks.mid" sound-font visualizer="#v_src"></midi-player>
+  <midi-visualizer id="v_src" type="piano-roll"></midi-visualizer>
+  <div class="dl"><a href="WhenTheLeveeBreaks.mid" download>download .mid</a></div>
+</div>
+
+<footer>Rendered from <code>measures.json</code> + <code>calllist.*.jsonc</code> by the Rust HNote engine · github.com/Dubl/hnote</footer>
+
+<script>
+  // Only one player at a time: pause the others when one starts.
+  const players = () => Array.from(document.querySelectorAll('midi-player'));
+  document.addEventListener('start', (e) => {
+    players().forEach(p => { if (p !== e.target && p.playing) p.stop(); });
+  }, true);
+</script>
+</body>
+</html>
