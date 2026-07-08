@@ -200,6 +200,12 @@ pub fn calculate_duration_from_locked(root: &HNote) -> Option<f64> {
 }
 
 fn overwrite_midi_recursive(note: &mut HNote, silence_start: f64, silence_end: f64, whitelist: &[u8]) {
+    // Prune subtrees entirely outside the window (parents' spans contain their
+    // children's, so this is safe). Matters when the silencing scope is high in
+    // the tree (e.g. extended-reach rolls targeting the whole song sequence).
+    if note.end_time <= silence_start || note.start_time >= silence_end {
+        return;
+    }
     // Silence notes that are >= silence_start AND < silence_end,
     // unless their midi number is whitelisted (e.g. hi-hats keep playing through the roll).
     if note.start_time >= silence_start && note.start_time < silence_end {

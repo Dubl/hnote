@@ -49,7 +49,12 @@ pub fn apply_hnote_call(
                 descendant.anchor_prechild=Some(6);
                 descendant.anchor_end=Some(true);
                 descendant.overwrite_children=Some(true);
-                descendant.ancestor_overwrite_level=Some(1);
+                // The roll measure may extend its erasure reach beyond the parent bar:
+                // a higher ancestor_overwrite_level puts sibling bars in scope, and
+                // end_of_silence_prechild pointing past the anchor extends the window
+                // forward (backward reach comes from pre-anchor material length).
+                descendant.ancestor_overwrite_level=from_hnote.ancestor_overwrite_level.or(Some(1));
+                descendant.end_of_silence_prechild=from_hnote.end_of_silence_prechild;
                 // The roll measure may whitelist midi numbers (e.g. hi-hats) to keep through the silencing.
                 descendant.overwrite_whitelist=from_hnote.overwrite_whitelist.clone();
             }
