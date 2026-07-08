@@ -50,9 +50,12 @@
   <div class="tag">Browse · Steamroller</div>
   <h2>100 beats — rolls that break the bar line</h2>
   <p>Same beats as the rich set, but the rolls now erase beyond their own bar: each unit is plain / <em>steamF</em> (fill crashes through the bar line and clears the next bar's opening, its spillover landing in the gap) / the sandwiched bar / <em>steamB</em> (a rising buildup that reaches back to eat the previous bar's tail and fills its whole bar, cresting on the next unit's downbeat). Hi-hats whitelisted through every erasure. 4 bars = 16.0s/unit; unit <em>n</em> at (n-1)x16s.</p>
+  <p style="margin:0 0 4px"><strong style="color:var(--text)">MP3</strong> — pre-rendered (FluidSynth + GeneralUser GS), plays instantly:</p>
+  <audio controls preload="none" src="random_beats_steam.mp3" style="width:100%; margin-bottom:12px;"></audio>
+  <p style="margin:0 0 4px"><strong style="color:var(--text)">MIDI</strong> — in-browser synth with piano roll:</p>
   <midi-player src="random_beats_steam.mid" sound-font visualizer="#v_steam"></midi-player>
   <midi-visualizer id="v_steam" type="piano-roll"></midi-visualizer>
-  <div class="dl"><a href="random_beats_steam.mid" download>download .mid</a></div>
+  <div class="dl"><a href="random_beats_steam.mid" download>download .mid</a> · <a href="random_beats_steam.mp3" download>download .mp3</a></div>
 </div>
 
 <div class="card">
@@ -150,8 +153,16 @@
 <script>
   // Only one player at a time: pause the others when one starts.
   const players = () => Array.from(document.querySelectorAll('midi-player'));
+  const audios = () => Array.from(document.querySelectorAll('audio'));
   document.addEventListener('start', (e) => {
     players().forEach(p => { if (p !== e.target && p.playing) p.stop(); });
+    audios().forEach(a => a.pause());
+  }, true);
+  document.addEventListener('play', (e) => {
+    if (e.target.tagName === 'AUDIO') {
+      players().forEach(p => { if (p.playing) p.stop(); });
+      audios().forEach(a => { if (a !== e.target) a.pause(); });
+    }
   }, true);
 </script>
 </body>
