@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HNote — Timing Editor</title>
-<script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.77,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
 <style>
   :root{
     --bg:#17151d; --surface:#201d28; --line:#38334a; --text:#efeae2; --muted:#8d8798;
@@ -16,10 +15,6 @@
     padding:16px 12px 60px; max-width:560px; margin-inline:auto;}
   h1{font-size:13px; letter-spacing:.25em; text-transform:uppercase; color:var(--accent); margin:0 0 2px;}
   .sub{font-size:12px; color:var(--muted); margin-bottom:12px;}
-  midi-player{width:100%; display:block; margin-bottom:12px;
-    --md-sys-color-primary:var(--accent); --md-sys-color-on-primary:#1a1207;
-    --md-sys-color-surface-container-highest:#2a2635;
-    --md-sys-color-on-surface:var(--text); --md-sys-color-on-surface-variant:var(--muted);}
   #lanes{background:var(--surface); border:1px solid var(--line); border-radius:12px;
     padding:8px 6px; margin-bottom:12px;}
   .lane{display:flex; align-items:center; height:38px; border-bottom:1px solid #2a2635;}
@@ -35,8 +30,10 @@
   .hit.sel{background:var(--sel); opacity:1; box-shadow:0 0 0 3px rgba(62,201,176,.3);}
   .hit.moved{background:var(--moved);}
   .hit.ghost{opacity:.18; pointer-events:none;}
-  #cropbar{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  #cropbar,#playerbar{background:var(--surface); border:1px solid var(--line); border-radius:12px;
     padding:10px 12px; margin-bottom:12px; display:flex; align-items:center; gap:6px;}
+  #playerbar button{border:none; border-radius:8px; padding:12px 0; font-size:14px;
+    font-weight:700; cursor:pointer;}
   #cropbar .lbl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
     margin-right:4px;}
   #cropbar button{border:none; border-radius:8px; padding:10px 0; flex:1; font-size:12px;
@@ -65,7 +62,10 @@
 <body>
 <h1>Timing Editor</h1>
 <div class="sub" id="sub"></div>
-<midi-player id="pl" sound-font loop></midi-player>
+<div id="playerbar" style="margin-bottom:12px;">
+  <button id="playbtn" style="flex:1.2; background:#3ec9b0; color:#10131a;">▸ Loop</button>
+  <span id="astatus" style="flex:2; font-size:11.5px; color:var(--muted); text-align:center;">gapless Web Audio looper — first play fetches ~30 drum samples</span>
+</div>
 <div id="cropbar">
   <span class="lbl">Loop</span>
   <button id="c-m50">−10</button><button id="c-m10">−1</button>
@@ -202,38 +202,100 @@ document.getElementById('c-p50').onclick=()=>setCrop(crop+0.010);
 document.getElementById('c-rst').onclick=()=>setCrop(EDIT.barlen);
 document.getElementById('rollmute').onclick=()=>{ rollMuted=!rollMuted; persist(); redraw(); rebuild(); };
 
-// --- MIDI blob preview (format 0, 480 PPQ, tempo 500000 => 1 tick = 1/960 s) ---
-function vlq(n){ const b=[n&0x7f]; n>>=7; while(n){ b.push(0x80|(n&0x7f)); n>>=7; } return b.reverse(); }
-function buildMidi(){
-  const PPQ=480, T=500000, tick=s=>Math.round(s*1e6*PPQ/T);
-  const ev=[[0,0,[0xFF,0x51,0x03,(T>>16)&255,(T>>8)&255,T&255]]];
+// --- gapless Web Audio looper --------------------------------------------
+// The bar is rendered OFFLINE into an 8s buffer (each hit placed at t and
+// t+4) and looped over [4,8) with an AudioBufferSourceNode: sample-accurate
+// loop point, and drum tails from the "previous" pass ring across it.
+// Rebuilds after each edit (a few hundred ms) and hot-swaps in phase.
+const SFURL='https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus/percussion';
+const VLEVELS=[15,31,47,63,79,95,111,127];
+let actx=null, samples={}, srcNode=null, anchor=0, playing=false, dirty=true, rendering=false;
+const status=m=>{ document.getElementById('astatus').textContent=m; };
+
+async function loadSamples(){
+  actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const need=new Set();
   EDIT.hits.forEach(h=>{
-    if(silent(h)) return;                  // cropped away or erased by a roll
-    const t=tick(cur(h));
-    ev.push([t,1,[0x99,h.midi,h.vel]]);
-    ev.push([t+60,0,[0x89,h.midi,0]]);
+    const v=VLEVELS.reduce((a,b)=>Math.abs(b-h.vel)<Math.abs(a-h.vel)?b:a);
+    need.add(h.midi+'_'+v);
   });
-  ev.push([tick(EDIT.barlen),2,[0xFF,0x2F,0x00]]);
-  ev.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
-  const tr=[]; let last=0;
-  ev.forEach(([t,,b])=>{ tr.push(...vlq(t-last),...b); last=t; });
-  const head=[0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,PPQ>>8,PPQ&255,
-              0x4D,0x54,0x72,0x6B,(tr.length>>24)&255,(tr.length>>16)&255,(tr.length>>8)&255,tr.length&255];
-  return new Uint8Array([...head,...tr]);
+  const keys=[...need].filter(k=>!(k in samples));
+  let done=0;
+  await Promise.all(keys.map(async k=>{
+    const [p,v]=k.split('_');
+    try{
+      const r=await fetch(`${SFURL}/p${p}_v${v}.mp3`);
+      if(!r.ok) throw 0;
+      samples[k]=await actx.decodeAudioData(await r.arrayBuffer());
+    }catch(e){ samples[k]=null; }
+    status(`loading samples ${++done}/${keys.length}`);
+  }));
 }
-let url=null;
+
+async function renderLoop(){
+  const sr=actx.sampleRate;
+  const off=new OfflineAudioContext(2, Math.ceil(8*sr), sr);
+  EDIT.hits.forEach(h=>{
+    if(silent(h)) return;
+    const v=VLEVELS.reduce((a,b)=>Math.abs(b-h.vel)<Math.abs(a-h.vel)?b:a);
+    const buf=samples[h.midi+'_'+v];
+    if(!buf) return;
+    [0,EDIT.barlen].forEach(ofs=>{
+      const s=off.createBufferSource(); s.buffer=buf;
+      const g=off.createGain(); g.gain.value=Math.min(1.4,h.vel/v);
+      s.connect(g); g.connect(off.destination);
+      s.start(cur(h)+ofs);
+    });
+  });
+  return off.startRendering();
+}
+
+async function refreshLoop(){
+  if(rendering) return; rendering=true;
+  status('rendering…');
+  try{
+    const buf=await renderLoop();
+    dirty=false;
+    if(playing){
+      const phase=(actx.currentTime-anchor)%EDIT.barlen;
+      const s=actx.createBufferSource();
+      s.buffer=buf; s.loop=true; s.loopStart=EDIT.barlen; s.loopEnd=2*EDIT.barlen;
+      if(srcNode) try{srcNode.stop()}catch(_){}
+      s.connect(actx.destination);
+      s.start(0, EDIT.barlen+phase);
+      srcNode=s;
+      anchor=actx.currentTime-phase;
+    }
+    status(playing?'looping — gapless':'ready');
+  }catch(e){ status('render failed: '+e); }
+  rendering=false;
+}
+
+document.getElementById('playbtn').onclick=async()=>{
+  const btn=document.getElementById('playbtn');
+  if(playing){
+    playing=false;
+    if(srcNode) try{srcNode.stop()}catch(_){}
+    srcNode=null; btn.textContent='▸ Loop'; status('stopped');
+    return;
+  }
+  if(!actx||Object.keys(samples).length===0){
+    btn.disabled=true;
+    await loadSamples();
+    btn.disabled=false;
+  }
+  if(actx.state==='suspended') await actx.resume();
+  playing=true; anchor=actx.currentTime; btn.textContent='■ Stop';
+  await refreshLoop();
+};
+
+let rebuildTimer=null;
 function rebuild(){
-  const pl=document.getElementById('pl');
-  const playing=pl.playing;
-  if(url) URL.revokeObjectURL(url);
-  url=URL.createObjectURL(new Blob([buildMidi()],{type:'audio/midi'}));
-  pl.src=url;
-  if(playing) pl.addEventListener('load',()=>pl.start(),{once:true});
+  dirty=true;
+  if(!playing) return;
+  clearTimeout(rebuildTimer);
+  rebuildTimer=setTimeout(refreshLoop, 300);
 }
-// belt-and-braces loop: restart on stop in case the loop attr is ignored
-document.getElementById('pl').addEventListener('stop',e=>{
-  const pl=e.target; if(pl.currentTime>=pl.duration-0.05) try{ pl.start(); }catch(_){}
-});
 
 // --- export ---
 document.getElementById('copy').onclick=async()=>{
