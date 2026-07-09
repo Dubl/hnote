@@ -102243,7 +102243,7 @@
      {
       "midi_number": 38,
       "velocity": 59,
-      "timing": 0.26367999999999975,
+      "timing": 0.51968,
       "channel": 9,
       "children": null
      }
@@ -102691,7 +102691,14 @@
      {
       "midi_number": 42,
       "velocity": 63,
-      "timing": 0.48799999999999955,
+      "timing": 0.5,
+      "channel": 9,
+      "children": null
+     },
+     {
+      "midi_number": 42,
+      "velocity": 57,
+      "timing": 0.5,
       "channel": 9,
       "children": null
      }
@@ -102810,7 +102817,7 @@
      {
       "midi_number": 0,
       "velocity": 0,
-      "timing": 0.046499999999999986,
+      "timing": 0.0625,
       "channel": 9,
       "children": null
      }
@@ -102929,7 +102936,7 @@
      {
       "midi_number": 0,
       "velocity": 0,
-      "timing": 0.046499999999999986,
+      "timing": 0.0625,
       "channel": 9,
       "children": null
      }
