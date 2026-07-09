@@ -68,9 +68,9 @@
 <midi-player id="pl" sound-font loop></midi-player>
 <div id="cropbar">
   <span class="lbl">Loop</span>
-  <button id="c-m50">−50</button><button id="c-m10">−10</button>
+  <button id="c-m50">−10</button><button id="c-m10">−1</button>
   <span id="cropval"></span>
-  <button id="c-p10">+10</button><button id="c-p50">+50</button>
+  <button id="c-p10">+1</button><button id="c-p50">+10</button>
   <button id="c-rst" style="flex:.8; background:#4a2530;">4.0</button>
   <button id="rollmute" style="flex:1.1;"></button>
 </div>
@@ -195,10 +195,10 @@ function setCrop(c){
   crop=Math.min(5.0,Math.max(3.0,Math.round(c*1000)/1000));
   persist(); redraw(); rebuild();
 }
-document.getElementById('c-m50').onclick=()=>setCrop(crop-0.050);
-document.getElementById('c-m10').onclick=()=>setCrop(crop-0.010);
-document.getElementById('c-p10').onclick=()=>setCrop(crop+0.010);
-document.getElementById('c-p50').onclick=()=>setCrop(crop+0.050);
+document.getElementById('c-m50').onclick=()=>setCrop(crop-0.010);
+document.getElementById('c-m10').onclick=()=>setCrop(crop-0.001);
+document.getElementById('c-p10').onclick=()=>setCrop(crop+0.001);
+document.getElementById('c-p50').onclick=()=>setCrop(crop+0.010);
 document.getElementById('c-rst').onclick=()=>setCrop(EDIT.barlen);
 document.getElementById('rollmute').onclick=()=>{ rollMuted=!rollMuted; persist(); redraw(); rebuild(); };
 
