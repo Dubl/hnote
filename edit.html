@@ -34,6 +34,17 @@
   .hit.roll{border-radius:3px;}
   .hit.sel{background:var(--sel); opacity:1; box-shadow:0 0 0 3px rgba(62,201,176,.3);}
   .hit.moved{background:var(--moved);}
+  .hit.ghost{opacity:.18; pointer-events:none;}
+  #cropbar{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; margin-bottom:12px; display:flex; align-items:center; gap:6px;}
+  #cropbar .lbl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+    margin-right:4px;}
+  #cropbar button{border:none; border-radius:8px; padding:10px 0; flex:1; font-size:12px;
+    font-weight:700; background:#2a2635; color:var(--text); cursor:pointer;}
+  #cropbar button:disabled{opacity:.3;}
+  #cropval{flex:1.3; text-align:center; font-size:13px; font-weight:700;
+    font-variant-numeric:tabular-nums; color:var(--accent);}
+  .cropline{position:absolute; top:0; bottom:0; width:2px; background:var(--moved); opacity:.6;}
   #panel{background:var(--surface); border:1px solid var(--line); border-radius:12px;
     padding:12px; margin-bottom:12px; min-height:92px;}
   #panel .info{font-size:12.5px; margin-bottom:10px; color:var(--muted);}
@@ -55,6 +66,13 @@
 <h1>Timing Editor</h1>
 <div class="sub" id="sub"></div>
 <midi-player id="pl" sound-font loop></midi-player>
+<div id="cropbar">
+  <span class="lbl">Loop</span>
+  <button id="c-m50">−50</button><button id="c-m10">−10</button>
+  <span id="cropval"></span>
+  <button id="c-p10">+10</button><button id="c-p50">+50</button>
+  <button id="c-rst" style="flex:.8; background:#4a2530;">4.0</button>
+</div>
 <div id="lanes"></div>
 <div id="panel"><div class="info" id="info">Tap a hit to select it. Round dots = base, squares = roll. Red = moved.</div>
   <div class="nudges">
@@ -76,12 +94,23 @@ const GM={35:'kick2',36:'kick',37:'rim',38:'snare',39:'clap',40:'esnare',41:'fto
   54:'tamb',55:'splash',56:'cowb',57:'crash2',60:'hbongo',61:'lbongo',62:'mconga',63:'oconga',
   64:'lconga',70:'marac',75:'clave',76:'hwood',77:'lwood'};
 const KEY=`hnote_edit_${EDIT.unit}_${EDIT.bar}`;
-let deltas=JSON.parse(localStorage.getItem(KEY)||'{}');   // id -> dt seconds
+const st=JSON.parse(localStorage.getItem(KEY)||'{}');
+let deltas=st.deltas||{};                                 // id -> dt seconds (post-crop frame)
+let crop=st.crop||EDIT.crop||EDIT.barlen;
 let sel=null;
 document.getElementById('sub').textContent=
   `unit ${EDIT.unit} bar ${EDIT.bar} — ${EDIT.beat} + ${EDIT.roll} · ${EDIT.hits.length} hits · loops one bar`;
 
-function cur(h){ return h.onset+(deltas[h.id]||0); }
+const isBase=h=>h.src===EDIT.beat;
+const xf=o=>o*EDIT.barlen/crop;                           // crop view transform (base hits)
+function cur(h){ return (isBase(h)?xf(h.onset):h.onset)+(deltas[h.id]||0); }
+function cropped(h){ return isBase(h)&&h.onset>=crop-1e-9; }        // cut off the loop end
+function erased(h){                                        // silenced by a roll window
+  if(!isBase(h)) return false;
+  const t=cur(h);
+  return EDIT.windows.some(([lo,hi,wl])=>t>=lo&&t<hi&&!wl.includes(h.midi));
+}
+function silent(h){ return cropped(h)||erased(h); }
 
 // --- lanes ---
 const lanesEl=document.getElementById('lanes');
@@ -95,6 +124,7 @@ lanes.forEach(m=>{
     const g=document.createElement('div'); g.className='gridline'+(k%4===0?' beatline':'');
     g.style.left=(k/16*100)+'%'; tr.appendChild(g);
   }
+  const cl=document.createElement('div'); cl.className='cropline'; tr.appendChild(cl);
   lane.appendChild(tr); lanesEl.appendChild(lane); laneEls[m]=tr;
 });
 const dotEls={};
@@ -105,19 +135,25 @@ EDIT.hits.forEach(h=>{
   laneEls[h.midi].appendChild(d); dotEls[h.id]=d;
 });
 function redraw(){
+  document.getElementById('cropval').textContent=crop.toFixed(3)+'s'+(Math.abs(crop-EDIT.barlen)>1e-9?` (×${(EDIT.barlen/crop).toFixed(3)})`:'');
+  document.querySelectorAll('.cropline').forEach(cl=>{
+    cl.style.left=Math.min(crop/EDIT.barlen*100,100)+'%';
+    cl.style.display=Math.abs(crop-EDIT.barlen)>1e-9?'block':'none';
+  });
   EDIT.hits.forEach(h=>{
     const d=dotEls[h.id];
-    d.style.left=(cur(h)/EDIT.barlen*100)+'%';
+    d.style.left=(Math.min(cur(h),EDIT.barlen)/EDIT.barlen*100)+'%';
     d.classList.toggle('moved', Math.abs(deltas[h.id]||0)>1e-6);
     d.classList.toggle('sel', sel===h.id);
+    d.classList.toggle('ghost', silent(h));
   });
   const info=document.getElementById('info');
-  if(sel===null){ info.innerHTML='Tap a hit to select it. Round dots = base, squares = roll. Red = moved.'; }
+  if(sel===null){ info.innerHTML='Tap a hit to select it. Round dots = base, squares = roll. Red = moved, faded = silenced (cropped away or under a roll).'; }
   else{
     const h=EDIT.hits[sel], dt=(deltas[h.id]||0)*1000;
     info.innerHTML=`<b>${GM[h.midi]||h.midi}</b> v${h.vel} · ${h.src} · onset
       <b>${cur(h).toFixed(3)}s</b> (${dt>=0?'+':''}${dt.toFixed(1)}ms)
-      ${h.min===null?' · <b>downbeat: can only delay</b>':''}`;
+      ${h.min===null?' · <b>downbeat: can only delay</b>':''}${erased(h)?' · <b>under roll</b>':''}`;
     document.getElementById('m20').disabled=!canMove(h,-0.020);
     document.getElementById('m5').disabled=!canMove(h,-0.005);
     document.getElementById('p5').disabled=!canMove(h,0.005);
@@ -125,10 +161,12 @@ function redraw(){
   }
 }
 function canMove(h,step){
-  const nd=(deltas[h.id]||0)+step, t=h.onset+nd;
-  if(t>h.max) return false;
-  if(h.min===null) return nd>=-1e-9;       // pinned: no net advance before original
-  return t>=h.min;
+  // limits live in the pre-crop frame for base hits; map the nudge there
+  const nd=(deltas[h.id]||0)+step;
+  const tpre=h.onset+nd*(isBase(h)?crop/EDIT.barlen:1);
+  if(tpre>h.max) return false;
+  if(h.min===null) return nd>=-1e-9;
+  return tpre>=h.min;
 }
 function select(id){ sel=id; redraw(); }
 function nudge(step){
@@ -144,8 +182,18 @@ document.getElementById('m5').onclick=()=>nudge(-0.005);
 document.getElementById('p5').onclick=()=>nudge(0.005);
 document.getElementById('p20').onclick=()=>nudge(0.020);
 document.getElementById('rst').onclick=()=>{ if(sel!==null){ delete deltas[EDIT.hits[sel].id]; persist(); redraw(); rebuild(); } };
-document.getElementById('clear').onclick=()=>{ if(confirm('Reset every hit?')){ deltas={}; sel=null; persist(); redraw(); rebuild(); } };
-function persist(){ localStorage.setItem(KEY,JSON.stringify(deltas)); }
+document.getElementById('clear').onclick=()=>{ if(confirm('Reset every hit and the loop length?')){ deltas={}; crop=EDIT.barlen; sel=null; persist(); redraw(); rebuild(); } };
+function persist(){ localStorage.setItem(KEY,JSON.stringify({deltas,crop})); }
+
+function setCrop(c){
+  crop=Math.min(5.0,Math.max(3.0,Math.round(c*1000)/1000));
+  persist(); redraw(); rebuild();
+}
+document.getElementById('c-m50').onclick=()=>setCrop(crop-0.050);
+document.getElementById('c-m10').onclick=()=>setCrop(crop-0.010);
+document.getElementById('c-p10').onclick=()=>setCrop(crop+0.010);
+document.getElementById('c-p50').onclick=()=>setCrop(crop+0.050);
+document.getElementById('c-rst').onclick=()=>setCrop(EDIT.barlen);
 
 // --- MIDI blob preview (format 0, 480 PPQ, tempo 500000 => 1 tick = 1/960 s) ---
 function vlq(n){ const b=[n&0x7f]; n>>=7; while(n){ b.push(0x80|(n&0x7f)); n>>=7; } return b.reverse(); }
@@ -153,6 +201,7 @@ function buildMidi(){
   const PPQ=480, T=500000, tick=s=>Math.round(s*1e6*PPQ/T);
   const ev=[[0,0,[0xFF,0x51,0x03,(T>>16)&255,(T>>8)&255,T&255]]];
   EDIT.hits.forEach(h=>{
+    if(silent(h)) return;                  // cropped away or erased by a roll
     const t=tick(cur(h));
     ev.push([t,1,[0x99,h.midi,h.vel]]);
     ev.push([t+60,0,[0x89,h.midi,0]]);
@@ -181,9 +230,11 @@ document.getElementById('pl').addEventListener('stop',e=>{
 
 // --- export ---
 document.getElementById('copy').onclick=async()=>{
-  const lines=Object.keys(deltas).map(id=>{
+  const lines=[];
+  if(Math.abs(crop-EDIT.barlen)>1e-9) lines.push(`crop=${crop.toFixed(3)}s`);
+  Object.keys(deltas).forEach(id=>{
     const h=EDIT.hits[id];
-    return `id=${h.id} src=${h.src} path=${h.path} dt=${(deltas[id]*1000).toFixed(1)}ms`;
+    lines.push(`id=${h.id} src=${h.src} path=${h.path} dt=${(deltas[id]*1000).toFixed(1)}ms`);
   });
   const text=`hnote edits v1 (u${EDIT.unit} b${EDIT.bar}, beat ${EDIT.beat}, roll ${EDIT.roll})\n`+lines.join('\n');
   try{ await navigator.clipboard.writeText(text); show('copied '+lines.length+' edits'); }

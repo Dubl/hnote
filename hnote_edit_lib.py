@@ -202,3 +202,76 @@ def path_str(path):
 
 def parse_path(s):
     return [(seg[0], int(seg[1:])) for seg in s.split("/")]
+
+# --- loop crop/extend --------------------------------------------------------
+# The loop length c is share mass: content occupying [0, c) of a virtual loop
+# is renormalized over the bar, so every onset scales by bar/c. c < bar crops
+# (stretch, hits later); c > bar pads a trailing rest (compress, hits earlier).
+# Crop is ABSOLUTE, not cumulative: the sidecar (crops.json) stashes each
+# beat's pristine lanes on first crop and every crop restarts from them.
+
+import copy
+
+CROPS_SIDECAR = "crops.json"
+
+def load_sidecar(path=CROPS_SIDECAR):
+    try:
+        return json.load(open(path, encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+
+def save_sidecar(sc, path=CROPS_SIDECAR):
+    json.dump(sc, open(path, "w", encoding="utf-8"), indent=1)
+
+def crop_loop(measure, c, sidecar, bar_span=BAR):
+    """Set the beat's loop length to c seconds (absolute). Restores pristine
+    lanes from the sidecar first, so repeated crops don't compound."""
+    name = measure["name"]
+    if name not in sidecar:
+        sidecar[name] = {"orig_children": copy.deepcopy(measure["children"]), "c": bar_span}
+    measure["children"] = copy.deepcopy(sidecar[name]["orig_children"])
+    sidecar[name]["c"] = c
+    if abs(c - bar_span) < 1e-9:
+        return
+    if not (0.5 * bar_span <= c <= 1.5 * bar_span):
+        raise ValueError(f"crop {c} out of sane range")
+    for lane in measure["children"]:
+        kids = lane.get("children") or []
+        if not kids:
+            continue
+        total = sum(k.get("timing", 0.0) for k in kids)
+        target = total * c / bar_span
+        if c > bar_span:
+            kids.append({"midi_number": 0, "velocity": 0,
+                         "timing": total * (c - bar_span) / bar_span,
+                         "channel": 9, "children": None, "name": "loopcrop"})
+            continue
+        acc = 0.0
+        cut = None
+        for i, k in enumerate(kids):
+            t = k.get("timing", 0.0)
+            if acc + t > target + 1e-12:
+                keep = target - acc
+                if keep > 1e-9:
+                    k["timing"] = keep       # straddling cell: trim its tail
+                    cut = i + 1
+                else:
+                    cut = i
+                break
+            acc += t
+        if cut is not None:
+            del kids[cut:]
+
+def bar_windows(byname, beat_name, bar):
+    """Erasure windows applying to base hits of this bar, as
+    [(lo, hi, whitelist_set)] in bar-local seconds. Own roll's window, plus
+    the previous bar's roll-2 forward reach when bar == 3."""
+    roll = byname[f"rroll{beat_name[5:]}_{bar}"]
+    _, _, (lo, hi) = roll_layout(roll)
+    wins = [(lo, hi, set(roll.get("overwrite_whitelist") or []))]
+    if bar == 3:
+        r2 = byname[f"rroll{beat_name[5:]}_2"]
+        _, _, (l2, h2) = roll_layout(r2)
+        if h2 > BAR:                       # spills forward into this bar
+            wins.append((0.0, h2 - BAR, set(r2.get("overwrite_whitelist") or [])))
+    return wins
