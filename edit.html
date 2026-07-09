@@ -72,6 +72,7 @@
   <span id="cropval"></span>
   <button id="c-p10">+10</button><button id="c-p50">+50</button>
   <button id="c-rst" style="flex:.8; background:#4a2530;">4.0</button>
+  <button id="rollmute" style="flex:1.1;"></button>
 </div>
 <div id="lanes"></div>
 <div id="panel"><div class="info" id="info">Tap a hit to select it. Round dots = base, squares = roll. Red = moved.</div>
@@ -97,6 +98,7 @@ const KEY=`hnote_edit_${EDIT.unit}_${EDIT.bar}`;
 const st=JSON.parse(localStorage.getItem(KEY)||'{}');
 let deltas=st.deltas||{};                                 // id -> dt seconds (post-crop frame)
 let crop=st.crop||EDIT.crop||EDIT.barlen;
+let rollMuted=(st.rollMuted!==undefined)?st.rollMuted:(EDIT.rollMuted||false);
 let sel=null;
 document.getElementById('sub').textContent=
   `unit ${EDIT.unit} bar ${EDIT.bar} — ${EDIT.beat} + ${EDIT.roll} · ${EDIT.hits.length} hits · loops one bar`;
@@ -107,10 +109,11 @@ function cur(h){ return (isBase(h)?xf(h.onset):h.onset)+(deltas[h.id]||0); }
 function cropped(h){ return isBase(h)&&h.onset>=crop-1e-9; }        // cut off the loop end
 function erased(h){                                        // silenced by a roll window
   if(!isBase(h)) return false;
+  if(rollMuted) return false;              // muted roll erases nothing
   const t=cur(h);
   return EDIT.windows.some(([lo,hi,wl])=>t>=lo&&t<hi&&!wl.includes(h.midi));
 }
-function silent(h){ return cropped(h)||erased(h); }
+function silent(h){ return cropped(h)||erased(h)||(rollMuted&&!isBase(h)); }
 
 // --- lanes ---
 const lanesEl=document.getElementById('lanes');
@@ -135,6 +138,9 @@ EDIT.hits.forEach(h=>{
   laneEls[h.midi].appendChild(d); dotEls[h.id]=d;
 });
 function redraw(){
+  const rb=document.getElementById('rollmute');
+  rb.textContent=rollMuted?'roll: MUTED':'roll: on';
+  rb.style.background=rollMuted?'#4a2530':'#2a2635';
   document.getElementById('cropval').textContent=crop.toFixed(3)+'s'+(Math.abs(crop-EDIT.barlen)>1e-9?` (×${(EDIT.barlen/crop).toFixed(3)})`:'');
   document.querySelectorAll('.cropline').forEach(cl=>{
     cl.style.left=Math.min(crop/EDIT.barlen*100,100)+'%';
@@ -183,7 +189,7 @@ document.getElementById('p5').onclick=()=>nudge(0.005);
 document.getElementById('p20').onclick=()=>nudge(0.020);
 document.getElementById('rst').onclick=()=>{ if(sel!==null){ delete deltas[EDIT.hits[sel].id]; persist(); redraw(); rebuild(); } };
 document.getElementById('clear').onclick=()=>{ if(confirm('Reset every hit and the loop length?')){ deltas={}; crop=EDIT.barlen; sel=null; persist(); redraw(); rebuild(); } };
-function persist(){ localStorage.setItem(KEY,JSON.stringify({deltas,crop})); }
+function persist(){ localStorage.setItem(KEY,JSON.stringify({deltas,crop,rollMuted})); }
 
 function setCrop(c){
   crop=Math.min(5.0,Math.max(3.0,Math.round(c*1000)/1000));
@@ -194,6 +200,7 @@ document.getElementById('c-m10').onclick=()=>setCrop(crop-0.010);
 document.getElementById('c-p10').onclick=()=>setCrop(crop+0.010);
 document.getElementById('c-p50').onclick=()=>setCrop(crop+0.050);
 document.getElementById('c-rst').onclick=()=>setCrop(EDIT.barlen);
+document.getElementById('rollmute').onclick=()=>{ rollMuted=!rollMuted; persist(); redraw(); rebuild(); };
 
 // --- MIDI blob preview (format 0, 480 PPQ, tempo 500000 => 1 tick = 1/960 s) ---
 function vlq(n){ const b=[n&0x7f]; n>>=7; while(n){ b.push(0x80|(n&0x7f)); n>>=7; } return b.reverse(); }
@@ -232,6 +239,7 @@ document.getElementById('pl').addEventListener('stop',e=>{
 document.getElementById('copy').onclick=async()=>{
   const lines=[];
   if(Math.abs(crop-EDIT.barlen)>1e-9) lines.push(`crop=${crop.toFixed(3)}s`);
+  if(rollMuted!==(EDIT.rollMuted||false)) lines.push(`roll=${rollMuted?'muted':'on'}`);
   Object.keys(deltas).forEach(id=>{
     const h=EDIT.hits[id];
     lines.push(`id=${h.id} src=${h.src} path=${h.path} dt=${(deltas[id]*1000).toFixed(1)}ms`);

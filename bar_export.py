@@ -9,7 +9,7 @@
 
 import json, sys, copy
 from hnote_edit_lib import (BAR, beat_hits, roll_layout, container_children_spans,
-                            path_str, load_sidecar, bar_windows)
+                            path_str, load_sidecar, bar_windows, roll_muted)
 
 BEAT_CYCLE = [70, 87, 96, 98]
 
@@ -23,13 +23,21 @@ def main():
 
     sidecar = load_sidecar()
     crop = sidecar.get(beat_name, {}).get("c", BAR)
+    muted = roll_muted(sidecar, roll_name)
     pristine = copy.deepcopy(beat)
     if beat_name in sidecar:
         pristine["children"] = copy.deepcopy(sidecar[beat_name]["orig_children"])
+    roll_src = roll
+    if muted:                              # show the muted roll's hits, ghosted
+        roll_src = copy.deepcopy(roll)
+        roll_src["prechildren"] = copy.deepcopy(sidecar[roll_name]["orig_prechildren"])
+        roll_src["overwrite_whitelist"] = copy.deepcopy(sidecar[roll_name]["orig_whitelist"])
 
     bhits = beat_hits(pristine)
-    rhits, _, _ = roll_layout(roll)
-    wins = bar_windows(byname, beat_name, bar)
+    rhits, _, _ = roll_layout(roll_src)
+    byname_view = dict(byname)
+    byname_view[roll_name] = roll_src      # real windows even while muted,
+    wins = bar_windows(byname_view, beat_name, bar)  # so unmute previews correctly
 
     hits = []
     def add(h, src, measure):
@@ -53,10 +61,10 @@ def main():
         if h["onset"] >= BAR - 1e-9:
             n_spill += 1
             continue
-        add(h, roll_name, roll)
+        add(h, roll_name, roll_src)
 
     payload = {"unit": unit, "bar": bar, "beat": beat_name, "roll": roll_name,
-               "barlen": BAR, "crop": crop,
+               "barlen": BAR, "crop": crop, "rollMuted": muted,
                "windows": [[round(lo, 5), round(hi, 5), sorted(wl)] for lo, hi, wl in wins],
                "hits": hits}
     with open("edit_data.js", "w", encoding="utf-8") as f:

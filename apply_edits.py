@@ -21,7 +21,8 @@
 import json, re, struct, subprocess, sys, os
 from collections import defaultdict
 from hnote_edit_lib import (shift_onset, parse_path, BAR, beat_hits, roll_layout,
-                            crop_loop, load_sidecar, save_sidecar, bar_windows)
+                            crop_loop, load_sidecar, save_sidecar, bar_windows,
+                            mute_roll, unmute_roll)
 
 SCR = os.environ.get("HNOTE_SCRATCH",
     r"C:/Users/Jon/AppData/Local/Temp/claude/c--Users-Jon-hello-rust/74145bec-53c1-49e9-91f2-ffec1255555d/scratchpad")
@@ -69,13 +70,18 @@ def main():
     unit,bar,beat_name,roll_name=int(head.group(1)),int(head.group(2)),head.group(3),head.group(4)
     cm=re.search(r"crop=([\d.]+)s",blob)
     crop=float(cm.group(1)) if cm else None
+    rm=re.search(r"roll=(muted|on)",blob)
+    roll_state=rm.group(1) if rm else None
     edits=[]
     for m in re.finditer(r"id=(\d+) src=(\w+) path=([\w/]+) dt=(-?[\d.]+)ms",blob):
         edits.append({"id":int(m.group(1)),"src":m.group(2),
                       "path":parse_path(m.group(3)),"dt":float(m.group(4))/1000.0})
-    if not edits and crop is None: raise SystemExit("nothing to apply")
+    if not edits and crop is None and roll_state is None: raise SystemExit("nothing to apply")
     print(f"u{unit} b{bar} ({beat_name}/{roll_name}): "
-          f"{'crop='+str(crop)+'s ' if crop else ''}{len(edits)} note edits")
+          f"{'crop='+str(crop)+'s ' if crop else ''}"
+          f"{'roll='+roll_state+' ' if roll_state else ''}{len(edits)} note edits")
+    if roll_state=="muted" and any(e["src"]==roll_name for e in edits):
+        raise SystemExit("blob nudges a roll it also mutes - re-copy from the editor")
 
     data=json.load(open(MEASURES,encoding="utf-8"))
     byname={mm.get("name"):mm for mm in data}
@@ -83,7 +89,11 @@ def main():
 
     before=render(f"{SCR}/apply_before.mid")
 
-    # 1. crop (absolute; restores pristine lanes first)
+    # 1. roll mute/unmute (reversible via sidecar), then crop
+    if roll_state=="muted":
+        mute_roll(byname[roll_name],sidecar)
+    elif roll_state=="on":
+        unmute_roll(byname[roll_name],sidecar)
     if crop is not None:
         crop_loop(byname[beat_name],crop,sidecar)
     c_now=sidecar.get(beat_name,{}).get("c",BAR)

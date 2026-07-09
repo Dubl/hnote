@@ -262,6 +262,31 @@ def crop_loop(measure, c, sidecar, bar_span=BAR):
         if cut is not None:
             del kids[cut:]
 
+def mute_roll(roll, sidecar):
+    """Silence a roll entirely: no notes, no erasure. Reversible via sidecar."""
+    name = roll["name"]
+    if name not in sidecar:
+        sidecar[name] = {"orig_prechildren": copy.deepcopy(roll.get("prechildren")),
+                         "orig_whitelist": copy.deepcopy(roll.get("overwrite_whitelist"))}
+    sidecar[name]["muted"] = True
+    def zero(n):
+        n["midi_number"] = 0
+        n["velocity"] = 0
+        for c in (n.get("children") or []): zero(c)
+    for pc in (roll.get("prechildren") or []): zero(pc)
+    roll["overwrite_whitelist"] = list(range(35, 82))   # erasure becomes a no-op
+
+def unmute_roll(roll, sidecar):
+    name = roll["name"]
+    if name not in sidecar or "orig_prechildren" not in sidecar[name]:
+        return                                           # never muted
+    roll["prechildren"] = copy.deepcopy(sidecar[name]["orig_prechildren"])
+    roll["overwrite_whitelist"] = copy.deepcopy(sidecar[name]["orig_whitelist"])
+    sidecar[name]["muted"] = False
+
+def roll_muted(sidecar, roll_name):
+    return bool(sidecar.get(roll_name, {}).get("muted"))
+
 def bar_windows(byname, beat_name, bar):
     """Erasure windows applying to base hits of this bar, as
     [(lo, hi, whitelist_set)] in bar-local seconds. Own roll's window, plus
