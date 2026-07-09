@@ -103116,15 +103116,15 @@
       "child_direction": "sequential",
       "children": [
        {
-        "midi_number": 38,
-        "velocity": 89,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 2.0,
         "channel": 9,
         "children": null
        },
        {
-        "midi_number": 41,
-        "velocity": 84,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 3.0,
         "channel": 9,
         "children": null
@@ -103171,15 +103171,15 @@
       "child_direction": "sequential",
       "children": [
        {
-        "midi_number": 43,
-        "velocity": 86,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 1.0,
         "channel": 9,
         "children": null
        },
        {
-        "midi_number": 45,
-        "velocity": 79,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 1.0,
         "channel": 9,
         "children": null
@@ -103194,15 +103194,15 @@
       "child_direction": "sequential",
       "children": [
        {
-        "midi_number": 43,
-        "velocity": 75,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 1.0,
         "channel": 9,
         "children": null
        },
        {
-        "midi_number": 41,
-        "velocity": 79,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 2.0,
         "channel": 9,
         "children": null
@@ -103220,8 +103220,53 @@
    }
   ],
   "overwrite_whitelist": [
+   35,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
    42,
-   46
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52,
+   53,
+   54,
+   55,
+   56,
+   57,
+   58,
+   59,
+   60,
+   61,
+   62,
+   63,
+   64,
+   65,
+   66,
+   67,
+   68,
+   69,
+   70,
+   71,
+   72,
+   73,
+   74,
+   75,
+   76,
+   77,
+   78,
+   79,
+   80,
+   81
   ],
   "ancestor_overwrite_level": 2,
   "end_of_silence_prechild": 8
@@ -103270,22 +103315,22 @@
       "child_direction": "sequential",
       "children": [
        {
-        "midi_number": 41,
-        "velocity": 96,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 1.0,
         "channel": 9,
         "children": null
        },
        {
-        "midi_number": 38,
-        "velocity": 88,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 1.0,
         "channel": 9,
         "children": null
        },
        {
-        "midi_number": 76,
-        "velocity": 97,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 1.0,
         "channel": 9,
         "children": null
@@ -103309,15 +103354,15 @@
       "child_direction": "sequential",
       "children": [
        {
-        "midi_number": 45,
-        "velocity": 96,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 1.0,
         "channel": 9,
         "children": null
        },
        {
-        "midi_number": 43,
-        "velocity": 99,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 1.0,
         "channel": 9,
         "children": null
@@ -103428,15 +103473,15 @@
       "child_direction": "sequential",
       "children": [
        {
-        "midi_number": 38,
-        "velocity": 95,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 2.0,
         "channel": 9,
         "children": null
        },
        {
-        "midi_number": 41,
-        "velocity": 93,
+        "midi_number": 0,
+        "velocity": 0,
         "timing": 2.0,
         "channel": 9,
         "children": null
@@ -103453,8 +103498,8 @@
     "child_direction": "sidebyside",
     "children": [
      {
-      "midi_number": 38,
-      "velocity": 85,
+      "midi_number": 0,
+      "velocity": 0,
       "timing": 3.0,
       "channel": 9,
       "children": null
@@ -103470,8 +103515,53 @@
    }
   ],
   "overwrite_whitelist": [
+   35,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
    42,
-   46
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52,
+   53,
+   54,
+   55,
+   56,
+   57,
+   58,
+   59,
+   60,
+   61,
+   62,
+   63,
+   64,
+   65,
+   66,
+   67,
+   68,
+   69,
+   70,
+   71,
+   72,
+   73,
+   74,
+   75,
+   76,
+   77,
+   78,
+   79,
+   80,
+   81
   ]
  },
  {
