@@ -102229,7 +102229,7 @@
      {
       "midi_number": 0,
       "velocity": 0,
-      "timing": 0.48032,
+      "timing": 0.5,
       "channel": 9,
       "children": null
      },
@@ -102243,7 +102243,7 @@
      {
       "midi_number": 38,
       "velocity": 59,
-      "timing": 0.51968,
+      "timing": 0.5,
       "channel": 9,
       "children": null
      }
