@@ -347,7 +347,7 @@
      {
       "midi_number": 0,
       "velocity": 0,
-      "timing": 0.5,
+      "timing": 0.48032,
       "channel": 9,
       "children": null
      },
@@ -361,7 +361,7 @@
      {
       "midi_number": 38,
       "velocity": 59,
-      "timing": 0.5,
+      "timing": 0.51968,
       "channel": 9,
       "children": null
      }
@@ -1061,6 +1061,6 @@
     ]
    }
   ],
-  "c": 3.93
+  "c": 3.936
  }
 }
