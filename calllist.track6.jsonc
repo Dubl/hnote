@@ -45,7 +45,12 @@
  },
  {
   "target": "rbeat14",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll14_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat17",
@@ -106,7 +111,12 @@
  },
  {
   "target": "rbeat19",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll19_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat24",
@@ -167,7 +177,12 @@
  },
  {
   "target": "rbeat34",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll34_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat26",
@@ -228,7 +243,12 @@
  },
  {
   "target": "rbeat36",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll36_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat27",
@@ -289,7 +309,12 @@
  },
  {
   "target": "rbeat38",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll38_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat30",
@@ -350,7 +375,12 @@
  },
  {
   "target": "rbeat44",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll44_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat45",
@@ -411,7 +441,12 @@
  },
  {
   "target": "rbeat59",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll59_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat51",
@@ -472,7 +507,12 @@
  },
  {
   "target": "rbeat62",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll62_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat55",
@@ -533,7 +573,12 @@
  },
  {
   "target": "rbeat67",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll67_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat65",
@@ -594,7 +639,12 @@
  },
  {
   "target": "rbeat72",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll72_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat70",
@@ -655,7 +705,12 @@
  },
  {
   "target": "rbeat73",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll73_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat76",
@@ -716,7 +771,12 @@
  },
  {
   "target": "rbeat87",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll87_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat78",
@@ -777,7 +837,12 @@
  },
  {
   "target": "rbeat94",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll94_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat82",
@@ -838,7 +903,12 @@
  },
  {
   "target": "rbeat98",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll98_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat85",
@@ -899,7 +969,12 @@
  },
  {
   "target": "rbeat99",
-  "function": "once"
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "rroll99_2",
+   "amount": 1
+  }
  },
  {
   "target": "rbeat91",
