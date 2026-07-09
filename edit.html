@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HNote — Timing Editor</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.77,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
+<style>
+  :root{
+    --bg:#17151d; --surface:#201d28; --line:#38334a; --text:#efeae2; --muted:#8d8798;
+    --accent:#f5a524; --sel:#3ec9b0; --moved:#ef6351;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px 12px 60px; max-width:560px; margin-inline:auto;}
+  h1{font-size:13px; letter-spacing:.25em; text-transform:uppercase; color:var(--accent); margin:0 0 2px;}
+  .sub{font-size:12px; color:var(--muted); margin-bottom:12px;}
+  midi-player{width:100%; display:block; margin-bottom:12px;
+    --md-sys-color-primary:var(--accent); --md-sys-color-on-primary:#1a1207;
+    --md-sys-color-surface-container-highest:#2a2635;
+    --md-sys-color-on-surface:var(--text); --md-sys-color-on-surface-variant:var(--muted);}
+  #lanes{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:8px 6px; margin-bottom:12px;}
+  .lane{display:flex; align-items:center; height:38px; border-bottom:1px solid #2a2635;}
+  .lane:last-child{border-bottom:none;}
+  .lname{width:52px; font-size:10px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.06em; flex-shrink:0;}
+  .ltrack{position:relative; flex:1; height:100%;}
+  .gridline{position:absolute; top:0; bottom:0; width:1px; background:#2a2635;}
+  .beatline{background:#38334a;}
+  .hit{position:absolute; top:50%; width:16px; height:16px; margin:-8px 0 0 -8px;
+    border-radius:50%; background:var(--accent); opacity:.85; cursor:pointer;}
+  .hit.roll{border-radius:3px;}
+  .hit.sel{background:var(--sel); opacity:1; box-shadow:0 0 0 3px rgba(62,201,176,.3);}
+  .hit.moved{background:var(--moved);}
+  #panel{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:12px; margin-bottom:12px; min-height:92px;}
+  #panel .info{font-size:12.5px; margin-bottom:10px; color:var(--muted);}
+  #panel .info b{color:var(--text);}
+  .nudges{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
+  .nudges button{border:none; border-radius:8px; padding:14px 2px; font-size:13px; font-weight:700;
+    background:#2a2635; color:var(--text); cursor:pointer;}
+  .nudges button:disabled{opacity:.3;}
+  .nudges .rst{background:#4a2530;}
+  .toolbar{display:flex; gap:8px;}
+  .toolbar button{flex:1; background:var(--surface); color:var(--text); border:1px solid var(--line);
+    border-radius:10px; padding:12px; font-size:13px; cursor:pointer;}
+  #flash{position:fixed; top:10px; left:50%; transform:translateX(-50%); background:var(--accent);
+    color:#10131a; font-weight:700; font-size:13px; padding:8px 18px; border-radius:20px;
+    opacity:0; transition:opacity .15s; pointer-events:none;}
+</style>
+</head>
+<body>
+<h1>Timing Editor</h1>
+<div class="sub" id="sub"></div>
+<midi-player id="pl" sound-font loop></midi-player>
+<div id="lanes"></div>
+<div id="panel"><div class="info" id="info">Tap a hit to select it. Round dots = base, squares = roll. Red = moved.</div>
+  <div class="nudges">
+    <button id="m20">−20ms</button><button id="m5">−5ms</button>
+    <button id="rst" class="rst">reset</button>
+    <button id="p5">+5ms</button><button id="p20">+20ms</button>
+  </div>
+</div>
+<div class="toolbar">
+  <button id="copy">Copy edits</button>
+  <button id="clear">Reset all</button>
+</div>
+<div id="flash"></div>
+
+<script src="edit_data.js"></script>
+<script>
+const GM={35:'kick2',36:'kick',37:'rim',38:'snare',39:'clap',40:'esnare',41:'ftom',42:'chat',
+  43:'ltom',45:'mtom',46:'ohat',47:'mhtom',48:'htom',49:'crash',50:'htom2',51:'ride',53:'bell',
+  54:'tamb',55:'splash',56:'cowb',57:'crash2',60:'hbongo',61:'lbongo',62:'mconga',63:'oconga',
+  64:'lconga',70:'marac',75:'clave',76:'hwood',77:'lwood'};
+const KEY=`hnote_edit_${EDIT.unit}_${EDIT.bar}`;
+let deltas=JSON.parse(localStorage.getItem(KEY)||'{}');   // id -> dt seconds
+let sel=null;
+document.getElementById('sub').textContent=
+  `unit ${EDIT.unit} bar ${EDIT.bar} — ${EDIT.beat} + ${EDIT.roll} · ${EDIT.hits.length} hits · loops one bar`;
+
+function cur(h){ return h.onset+(deltas[h.id]||0); }
+
+// --- lanes ---
+const lanesEl=document.getElementById('lanes');
+const lanes=[...new Set(EDIT.hits.map(h=>h.midi))].sort((a,b)=>a-b);
+const laneEls={};
+lanes.forEach(m=>{
+  const lane=document.createElement('div'); lane.className='lane';
+  lane.innerHTML=`<div class="lname">${GM[m]||m}</div>`;
+  const tr=document.createElement('div'); tr.className='ltrack';
+  for(let k=1;k<16;k++){
+    const g=document.createElement('div'); g.className='gridline'+(k%4===0?' beatline':'');
+    g.style.left=(k/16*100)+'%'; tr.appendChild(g);
+  }
+  lane.appendChild(tr); lanesEl.appendChild(lane); laneEls[m]=tr;
+});
+const dotEls={};
+EDIT.hits.forEach(h=>{
+  const d=document.createElement('div');
+  d.className='hit'+(h.src.startsWith('rroll')?' roll':'');
+  d.onclick=()=>{ select(h.id); };
+  laneEls[h.midi].appendChild(d); dotEls[h.id]=d;
+});
+function redraw(){
+  EDIT.hits.forEach(h=>{
+    const d=dotEls[h.id];
+    d.style.left=(cur(h)/EDIT.barlen*100)+'%';
+    d.classList.toggle('moved', Math.abs(deltas[h.id]||0)>1e-6);
+    d.classList.toggle('sel', sel===h.id);
+  });
+  const info=document.getElementById('info');
+  if(sel===null){ info.innerHTML='Tap a hit to select it. Round dots = base, squares = roll. Red = moved.'; }
+  else{
+    const h=EDIT.hits[sel], dt=(deltas[h.id]||0)*1000;
+    info.innerHTML=`<b>${GM[h.midi]||h.midi}</b> v${h.vel} · ${h.src} · onset
+      <b>${cur(h).toFixed(3)}s</b> (${dt>=0?'+':''}${dt.toFixed(1)}ms)
+      ${h.min===null?' · <b>downbeat: can only delay</b>':''}`;
+    document.getElementById('m20').disabled=!canMove(h,-0.020);
+    document.getElementById('m5').disabled=!canMove(h,-0.005);
+    document.getElementById('p5').disabled=!canMove(h,0.005);
+    document.getElementById('p20').disabled=!canMove(h,0.020);
+  }
+}
+function canMove(h,step){
+  const nd=(deltas[h.id]||0)+step, t=h.onset+nd;
+  if(t>h.max) return false;
+  if(h.min===null) return nd>=-1e-9;       // pinned: no net advance before original
+  return t>=h.min;
+}
+function select(id){ sel=id; redraw(); }
+function nudge(step){
+  if(sel===null) return;
+  const h=EDIT.hits[sel];
+  if(!canMove(h,step)) return;
+  deltas[h.id]=Math.round(((deltas[h.id]||0)+step)*1e6)/1e6;
+  if(Math.abs(deltas[h.id])<1e-9) delete deltas[h.id];
+  persist(); redraw(); rebuild();
+}
+document.getElementById('m20').onclick=()=>nudge(-0.020);
+document.getElementById('m5').onclick=()=>nudge(-0.005);
+document.getElementById('p5').onclick=()=>nudge(0.005);
+document.getElementById('p20').onclick=()=>nudge(0.020);
+document.getElementById('rst').onclick=()=>{ if(sel!==null){ delete deltas[EDIT.hits[sel].id]; persist(); redraw(); rebuild(); } };
+document.getElementById('clear').onclick=()=>{ if(confirm('Reset every hit?')){ deltas={}; sel=null; persist(); redraw(); rebuild(); } };
+function persist(){ localStorage.setItem(KEY,JSON.stringify(deltas)); }
+
+// --- MIDI blob preview (format 0, 480 PPQ, tempo 500000 => 1 tick = 1/960 s) ---
+function vlq(n){ const b=[n&0x7f]; n>>=7; while(n){ b.push(0x80|(n&0x7f)); n>>=7; } return b.reverse(); }
+function buildMidi(){
+  const PPQ=480, T=500000, tick=s=>Math.round(s*1e6*PPQ/T);
+  const ev=[[0,0,[0xFF,0x51,0x03,(T>>16)&255,(T>>8)&255,T&255]]];
+  EDIT.hits.forEach(h=>{
+    const t=tick(cur(h));
+    ev.push([t,1,[0x99,h.midi,h.vel]]);
+    ev.push([t+60,0,[0x89,h.midi,0]]);
+  });
+  ev.push([tick(EDIT.barlen),2,[0xFF,0x2F,0x00]]);
+  ev.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const tr=[]; let last=0;
+  ev.forEach(([t,,b])=>{ tr.push(...vlq(t-last),...b); last=t; });
+  const head=[0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,PPQ>>8,PPQ&255,
+              0x4D,0x54,0x72,0x6B,(tr.length>>24)&255,(tr.length>>16)&255,(tr.length>>8)&255,tr.length&255];
+  return new Uint8Array([...head,...tr]);
+}
+let url=null;
+function rebuild(){
+  const pl=document.getElementById('pl');
+  const playing=pl.playing;
+  if(url) URL.revokeObjectURL(url);
+  url=URL.createObjectURL(new Blob([buildMidi()],{type:'audio/midi'}));
+  pl.src=url;
+  if(playing) pl.addEventListener('load',()=>pl.start(),{once:true});
+}
+// belt-and-braces loop: restart on stop in case the loop attr is ignored
+document.getElementById('pl').addEventListener('stop',e=>{
+  const pl=e.target; if(pl.currentTime>=pl.duration-0.05) try{ pl.start(); }catch(_){}
+});
+
+// --- export ---
+document.getElementById('copy').onclick=async()=>{
+  const lines=Object.keys(deltas).map(id=>{
+    const h=EDIT.hits[id];
+    return `id=${h.id} src=${h.src} path=${h.path} dt=${(deltas[id]*1000).toFixed(1)}ms`;
+  });
+  const text=`hnote edits v1 (u${EDIT.unit} b${EDIT.bar}, beat ${EDIT.beat}, roll ${EDIT.roll})\n`+lines.join('\n');
+  try{ await navigator.clipboard.writeText(text); show('copied '+lines.length+' edits'); }
+  catch(e){ prompt('copy this:', text); }
+};
+function show(m){ flash.textContent=m; flash.style.opacity=1; setTimeout(()=>flash.style.opacity=0,800); }
+const flash=document.getElementById('flash');
+redraw(); rebuild();
+</script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+# Shared machinery for the note-level timing editor.
+#
+# Replicates the engine's layout math (types.rs) in Python for one bar:
+#   - sequential children: normalized shares (layout_children_sequentially_in_range)
+#   - sidebyside children: each spans the parent
+#   - roll prechildren: anchor_end layout (anchor slot STARTS at bar end)
+#   - erasure window: [pc[0].start, pc[eos-1].start), whitelist passes through
+#
+# The editing primitive: onset k of a sequential container is the boundary
+# between siblings k-1 and k. `share[k-1] += d; share[k] -= d` moves only that
+# boundary (total is unchanged). Delaying a first child inserts a leading rest
+# with share d instead. Moving a first child earlier is pinned in v1.
+
+import json
+
+BAR = 4.0
+
+def is_sounding(n):
+    if n.get("midi_number"): return True
+    return any(is_sounding(c) for c in (n.get("children") or []))
+
+def _walk(node, start, end, path, out):
+    """Collect sounding leaves with onsets and container context."""
+    if node.get("midi_number"):
+        out.append({"path": path, "onset": start, "end": end,
+                    "midi": node["midi_number"], "vel": node.get("velocity", 0)})
+    kids = node.get("children") or []
+    if not kids:
+        return
+    if node.get("child_direction") == "sidebyside":
+        for i, c in enumerate(kids):
+            _walk(c, start, end, path + [("c", i)], out)
+    else:  # sequential (default)
+        total = sum(c.get("timing", 0.0) for c in kids)
+        if total <= 0:
+            return
+        cur = start
+        for i, c in enumerate(kids):
+            if i < len(kids) - 1:
+                seg = (end - start) * c.get("timing", 0.0) / total
+                cend = cur + seg
+            else:
+                cend = end  # last child soaks the remainder
+            _walk(c, cur, cend, path + [("c", i)], out)
+            cur = cend
+
+def beat_hits(measure, bar_start=0.0):
+    out = []
+    _walk(measure, bar_start, bar_start + BAR, [], out)
+    return out
+
+def roll_layout(roll, bar_start=0.0):
+    """Lay out a roll measure's prechildren as applied to a bar (anchor_end).
+    Returns (hits, slot_starts, window) where window = [silence_start, silence_end)."""
+    pcs = roll.get("prechildren") or []
+    anchor_idx = 6 - 1                                  # Call::Roll hardcodes 6
+    bar_end = bar_start + BAR
+    durations = [pc.get("timing", 0.0) * BAR for pc in pcs]
+    starts = [0.0] * len(pcs)
+    total_before = sum(durations[:anchor_idx])
+    off = bar_end - total_before
+    for i in range(anchor_idx):
+        starts[i] = off; off += durations[i]
+    starts[anchor_idx] = bar_end
+    off = bar_end + durations[anchor_idx]
+    for i in range(anchor_idx + 1, len(pcs)):
+        starts[i] = off; off += durations[i]
+    hits = []
+    for i, pc in enumerate(pcs):
+        sub = []
+        _walk(pc, starts[i], starts[i] + durations[i], [("p", i)], sub)
+        hits.extend(sub)
+    eos = roll.get("end_of_silence_prechild") or 6
+    idx = min(eos - 1, len(pcs) - 1)
+    window = (starts[0], starts[idx])
+    return hits, starts, window
+
+def container_at(measure, path):
+    """Return (container_node, key, index) for the leaf at path: the leaf is
+    container[key][index] where key is 'children' or 'prechildren'."""
+    node = measure
+    for arm, i in path[:-1]:
+        node = (node["prechildren"] if arm == "p" else node["children"])[i]
+    arm, i = path[-1]
+    key = "prechildren" if arm == "p" else "children"
+    return node, key, i
+
+def container_children_spans(measure, cpath, bar_span=BAR, bar_start=0.0):
+    """Absolute (start,end) of every child of the sequential container at cpath."""
+    node = measure
+    start, end = bar_start, bar_start + bar_span
+    for arm, i in cpath:
+        if arm == "p":
+            pcs = node["prechildren"]
+            durations = [pc.get("timing", 0.0) * bar_span for pc in pcs]
+            anchor_idx = 6 - 1
+            starts = [0.0] * len(pcs)
+            total_before = sum(durations[:anchor_idx])
+            off = (bar_start + bar_span) - total_before
+            for j in range(anchor_idx):
+                starts[j] = off; off += durations[j]
+            starts[anchor_idx] = bar_start + bar_span
+            off = starts[anchor_idx] + durations[anchor_idx]
+            for j in range(anchor_idx + 1, len(pcs)):
+                starts[j] = off; off += durations[j]
+            start, end = starts[i], starts[i] + durations[i]
+            node = pcs[i]
+        else:
+            kids = node["children"]
+            if node.get("child_direction") == "sidebyside":
+                node = kids[i]
+            else:
+                total = sum(c.get("timing", 0.0) for c in kids)
+                cur = start
+                for j, c in enumerate(kids):
+                    seg = (end - start) * c.get("timing", 0.0) / total
+                    cend = end if j == len(kids) - 1 else cur + seg
+                    if j == i:
+                        start, end = cur, cend
+                        break
+                    cur = cend
+                node = kids[i]
+    kids = node["children"]
+    total = sum(c.get("timing", 0.0) for c in kids)
+    spans = []
+    cur = start
+    for j, c in enumerate(kids):
+        seg = (end - start) * c.get("timing", 0.0) / (total if total > 0 else 1)
+        cend = end if j == len(kids) - 1 else cur + seg
+        spans.append((cur, cend))
+        cur = cend
+    return spans
+
+def shift_onset(measure, path, dt, bar_span=BAR):
+    """Apply a compensating share transfer so the leaf at `path` moves by dt
+    seconds (positive = later). Container span in seconds must be supplied via
+    the recomputed layout; here we recompute from the measure itself."""
+    node, key, k = container_at(measure, path)
+    kids = node[key]
+    if key == "prechildren":
+        raise ValueError("direct prechild-slot shifts are out of scope (window edges)")
+    total = sum(c.get("timing", 0.0) for c in kids)
+    span = _container_span(measure, path[:-1], bar_span)
+    if span <= 0 or total <= 0:
+        raise ValueError("degenerate container")
+    d = dt / span * total
+    if k == 0:
+        if d < 0:
+            raise ValueError("first-child onset cannot move earlier (pinned)")
+        rest = {"midi_number": 0, "velocity": 0, "timing": d, "channel": 9, "children": None}
+        if kids[0].get("timing", 0.0) - d <= 1e-9:
+            raise ValueError("delay exceeds first child's span")
+        kids[0]["timing"] = kids[0].get("timing", 0.0) - d
+        kids.insert(0, rest)
+    else:
+        if d > 0 and kids[k].get("timing", 0.0) - d <= 1e-9:
+            raise ValueError("delay exceeds hit's own span")
+        if d < 0 and kids[k-1].get("timing", 0.0) + d <= 1e-9:
+            raise ValueError("advance exceeds previous sibling's span")
+        kids[k-1]["timing"] = kids[k-1].get("timing", 0.0) + d
+        kids[k]["timing"] = kids[k].get("timing", 0.0) - d
+
+def _container_span(measure, cpath, bar_span):
+    """Absolute span in seconds of the container at cpath, for a bar of bar_span."""
+    # walk down replicating layout spans
+    node = measure; start, end = 0.0, bar_span
+    for arm, i in cpath:
+        if arm == "p":
+            pcs = node["prechildren"]
+            durations = [pc.get("timing", 0.0) * bar_span for pc in pcs]
+            anchor_idx = 6 - 1
+            starts = [0.0] * len(pcs)
+            total_before = sum(durations[:anchor_idx])
+            off = bar_span - total_before
+            for j in range(anchor_idx):
+                starts[j] = off; off += durations[j]
+            starts[anchor_idx] = bar_span
+            off = bar_span + durations[anchor_idx]
+            for j in range(anchor_idx + 1, len(pcs)):
+                starts[j] = off; off += durations[j]
+            start, end = starts[i], starts[i] + durations[i]
+            node = pcs[i]
+        else:
+            kids = node["children"]
+            if node.get("child_direction") == "sidebyside":
+                node = kids[i]  # spans parent unchanged
+            else:
+                total = sum(c.get("timing", 0.0) for c in kids)
+                cur = start
+                for j, c in enumerate(kids):
+                    seg = (end - start) * c.get("timing", 0.0) / total
+                    cend = end if j == len(kids) - 1 else cur + seg
+                    if j == i:
+                        start, end = cur, cend
+                        break
+                    cur = cend
+                node = kids[i]
+    return end - start
+
+def path_str(path):
+    return "/".join(f"{a}{i}" for a, i in path)
+
+def parse_path(s):
+    return [(seg[0], int(seg[1:])) for seg in s.split("/")]
