@@ -205,6 +205,70 @@ def make_beat(name, rng, barsecs=4, style="base"):
             "child_direction": "sidebyside", "children": lanes,
             "start_time": 0.0, "end_time": 0.0, "name": name}, aux
 
+# --- tree style: the hierarchy IS the rhythm ---------------------------------
+# Each beat is a nested ratio tree (no grid): the loop divides by a funky
+# share vocabulary, segments divide again, 3-4 levels deep. Voices speak
+# depths: kick=1, snare=2 (preferring onsets off the kicks), ride=3,
+# ghosts=4. Swing = a lean applied at any interior node, at that node's scale.
+TOP_RATIOS = [[3, 3, 2], [3, 3, 2], [2, 2], [3, 1], [2, 1, 1], [1, 2, 1], [2, 3]]
+MID_RATIOS = [[1, 1], [2, 1], [1, 2], [1, 1, 1], [1, 1, 1], [2, 1, 1], [1, 1, 2], [3, 1]]
+
+def build_ratio_tree(rng, depth_left, lean_p):
+    if depth_left == 0:
+        return None
+    shares = [float(x) for x in rng.choice(MID_RATIOS if depth_left < 3 else TOP_RATIOS)]
+    if rng.random() < lean_p:                       # swing at THIS node's scale
+        shares[0] *= rng.uniform(1.08, 1.30)
+    kids = [build_ratio_tree(rng, depth_left - 1, lean_p) for _ in shares]
+    return {"shares": shares, "kids": kids}
+
+def emit_lane(tree, target_depth, sound_fn, depth=1):
+    """Realize the ratio tree as an HNote lane where only depth==target nodes
+    sound. sound_fn(depth_index, is_downbeat_child) -> leaf or rest."""
+    out = []
+    for ci, (sh, kid) in enumerate(zip(tree["shares"], tree["kids"])):
+        if depth == target_depth or kid is None:
+            out.append({**sound_fn(ci == 0), "timing": sh})
+        else:
+            inner = emit_lane(kid, target_depth, sound_fn, depth + 1)
+            out.append(cont(inner, sh))
+    return out
+
+def make_tree_beat(name, rng, barsecs=8):
+    aux = rng.sample(COLORS, rng.choice([2, 3]))
+    depth = rng.choice([4, 4, 5])
+    tree = build_ratio_tree(rng, depth, lean_p=0.25)
+    vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
+
+    def kick_fn(first):
+        if first or rng.random() < 0.55:
+            return leaf(36, rng.randint(96, 112))
+        return rest()
+    def snare_fn(first):
+        # prefer NOT landing with the kicks: sound mostly on non-first children
+        if (not first and rng.random() < 0.55) or (first and rng.random() < 0.10):
+            return leaf(38 if rng.random() < 0.8 else 37, rng.randint(70, 108))
+        return rest()
+    def ride_fn(first):
+        if rng.random() < 0.85:
+            v = rng.randint(66, 84) if first else rng.randint(46, 64)
+            return leaf(vehicle, v)
+        return rest()
+    def ghost_fn(first):
+        if rng.random() < 0.42:
+            return leaf(rng.choice(aux), rng.randint(38, 62))
+        return rest()
+
+    lanes = [cont(emit_lane(tree, 1, kick_fn)),
+             cont(emit_lane(tree, 2, snare_fn)),
+             cont(emit_lane(tree, depth - 1, ride_fn))]
+    if rng.random() < 0.7:
+        lanes.append(cont(emit_lane(tree, depth, ghost_fn)))
+    lanes[0]["rolled"] = True
+    return {"midi_number": 0, "velocity": 0, "timing": 1.0, "channel": 9,
+            "child_direction": "sidebyside", "children": lanes,
+            "start_time": 0.0, "end_time": 0.0, "name": name}, aux
+
 def walker(kind, aux, rng):
     recent = []
     home = {"buzz": 38, "over": rng.choice([36, 41, 43]),
@@ -282,7 +346,10 @@ def main():
              ("over", False, True), ("build", False, False)]
     for i in range(1, n + 1):
         rng = random.Random(seed ^ (i * 0x9e3779b1))
-        beat, aux = make_beat(f"{song}b{i}", rng, barsecs, style)
+        if style == "tree":
+            beat, aux = make_tree_beat(f"{song}b{i}", rng, barsecs)
+        else:
+            beat, aux = make_beat(f"{song}b{i}", rng, barsecs, style)
         measures.append(beat)
         for j, (kind, spill, over) in enumerate(kinds, 1):
             measures.append(make_roll(f"{song}r{i}_{j}", kind, aux, rng,
