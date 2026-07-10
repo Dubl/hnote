@@ -269,6 +269,103 @@ def make_tree_beat(name, rng, barsecs=8):
             "child_direction": "sidebyside", "children": lanes,
             "start_time": 0.0, "end_time": 0.0, "name": name}, aux
 
+# --- groove style: unequal groupings of EQUAL pulses -------------------------
+# The historical shape of unconventional-but-funky rhythm (aksak, clave):
+# the loop holds N equal pulses (N can be odd-ball: 18, 20...), the tree's top
+# partitions them into groups of 2s/3s/4s (kick on group starts, snare inside
+# groups off the starts), the ride plays the pulse itself accented by the
+# grouping, and BELOW the pulse the tree stays free (leans, ghost flurries).
+# Half 2 of the loop repeats half 1 with one mutated group: call & response.
+
+def partition_pulses(rng, total):
+    groups = []
+    left = total
+    while left > 0:
+        g = rng.choice([2, 3, 3, 2, 4] if left >= 4 else ([left] if left <= 3 else [2]))
+        g = min(g, left)
+        groups.append(g)
+        left -= g
+    return groups
+
+def make_half_score(rng, groups):
+    score = []
+    for g in groups:
+        pulses = []
+        for k in range(g):
+            snare = None
+            if k > 0 and rng.random() < 0.38:
+                snare = rng.randint(96, 112) if rng.random() < 0.45 else rng.randint(52, 76)
+            ghost = rng.random() < 0.30
+            pulses.append({"snare": snare, "ghost": ghost})
+        # pulse shares within the group (swing lean, shared by ALL lanes)
+        shares = [1.0] * g
+        if rng.random() < 0.30 and g >= 2:
+            lean = rng.uniform(1.08, 1.22)
+            for k in range(0, g - 1, 2):
+                shares[k] = lean; shares[k + 1] = 2 - lean
+        score.append({"size": g, "pulses": pulses, "shares": shares,
+                      "kick": rng.random() > 0.15})
+    score[0]["kick"] = True
+    return score
+
+def make_groove_beat(name, rng, barsecs=8):
+    aux = rng.sample(COLORS, rng.choice([2, 3]))
+    N = rng.choices([32, 24, 20, 16, 18], weights=[4, 3, 2, 1, 1])[0]
+    half = N // 2
+    groups = partition_pulses(rng, half)
+    score1 = make_half_score(rng, groups)
+    # half 2 = half 1 with ONE group mutated (content redraw; sometimes resize
+    # two adjacent groups, preserving the pulse total)
+    import copy as _c
+    score2 = _c.deepcopy(score1)
+    gi = rng.randrange(len(score2))
+    if rng.random() < 0.5 and len(score2) >= 2:
+        gj = (gi + 1) % len(score2)
+        tot = score2[gi]["size"] + score2[gj]["size"]
+        a = rng.randint(max(2, tot - 4), min(4, tot - 2)) if tot >= 4 else score2[gi]["size"]
+        score2[gi] = make_half_score(rng, [a])[0]
+        score2[gj] = make_half_score(rng, [tot - a])[0]
+    else:
+        score2[gi] = make_half_score(rng, [score2[gi]["size"]])[0]
+    vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
+
+    def emit(voice_fn):
+        halves = []
+        for score in (score1, score2):
+            gconts = []
+            for grp in score:
+                cells = []
+                for k in range(grp["size"]):
+                    cells.append({**voice_fn(grp, k), "timing": grp["shares"][k]})
+                gconts.append(cont(cells, float(grp["size"])))
+            halves.append(cont(gconts, 1.0))
+        return cont(halves)
+
+    def kick_fn(grp, k):
+        if k == 0 and grp["kick"]:
+            return leaf(36, rng.randint(98, 114))
+        return rest()
+    def snare_fn(grp, k):
+        v = grp["pulses"][k]["snare"]
+        return leaf(38 if (v or 0) > 90 or rng.random() < 0.8 else 37, v) if v else rest()
+    def ride_fn(grp, k):
+        v = rng.randint(70, 86) if k == 0 else rng.randint(48, 64)
+        return leaf(vehicle, v)
+    def ghost_fn(grp, k):
+        if grp["pulses"][k]["ghost"]:
+            n = rng.choice([2, 3])
+            sh = [float(rng.choice([1, 1, 2])) for _ in range(n)]
+            kids = [leaf(rng.choice(aux), rng.randint(36, 60), sh[j]) if rng.random() < 0.6
+                    else rest(sh[j]) for j in range(n)]
+            return cont(kids)
+        return rest()
+
+    lanes = [emit(kick_fn), emit(snare_fn), emit(ride_fn), emit(ghost_fn)]
+    lanes[0]["rolled"] = True
+    return {"midi_number": 0, "velocity": 0, "timing": 1.0, "channel": 9,
+            "child_direction": "sidebyside", "children": lanes,
+            "start_time": 0.0, "end_time": 0.0, "name": name}, aux
+
 def walker(kind, aux, rng):
     recent = []
     home = {"buzz": 38, "over": rng.choice([36, 41, 43]),
@@ -348,6 +445,8 @@ def main():
         rng = random.Random(seed ^ (i * 0x9e3779b1))
         if style == "tree":
             beat, aux = make_tree_beat(f"{song}b{i}", rng, barsecs)
+        elif style == "groove":
+            beat, aux = make_groove_beat(f"{song}b{i}", rng, barsecs)
         else:
             beat, aux = make_beat(f"{song}b{i}", rng, barsecs, style)
         measures.append(beat)

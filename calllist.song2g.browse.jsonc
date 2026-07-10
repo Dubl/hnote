@@ -1,0 +1,652 @@
+[
+ {
+  "target": "song2gb1",
+  "function": "once"
+ },
+ {
+  "target": "song2gb1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr1_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb2",
+  "function": "once"
+ },
+ {
+  "target": "song2gb2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr2_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb3",
+  "function": "once"
+ },
+ {
+  "target": "song2gb3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr3_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb4",
+  "function": "once"
+ },
+ {
+  "target": "song2gb4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr4_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb5",
+  "function": "once"
+ },
+ {
+  "target": "song2gb5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr5_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb6",
+  "function": "once"
+ },
+ {
+  "target": "song2gb6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr6_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb7",
+  "function": "once"
+ },
+ {
+  "target": "song2gb7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr7_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb8",
+  "function": "once"
+ },
+ {
+  "target": "song2gb8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr8_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb9",
+  "function": "once"
+ },
+ {
+  "target": "song2gb9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr9_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb10",
+  "function": "once"
+ },
+ {
+  "target": "song2gb10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr10_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb11",
+  "function": "once"
+ },
+ {
+  "target": "song2gb11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr11_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb12",
+  "function": "once"
+ },
+ {
+  "target": "song2gb12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr12_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb13",
+  "function": "once"
+ },
+ {
+  "target": "song2gb13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr13_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb14",
+  "function": "once"
+ },
+ {
+  "target": "song2gb14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr14_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb15",
+  "function": "once"
+ },
+ {
+  "target": "song2gb15",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr15_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb16",
+  "function": "once"
+ },
+ {
+  "target": "song2gb16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr16_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb17",
+  "function": "once"
+ },
+ {
+  "target": "song2gb17",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr17_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb18",
+  "function": "once"
+ },
+ {
+  "target": "song2gb18",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr18_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb19",
+  "function": "once"
+ },
+ {
+  "target": "song2gb19",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr19_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb20",
+  "function": "once"
+ },
+ {
+  "target": "song2gb20",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr20_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb21",
+  "function": "once"
+ },
+ {
+  "target": "song2gb21",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr21_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb22",
+  "function": "once"
+ },
+ {
+  "target": "song2gb22",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr22_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb23",
+  "function": "once"
+ },
+ {
+  "target": "song2gb23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr23_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb24",
+  "function": "once"
+ },
+ {
+  "target": "song2gb24",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr24_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb25",
+  "function": "once"
+ },
+ {
+  "target": "song2gb25",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr25_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb26",
+  "function": "once"
+ },
+ {
+  "target": "song2gb26",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr26_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb27",
+  "function": "once"
+ },
+ {
+  "target": "song2gb27",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr27_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb28",
+  "function": "once"
+ },
+ {
+  "target": "song2gb28",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr28_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb29",
+  "function": "once"
+ },
+ {
+  "target": "song2gb29",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr29_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb30",
+  "function": "once"
+ },
+ {
+  "target": "song2gb30",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr30_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb31",
+  "function": "once"
+ },
+ {
+  "target": "song2gb31",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr31_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb32",
+  "function": "once"
+ },
+ {
+  "target": "song2gb32",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr32_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb33",
+  "function": "once"
+ },
+ {
+  "target": "song2gb33",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr33_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb34",
+  "function": "once"
+ },
+ {
+  "target": "song2gb34",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr34_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb35",
+  "function": "once"
+ },
+ {
+  "target": "song2gb35",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr35_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb36",
+  "function": "once"
+ },
+ {
+  "target": "song2gb36",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr36_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb37",
+  "function": "once"
+ },
+ {
+  "target": "song2gb37",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr37_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb38",
+  "function": "once"
+ },
+ {
+  "target": "song2gb38",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr38_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb39",
+  "function": "once"
+ },
+ {
+  "target": "song2gb39",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr39_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb40",
+  "function": "once"
+ },
+ {
+  "target": "song2gb40",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr40_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb41",
+  "function": "once"
+ },
+ {
+  "target": "song2gb41",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr41_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb42",
+  "function": "once"
+ },
+ {
+  "target": "song2gb42",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr42_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb43",
+  "function": "once"
+ },
+ {
+  "target": "song2gb43",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr43_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb44",
+  "function": "once"
+ },
+ {
+  "target": "song2gb44",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr44_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb45",
+  "function": "once"
+ },
+ {
+  "target": "song2gb45",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr45_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb46",
+  "function": "once"
+ },
+ {
+  "target": "song2gb46",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr46_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb47",
+  "function": "once"
+ },
+ {
+  "target": "song2gb47",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr47_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb48",
+  "function": "once"
+ },
+ {
+  "target": "song2gb48",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr48_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb49",
+  "function": "once"
+ },
+ {
+  "target": "song2gb49",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr49_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2gb50",
+  "function": "once"
+ },
+ {
+  "target": "song2gb50",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2gr50_2",
+   "amount": 1
+  }
+ }
+]
