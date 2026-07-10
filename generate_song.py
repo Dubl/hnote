@@ -377,12 +377,41 @@ def make_groove_beat(name, rng, barsecs=8):
 PULSE = 0.25
 
 def make_meter_beat(name, rng):
+    """Beat-level commitments, event-level consistency: each beat chooses its
+    ride texture, swing, and one figure PER GROUP SIZE once, then commits for
+    the whole loop. Kick pushes (anticipations on the last 8th of a group)
+    are a per-size property too. Half 2 mutates exactly one group."""
     aux = rng.sample(COLORS, rng.choice([2, 3]))
     N = rng.choices([16, 18, 20, 22, 24, 26, 28, 32],
                     weights=[1, 2, 3, 3, 3, 2, 2, 2])[0]
     half = N // 2
     groups = partition_pulses(rng, half)
-    score1 = make_half_score(rng, groups)
+    vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
+    ride_tex = rng.choice(["straight", "straight", "lilt", "sparse"])
+    swing = rng.uniform(1.08, 1.20) if rng.random() < 0.35 else None
+
+    def draw_fig(size):
+        snare = [None]
+        for k in range(1, size):
+            r = rng.random()
+            snare.append("acc" if r < 0.18 else "ghost" if r < 0.42 else None)
+        if size >= 3 and not any(snare):
+            snare[rng.randrange(1, size)] = "acc"
+        return {"snare": snare,
+                "ghost": [rng.random() < 0.28 for _ in range(size)],
+                "push": rng.random() < 0.32,
+                "kick": rng.random() > 0.12,
+                "offkick": rng.randrange(1, size) if size >= 3 and rng.random() < 0.18 else None}
+    figs = {sz: draw_fig(sz) for sz in set(groups)}
+
+    def pulse_shares(size):
+        sh = [1.0] * size
+        if swing:
+            for k in range(0, size - 1, 2):
+                sh[k] = swing; sh[k + 1] = 2 - swing
+        return sh
+
+    score1 = [{"size": g, "fig": figs[g], "shares": pulse_shares(g)} for g in groups]
     import copy as _c
     score2 = _c.deepcopy(score1)
     gi = rng.randrange(len(score2))
@@ -390,39 +419,49 @@ def make_meter_beat(name, rng):
         gj = (gi + 1) % len(score2)
         tot = score2[gi]["size"] + score2[gj]["size"]
         a = rng.randint(max(2, tot - 4), min(4, tot - 2)) if tot >= 4 else score2[gi]["size"]
-        score2[gi] = make_half_score(rng, [a])[0]
-        score2[gj] = make_half_score(rng, [tot - a])[0]
+        for idx, sz in ((gi, a), (gj, tot - a)):
+            score2[idx] = {"size": sz, "fig": draw_fig(sz), "shares": pulse_shares(sz)}
     else:
-        score2[gi] = make_half_score(rng, [score2[gi]["size"]])[0]
-    vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
+        sz = score2[gi]["size"]
+        score2[gi] = {"size": sz, "fig": draw_fig(sz), "shares": pulse_shares(sz)}
 
     def emit(voice_fn):
         halves = []
         for score in (score1, score2):
             gconts = []
-            for grp in score:
+            for g_idx, grp in enumerate(score):
+                nxt = score[(g_idx + 1) % len(score)]
                 cells = []
                 for k in range(grp["size"]):
-                    cells.append({**voice_fn(grp, k), "timing": grp["shares"][k]})
+                    cells.append({**voice_fn(grp, k, nxt), "timing": grp["shares"][k]})
                 gconts.append(cont(cells, float(grp["size"])))
             halves.append(cont(gconts, 1.0))
         return cont(halves)
 
-    def kick_fn(grp, k):
-        if k == 0 and grp["kick"]:
-            return leaf(36, rng.randint(98, 114))
+    def kick_fn(grp, k, nxt):
+        fig = grp["fig"]
+        last = k == grp["size"] - 1
+        parts = []
+        head = leaf(36, rng.randint(98, 114)) if (k == 0 and fig["kick"]) else                leaf(36, rng.randint(72, 88)) if k == fig.get("offkick") else rest()
+        if last and fig["push"] and nxt["fig"]["kick"]:
+            return cont([{**head, "timing": 1.0}, leaf(36, rng.randint(84, 98), 1.0)])
+        return head
+    def snare_fn(grp, k, nxt):
+        cls = grp["fig"]["snare"][k]
+        if cls == "acc":
+            return leaf(38, rng.randint(96, 112))
+        if cls == "ghost":
+            return leaf(38 if rng.random() < 0.7 else 37, rng.randint(52, 74))
         return rest()
-    def snare_fn(grp, k):
-        v = grp["pulses"][k]["snare"]
-        return leaf(38 if (v or 0) > 90 or rng.random() < 0.8 else 37, v) if v else rest()
-    def ride_fn(grp, k):
-        # subdivide the pulse x2: shimmer + pulse + grouping all audible
+    def ride_fn(grp, k, nxt):
         v1 = rng.randint(72, 88) if k == 0 else rng.randint(56, 70)
-        kids = [leaf(vehicle, v1, 1.0)]
-        kids.append(leaf(vehicle, rng.randint(40, 54), 1.0) if rng.random() < 0.6 else rest(1.0))
+        second = {"straight": True, "sparse": False,
+                  "lilt": k != grp["size"] - 1}[ride_tex]
+        kids = [leaf(vehicle, v1, 1.0),
+                leaf(vehicle, rng.randint(42, 56), 1.0) if second else rest(1.0)]
         return cont(kids)
-    def ghost_fn(grp, k):
-        if grp["pulses"][k]["ghost"]:
+    def ghost_fn(grp, k, nxt):
+        if grp["fig"]["ghost"][k]:
             n = rng.choice([2, 3])
             sh = [float(rng.choice([1, 1, 2])) for _ in range(n)]
             kids = [leaf(rng.choice(aux), rng.randint(36, 60), sh[j]) if rng.random() < 0.6

@@ -1,0 +1,652 @@
+[
+ {
+  "target": "song2m2b1",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r1_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b2",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r2_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b3",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r3_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b4",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r4_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b5",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r5_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b6",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r6_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b7",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r7_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b8",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r8_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b9",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r9_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b10",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r10_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b11",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r11_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b12",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r12_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b13",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r13_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b14",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r14_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b15",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b15",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r15_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b16",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r16_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b17",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b17",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r17_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b18",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b18",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r18_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b19",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b19",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r19_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b20",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b20",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r20_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b21",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b21",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r21_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b22",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b22",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r22_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b23",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r23_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b24",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b24",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r24_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b25",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b25",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r25_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b26",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b26",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r26_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b27",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b27",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r27_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b28",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b28",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r28_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b29",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b29",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r29_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b30",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b30",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r30_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b31",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b31",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r31_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b32",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b32",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r32_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b33",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b33",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r33_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b34",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b34",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r34_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b35",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b35",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r35_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b36",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b36",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r36_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b37",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b37",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r37_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b38",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b38",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r38_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b39",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b39",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r39_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b40",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b40",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r40_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b41",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b41",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r41_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b42",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b42",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r42_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b43",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b43",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r43_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b44",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b44",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r44_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b45",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b45",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r45_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b46",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b46",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r46_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b47",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b47",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r47_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b48",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b48",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r48_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b49",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b49",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r49_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2m2b50",
+  "function": "once"
+ },
+ {
+  "target": "song2m2b50",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2m2r50_2",
+   "amount": 1
+  }
+ }
+]
