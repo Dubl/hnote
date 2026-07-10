@@ -26,22 +26,49 @@ def cont(children, t=1.0, direction="sequential"):
 def rest(t=1.0):
     return leaf(0, 0, t)
 
+KICK_TEMPLATES = {
+    "steady":  lambda n: [i for i in range(n) if i % 8 == 0],
+    "broken":  lambda n: [i for i in range(n) if i % 32 in (0, 12, 24)],
+    "push":    lambda n: [i for i in range(n) if i % 16 in (0, 6)],
+    "half":    lambda n: [i for i in range(n) if i % 32 == 0],
+}
+SNARE_TEMPLATES = {
+    "classic":   lambda n: [(i, 38) for i in range(n) if i % 16 == 8],
+    "half":      lambda n: [(i, 38) for i in range(n) if i % 32 == 16],
+    "displaced": lambda n: [(i, 38) for i in range(n) if i % 32 in (8, 26)],
+    "clap":      lambda n: [(i, 38) for i in range(n) if i % 32 == 8]
+                         + [(i, 39) for i in range(n) if i % 32 == 24],
+}
+
 def make_beat(name, rng, barsecs=4, style="base"):
     scale = barsecs / 4
     drive = style == "drive"
+    vary = style == "vary"
     aux = rng.sample(COLORS, rng.choice([2, 2, 3]))
     ghost_p = 0.30 if drive else 0.16
     # lane A: kick/snare (rolled)
     cells = []
     n_a = int(BAR_SHARES_A * scale)
+    if vary:                                # per-beat structural identity
+        kt = rng.choice(list(KICK_TEMPLATES))
+        st = rng.choice(list(SNARE_TEMPLATES))
+        kicks = set(KICK_TEMPLATES[kt](n_a))
+        if kicks and rng.random() < 0.5:    # jitter: drop or add one
+            if rng.random() < 0.5 and len(kicks) > 2:
+                kicks.discard(rng.choice(sorted(kicks)[1:]))
+            else:
+                kicks.add(rng.choice([i for i in range(n_a) if i % 4 == 2]))
+        snares = dict(SNARE_TEMPLATES[st](n_a))
+    else:
+        kicks = set(i for i in range(n_a) if i % 8 == 0)
+        snares = {i: 38 for i in range(n_a) if (i // 2) % 8 == 4 and i % 2 == 0}
     syncs = set(rng.sample([i for i in range(n_a) if i % 8 in (3, 6)],
                            rng.randint(2, 4) if drive else 0))
     for i in range(n_a):
-        beat16 = i // 2
-        if i % 8 == 0:                                   # downbeat-ish kicks
+        if i in kicks:
             cells.append(leaf(36, rng.randint(102, 115) if drive else rng.randint(95, 110), 0.5))
-        elif beat16 % 8 == 4 and i % 2 == 0:             # backbeat snares
-            cells.append(leaf(38, rng.randint(105, 118) if drive else rng.randint(98, 112), 0.5))
+        elif i in snares:
+            cells.append(leaf(snares[i], rng.randint(105, 118) if drive else rng.randint(98, 112), 0.5))
         elif i in syncs:                                 # hard syncopated accents
             p = 36 if rng.random() < 0.6 else 38
             cells.append(leaf(p, rng.randint(96, 112), 0.5))
@@ -58,21 +85,32 @@ def make_beat(name, rng, barsecs=4, style="base"):
             cells.append(rest(0.5))
     laneA = cont(cells)
     laneA["rolled"] = True
-    # lane B: hats - in drive style they RIDE (near-continuous, accented)
+    # lane B: the ride layer - per-beat vehicle, density, accent period
+    if vary:
+        vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
+        dens = rng.uniform(0.62, 0.88)
+        accent = rng.choice([3, 4, 6])
+    else:
+        vehicle, dens, accent = 42, (0.86 if drive else 0.52), 4
     cells = []
     for i in range(int(BAR_SHARES_H * scale)):
         r = rng.random()
-        dens = 0.86 if drive else 0.52
         if r < dens:
-            p = 46 if rng.random() < (0.05 if drive else 0.07) else 42
-            if drive:
-                v = rng.randint(68, 84) if i % 4 == 0 else rng.randint(46, 62)
+            p = 46 if (vehicle == 42 and rng.random() < 0.05) else vehicle
+            if drive or vary:
+                v = rng.randint(68, 84) if i % accent == 0 else rng.randint(46, 62)
             else:
                 v = rng.randint(44, 72)
             cells.append(leaf(p, v, 0.5))
         else:
             cells.append(rest(0.5))
     laneB = cont(cells)
+    if vary and rng.random() < 0.30:        # swing: uneven 32nd pairs, 16th grid intact
+        sw = rng.uniform(1.10, 1.25)
+        for lane_cells in (cells,):
+            for k in range(0, len(lane_cells) - 1, 2):
+                lane_cells[k]["timing"] = 0.5 * sw
+                lane_cells[k+1]["timing"] = 0.5 * (2 - sw)
     # aux lanes
     def aux_lane(inst, dens):
         cells = []
@@ -85,7 +123,20 @@ def make_beat(name, rng, barsecs=4, style="base"):
     lanes = [laneA, laneB, aux_lane(aux[0], 0.22)]
     if len(aux) > 2 or rng.random() < 0.5:
         lanes.append(aux_lane(aux[1], 0.13))
-    if drive:
+    if vary:
+        # signature figure: a short motif on a distinctive voice, repeated in
+        # both halves of the loop at the same position - per-beat identity
+        n_f = int(BAR_SHARES_A * scale)
+        cells = [rest(0.5) for _ in range(n_f)]
+        voice = rng.choice(aux)
+        pos0 = rng.choice([10, 14, 20, 26])
+        motif = [(k * rng.choice([1, 2]), rng.randint(62, 88)) for k in range(rng.randint(2, 3))]
+        for half in (0, n_f // 2):
+            for off, v in motif:
+                idx = half + pos0 + off
+                if idx < n_f: cells[idx] = leaf(voice, v, 0.5)
+        lanes.append(cont(cells))
+    if drive or vary:
         # quiet fills: 1-2 soft tom runs tucked into pockets of the loop
         n_f = int(BAR_SHARES_A * scale)
         cells = [rest(0.5) for _ in range(n_f)]
