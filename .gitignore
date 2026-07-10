@@ -26,3 +26,6 @@ GIT_WORKFLOW_GUIDE.md
 # OS files
 Thumbs.db
 .DS_Store
+
+tools/
+build/
