@@ -40,19 +40,25 @@ SNARE_TEMPLATES = {
                          + [(i, 39) for i in range(n) if i % 32 == 24],
 }
 
+WILD_FEATURES = ["poly", "oddaccent", "burst", "drunk", "dropout", "invert", "chaoskick"]
+
 def make_beat(name, rng, barsecs=4, style="base"):
     scale = barsecs / 4
     drive = style == "drive"
-    vary = style == "vary"
+    vary = style in ("vary", "wild")
+    wild = style == "wild"
+    feats = set(rng.sample(WILD_FEATURES, rng.randint(2, 4))) if wild else set()
     aux = rng.sample(COLORS, rng.choice([2, 2, 3]))
     ghost_p = 0.30 if drive else 0.16
     # lane A: kick/snare (rolled)
     cells = []
     n_a = int(BAR_SHARES_A * scale)
     if vary:                                # per-beat structural identity
-        kt = rng.choice(list(KICK_TEMPLATES))
+        pool = list(KICK_TEMPLATES) + (["chaos"] if "chaoskick" in feats else [])
+        kt = rng.choice(pool)
         st = rng.choice(list(SNARE_TEMPLATES))
-        kicks = set(KICK_TEMPLATES[kt](n_a))
+        kicks = (set(rng.sample(range(n_a), rng.randint(5, 9))) if kt == "chaos"
+                 else set(KICK_TEMPLATES[kt](n_a)))
         if kicks and rng.random() < 0.5:    # jitter: drop or add one
             if rng.random() < 0.5 and len(kicks) > 2:
                 kicks.discard(rng.choice(sorted(kicks)[1:]))
@@ -64,17 +70,41 @@ def make_beat(name, rng, barsecs=4, style="base"):
         snares = {i: 38 for i in range(n_a) if (i // 2) % 8 == 4 and i % 2 == 0}
     syncs = set(rng.sample([i for i in range(n_a) if i % 8 in (3, 6)],
                            rng.randint(2, 4) if drive else 0))
+    # dynamic inversion: one half of the loop turns inside-out
+    inv_lo, inv_hi = (n_a // 2, n_a) if ("invert" in feats and rng.random() < 0.5) else (0, n_a // 2)
+    invert = "invert" in feats
+    def vel(base_lo, base_hi, i, ghost=False):
+        v = rng.randint(base_lo, base_hi)
+        if invert and inv_lo <= i < inv_hi:
+            v = rng.randint(85, 100) if ghost else rng.randint(45, 60)
+        return v
+    # dropouts: holes where kick/snare AND ride vanish together
+    drop = set()
+    if "dropout" in feats:
+        for _ in range(rng.randint(1, 2)):
+            start = rng.randrange(4, n_a - 8)
+            drop.update(range(start, start + rng.randint(4, 8)))
+    burst_p = rng.uniform(0.04, 0.08) if "burst" in feats else 0.0
+    def maybe_burst(cell_leaf):
+        if rng.random() < burst_p and cell_leaf.get("midi_number"):
+            p, v = cell_leaf["midi_number"], cell_leaf["velocity"]
+            k = rng.choice([2, 3])
+            sh = [float(rng.choice([1, 1, 2])) for _ in range(k)]
+            return cont([leaf(p, max(30, v - 12 * (k - 1 - h)), sh[h]) for h in range(k)], 0.5)
+        return cell_leaf
     for i in range(n_a):
-        if i in kicks:
-            cells.append(leaf(36, rng.randint(102, 115) if drive else rng.randint(95, 110), 0.5))
+        if i in drop:
+            cells.append(rest(0.5))
+        elif i in kicks:
+            cells.append(maybe_burst(leaf(36, vel(102, 115, i) if drive else vel(95, 110, i), 0.5)))
         elif i in snares:
-            cells.append(leaf(snares[i], rng.randint(105, 118) if drive else rng.randint(98, 112), 0.5))
+            cells.append(maybe_burst(leaf(snares[i], vel(105, 118, i) if drive else vel(98, 112, i), 0.5)))
         elif i in syncs:                                 # hard syncopated accents
             p = 36 if rng.random() < 0.6 else 38
-            cells.append(leaf(p, rng.randint(96, 112), 0.5))
+            cells.append(leaf(p, vel(96, 112, i), 0.5))
         elif rng.random() < ghost_p:
             p = 36 if rng.random() < 0.55 else 38
-            v = rng.randint(40, 70) if p == 38 else rng.randint(70, 95)
+            v = vel(40, 70, i, ghost=True) if p == 38 else vel(70, 95, i, ghost=True)
             if rng.random() < 0.12:                      # uneven drag pair
                 sh = rng.choice([[1, 2], [1, 3], [2, 1]])
                 cells.append(cont([leaf(p, v - 18, float(sh[0])),
@@ -89,19 +119,21 @@ def make_beat(name, rng, barsecs=4, style="base"):
     if vary:
         vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
         dens = rng.uniform(0.62, 0.88)
-        accent = rng.choice([3, 4, 6])
+        accent = rng.choice([3, 4, 5, 6, 7] if "oddaccent" in feats else [3, 4, 6])
     else:
         vehicle, dens, accent = 42, (0.86 if drive else 0.52), 4
     cells = []
     for i in range(int(BAR_SHARES_H * scale)):
         r = rng.random()
-        if r < dens:
+        if i in drop:
+            cells.append(rest(0.5))
+        elif r < dens:
             p = 46 if (vehicle == 42 and rng.random() < 0.05) else vehicle
             if drive or vary:
                 v = rng.randint(68, 84) if i % accent == 0 else rng.randint(46, 62)
             else:
                 v = rng.randint(44, 72)
-            cells.append(leaf(p, v, 0.5))
+            cells.append(maybe_burst(leaf(p, v, 0.5)) if wild else leaf(p, v, 0.5))
         else:
             cells.append(rest(0.5))
     laneB = cont(cells)
@@ -111,6 +143,10 @@ def make_beat(name, rng, barsecs=4, style="base"):
             for k in range(0, len(lane_cells) - 1, 2):
                 lane_cells[k]["timing"] = 0.5 * sw
                 lane_cells[k+1]["timing"] = 0.5 * (2 - sw)
+    if "drunk" in feats:                    # smear the ride layer's grid
+        j = rng.uniform(0.10, 0.22)
+        for c in cells:
+            c["timing"] = c.get("timing", 0.5) * rng.uniform(1 - j, 1 + j)
     # aux lanes
     def aux_lane(inst, dens):
         cells = []
@@ -123,6 +159,24 @@ def make_beat(name, rng, barsecs=4, style="base"):
     lanes = [laneA, laneB, aux_lane(aux[0], 0.22)]
     if len(aux) > 2 or rng.random() < 0.5:
         lanes.append(aux_lane(aux[1], 0.13))
+    if "drunk" in feats:                    # smear aux lanes too
+        for lane in lanes[2:]:
+            j = rng.uniform(0.10, 0.22)
+            for c in lane["children"]:
+                c["timing"] = c.get("timing", 0.0625) * rng.uniform(1 - j, 1 + j)
+    if "poly" in feats:
+        # a voice hitting every P cells, P coprime-ish to the loop: phases
+        # across the 8s and only re-syncs at the loop point
+        P = rng.choice([5, 6, 7, 10])
+        n_p = int(BAR_SHARES_A * scale)
+        voice = rng.choice([x for x in COLORS if x not in aux])
+        cells = []
+        for i in range(n_p):
+            if i % P == 0:
+                cells.append(leaf(voice, rng.randint(58, 86), 0.5))
+            else:
+                cells.append(rest(0.5))
+        lanes.append(cont(cells))
     if vary:
         # signature figure: a short motif on a distinctive voice, repeated in
         # both halves of the loop at the same position - per-beat identity
