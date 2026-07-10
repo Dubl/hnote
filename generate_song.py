@@ -26,18 +26,26 @@ def cont(children, t=1.0, direction="sequential"):
 def rest(t=1.0):
     return leaf(0, 0, t)
 
-def make_beat(name, rng, barsecs=4):
+def make_beat(name, rng, barsecs=4, style="base"):
     scale = barsecs / 4
+    drive = style == "drive"
     aux = rng.sample(COLORS, rng.choice([2, 2, 3]))
+    ghost_p = 0.30 if drive else 0.16
     # lane A: kick/snare (rolled)
     cells = []
-    for i in range(int(BAR_SHARES_A * scale)):
+    n_a = int(BAR_SHARES_A * scale)
+    syncs = set(rng.sample([i for i in range(n_a) if i % 8 in (3, 6)],
+                           rng.randint(2, 4) if drive else 0))
+    for i in range(n_a):
         beat16 = i // 2
         if i % 8 == 0:                                   # downbeat-ish kicks
-            cells.append(leaf(36, rng.randint(95, 110), 0.5))
+            cells.append(leaf(36, rng.randint(102, 115) if drive else rng.randint(95, 110), 0.5))
         elif beat16 % 8 == 4 and i % 2 == 0:             # backbeat snares
-            cells.append(leaf(38, rng.randint(98, 112), 0.5))
-        elif rng.random() < 0.16:
+            cells.append(leaf(38, rng.randint(105, 118) if drive else rng.randint(98, 112), 0.5))
+        elif i in syncs:                                 # hard syncopated accents
+            p = 36 if rng.random() < 0.6 else 38
+            cells.append(leaf(p, rng.randint(96, 112), 0.5))
+        elif rng.random() < ghost_p:
             p = 36 if rng.random() < 0.55 else 38
             v = rng.randint(40, 70) if p == 38 else rng.randint(70, 95)
             if rng.random() < 0.12:                      # uneven drag pair
@@ -50,13 +58,18 @@ def make_beat(name, rng, barsecs=4):
             cells.append(rest(0.5))
     laneA = cont(cells)
     laneA["rolled"] = True
-    # lane B: hats, irregular density
+    # lane B: hats - in drive style they RIDE (near-continuous, accented)
     cells = []
     for i in range(int(BAR_SHARES_H * scale)):
         r = rng.random()
-        if r < 0.52:
-            p = 46 if rng.random() < 0.07 else 42
-            cells.append(leaf(p, rng.randint(44, 72), 0.5))
+        dens = 0.86 if drive else 0.52
+        if r < dens:
+            p = 46 if rng.random() < (0.05 if drive else 0.07) else 42
+            if drive:
+                v = rng.randint(68, 84) if i % 4 == 0 else rng.randint(46, 62)
+            else:
+                v = rng.randint(44, 72)
+            cells.append(leaf(p, v, 0.5))
         else:
             cells.append(rest(0.5))
     laneB = cont(cells)
@@ -72,6 +85,17 @@ def make_beat(name, rng, barsecs=4):
     lanes = [laneA, laneB, aux_lane(aux[0], 0.22)]
     if len(aux) > 2 or rng.random() < 0.5:
         lanes.append(aux_lane(aux[1], 0.13))
+    if drive:
+        # quiet fills: 1-2 soft tom runs tucked into pockets of the loop
+        n_f = int(BAR_SHARES_A * scale)
+        cells = [rest(0.5) for _ in range(n_f)]
+        for _ in range(rng.randint(1, 2)):
+            start = rng.choice([x for x in range(6, n_f - 8) if x % 8 in (5, 6, 7)])
+            pos = rng.choice([2, 1])
+            for k in range(rng.randint(3, 6)):
+                pos = max(0, min(2, pos + rng.choice([-1, -1, 0, 1])))
+                cells[start + k] = leaf(TOMS[pos], rng.randint(34, 55), 0.5)
+        lanes.append(cont(cells))
     return {"midi_number": 0, "velocity": 0, "timing": 1.0, "channel": 9,
             "child_direction": "sidebyside", "children": lanes,
             "start_time": 0.0, "end_time": 0.0, "name": name}, aux
@@ -146,13 +170,14 @@ def main():
     seed = int(sys.argv[3]) if len(sys.argv) > 3 else 20260710
     barsecs = float(sys.argv[4]) if len(sys.argv) > 4 else 4
     bars_per_beat = int(sys.argv[5]) if len(sys.argv) > 5 else 4
+    style = sys.argv[6] if len(sys.argv) > 6 else "base"
     measures = []
     calls = []
     kinds = [("buzz", False, False), ("tumble", True, False),
              ("over", False, True), ("build", False, False)]
     for i in range(1, n + 1):
         rng = random.Random(seed ^ (i * 0x9e3779b1))
-        beat, aux = make_beat(f"{song}b{i}", rng, barsecs)
+        beat, aux = make_beat(f"{song}b{i}", rng, barsecs, style)
         measures.append(beat)
         for j, (kind, spill, over) in enumerate(kinds, 1):
             measures.append(make_roll(f"{song}r{i}_{j}", kind, aux, rng,

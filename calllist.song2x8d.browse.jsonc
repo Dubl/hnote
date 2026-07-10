@@ -1,0 +1,652 @@
+[
+ {
+  "target": "song2x8db1",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr1_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db2",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr2_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db3",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr3_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db4",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr4_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db5",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr5_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db6",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr6_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db7",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr7_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db8",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr8_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db9",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr9_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db10",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr10_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db11",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr11_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db12",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr12_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db13",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr13_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db14",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr14_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db15",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db15",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr15_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db16",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr16_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db17",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db17",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr17_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db18",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db18",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr18_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db19",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db19",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr19_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db20",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db20",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr20_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db21",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db21",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr21_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db22",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db22",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr22_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db23",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db23",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr23_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db24",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db24",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr24_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db25",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db25",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr25_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db26",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db26",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr26_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db27",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db27",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr27_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db28",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db28",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr28_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db29",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db29",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr29_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db30",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db30",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr30_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db31",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db31",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr31_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db32",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db32",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr32_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db33",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db33",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr33_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db34",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db34",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr34_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db35",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db35",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr35_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db36",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db36",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr36_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db37",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db37",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr37_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db38",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db38",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr38_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db39",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db39",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr39_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db40",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db40",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr40_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db41",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db41",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr41_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db42",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db42",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr42_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db43",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db43",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr43_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db44",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db44",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr44_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db45",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db45",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr45_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db46",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db46",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr46_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db47",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db47",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr47_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db48",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db48",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr48_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db49",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db49",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr49_2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2x8db50",
+  "function": "once"
+ },
+ {
+  "target": "song2x8db50",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "song2x8dr50_2",
+   "amount": 1
+  }
+ }
+]
