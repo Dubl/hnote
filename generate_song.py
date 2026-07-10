@@ -3,9 +3,12 @@
 # no-three-in-a-row, uneven timing shares, short rolls (~2 sixteenths at the
 # bar end), roll 2 spilling past the bar line, roll 3 playing over the base.
 #
-# Usage: python generate_song.py <song> [nbeats] [seed]
-# Writes measures.<song>.json and calllist.<song>.browse.jsonc
-# (4 bars per beat: rolls 1-4 = buzz / spiller / over-base stab / build).
+# Usage: python generate_song.py <song> [nbeats] [seed] [barsecs] [bars_per_beat]
+# Writes measures.<song>.json and calllist.<song>.browse.jsonc.
+# barsecs: loop length in seconds (4 or 8; same 0.125s cell grid either way -
+# 8s doubles the cell count, and roll bar-fractions halve so rolls keep the
+# same absolute size). bars_per_beat: 4 = full roll arc (buzz/spiller/over/
+# build), 2 = plain bar + spiller bar (compact browse).
 
 import json, random, sys
 
@@ -23,15 +26,16 @@ def cont(children, t=1.0, direction="sequential"):
 def rest(t=1.0):
     return leaf(0, 0, t)
 
-def make_beat(name, rng):
+def make_beat(name, rng, barsecs=4):
+    scale = barsecs / 4
     aux = rng.sample(COLORS, rng.choice([2, 2, 3]))
     # lane A: kick/snare (rolled)
     cells = []
-    for i in range(BAR_SHARES_A):
+    for i in range(int(BAR_SHARES_A * scale)):
         beat16 = i // 2
         if i % 8 == 0:                                   # downbeat-ish kicks
             cells.append(leaf(36, rng.randint(95, 110), 0.5))
-        elif beat16 in (4, 12) and i % 2 == 0:           # backbeat snares
+        elif beat16 % 8 == 4 and i % 2 == 0:             # backbeat snares
             cells.append(leaf(38, rng.randint(98, 112), 0.5))
         elif rng.random() < 0.16:
             p = 36 if rng.random() < 0.55 else 38
@@ -48,7 +52,7 @@ def make_beat(name, rng):
     laneA["rolled"] = True
     # lane B: hats, irregular density
     cells = []
-    for i in range(BAR_SHARES_H):
+    for i in range(int(BAR_SHARES_H * scale)):
         r = rng.random()
         if r < 0.52:
             p = 46 if rng.random() < 0.07 else 42
@@ -59,7 +63,7 @@ def make_beat(name, rng):
     # aux lanes
     def aux_lane(inst, dens):
         cells = []
-        for i in range(BAR_SHARES_X):
+        for i in range(int(BAR_SHARES_X * scale)):
             if rng.random() < dens:
                 cells.append(leaf(inst, rng.randint(55, 85), 0.0625))
             else:
@@ -102,7 +106,8 @@ def walker(kind, aux, rng):
         return p
     return wp
 
-def make_roll(name, kind, aux, rng, spill=False, over=False):
+def make_roll(name, kind, aux, rng, spill=False, over=False, barsecs=4):
+    f = 4 / barsecs        # bar-fraction scale: rolls keep absolute size
     wp = walker(kind, aux, rng)
     pcs = [rest(0.0), rest(0.0), rest(0.0)]
     for si in range(2):                                   # two sounding slots
@@ -113,9 +118,9 @@ def make_roll(name, kind, aux, rng, spill=False, over=False):
         leaves = [leaf(wp(prog), max(30, min(118,
                     int(v0 + (v1 - v0) * (si + h / hits) / 2) + rng.randint(-6, 6))),
                     shares[h]) for h in range(hits)]
-        pcs.append(cont(leaves, 0.0625) if hits > 1 else
-                   {**leaves[0], "timing": 0.0625})
-    pcs.append(rest(0.0625))                              # anchor (slot 6)
+        pcs.append(cont(leaves, 0.0625 * f) if hits > 1 else
+                   {**leaves[0], "timing": 0.0625 * f})
+    pcs.append(rest(0.0625 * f))                          # anchor (slot 6)
     m = {"midi_number": 0, "velocity": 0, "timing": 1.0, "channel": 9,
          "child_direction": "sequential", "children": None, "prechildren": pcs,
          "start_time": 0.0, "end_time": 0.0, "name": name,
@@ -129,8 +134,8 @@ def make_roll(name, kind, aux, rng, spill=False, over=False):
                      int(84 - 40 * decay) + rng.randint(-5, 5))),
                      float(rng.choice([1, 1, 2]))) for _ in range(2 if pair else 1)]
             cells.append(cont(ll) if pair else ll[0])
-        pcs.append(cont(cells, 2 / 16.0))
-        pcs.append(rest(0.5 / 16.0))
+        pcs.append(cont(cells, 2 / 16.0 * f))
+        pcs.append(rest(0.5 / 16.0 * f))
         m["ancestor_overwrite_level"] = 2
         m["end_of_silence_prechild"] = 8
     return m
@@ -139,20 +144,29 @@ def main():
     song = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 100
     seed = int(sys.argv[3]) if len(sys.argv) > 3 else 20260710
+    barsecs = float(sys.argv[4]) if len(sys.argv) > 4 else 4
+    bars_per_beat = int(sys.argv[5]) if len(sys.argv) > 5 else 4
     measures = []
     calls = []
     kinds = [("buzz", False, False), ("tumble", True, False),
              ("over", False, True), ("build", False, False)]
     for i in range(1, n + 1):
         rng = random.Random(seed ^ (i * 0x9e3779b1))
-        beat, aux = make_beat(f"{song}b{i}", rng)
+        beat, aux = make_beat(f"{song}b{i}", rng, barsecs)
         measures.append(beat)
         for j, (kind, spill, over) in enumerate(kinds, 1):
             measures.append(make_roll(f"{song}r{i}_{j}", kind, aux, rng,
-                                      spill=spill, over=over))
+                                      spill=spill, over=over, barsecs=barsecs))
+        if bars_per_beat == 2:
+            calls.append({"target": f"{song}b{i}", "function": "once"})
             calls.append({"target": f"{song}b{i}", "function": "once",
                           "then": {"function": "roll",
-                                   "target": f"{song}r{i}_{j}", "amount": 1}})
+                                   "target": f"{song}r{i}_2", "amount": 1}})
+        else:
+            for j in range(1, 5):
+                calls.append({"target": f"{song}b{i}", "function": "once",
+                              "then": {"function": "roll",
+                                       "target": f"{song}r{i}_{j}", "amount": 1}})
     json.dump(measures, open(f"measures.{song}.json", "w", encoding="utf-8"), indent=1)
     json.dump(calls, open(f"calllist.{song}.browse.jsonc", "w", encoding="utf-8"), indent=1)
     print(f"{song}: {n} beats, {n*4} rolls, {len(calls)} bars ({len(calls)*4.0:.0f}s)")

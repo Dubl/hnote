@@ -30,10 +30,11 @@ def main():
     ap.add_argument("--measures", default="measures.random2v.json")
     ap.add_argument("--bars", type=int)
     ap.add_argument("--no-melody", action="store_true")
+    ap.add_argument("--barsecs", type=float, default=4.0)
     a = ap.parse_args()
 
     bars = a.bars or len(json.load(open(a.calllist, encoding="utf-8")))
-    dur = bars * 4.0
+    dur = bars * a.barsecs
     os.makedirs(BUILD, exist_ok=True)
     drums = os.path.join(BUILD, f"{a.name}_drums.mid")
 

@@ -11,7 +11,7 @@
 
 import struct, random, math, sys
 
-PPQ = 480; TEMPO = 500000; BAR = 4.0
+PPQ = 480; TEMPO = 500000; BAR = 4.0  # TODO: barsecs-aware timeline before layering 8s-bar songs
 SRC_NBARS = 400
 GOOD_MELODY_BARS = sorted(set([
     1, 2, 14, 26, 30, 39, 69, 89, 128, 161, 166, 204, 208, 213, 214, 216,
