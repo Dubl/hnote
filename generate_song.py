@@ -366,6 +366,76 @@ def make_groove_beat(name, rng, barsecs=8):
             "child_direction": "sidebyside", "children": lanes,
             "start_time": 0.0, "end_time": 0.0, "name": name}, aux
 
+# --- meter style: constant clock, variable loop lengths ----------------------
+# One pulse for the whole set (250ms). Each beat picks N pulses (even, 16-32,
+# odd METERS at a constant TEMPO) and its loop lasts N x 0.25s - bar spans are
+# shares (measure root timing = N), so the song's bars are unequal and the
+# engine's normalized layout handles it. The ride subdivides the pulse x2
+# (subdivision shimmer / steady pulse / funky grouping = three tree levels
+# audible at once). Rolls get per-beat bar fractions so they stay 0.25s.
+
+PULSE = 0.25
+
+def make_meter_beat(name, rng):
+    aux = rng.sample(COLORS, rng.choice([2, 3]))
+    N = rng.choices([16, 18, 20, 22, 24, 26, 28, 32],
+                    weights=[1, 2, 3, 3, 3, 2, 2, 2])[0]
+    half = N // 2
+    groups = partition_pulses(rng, half)
+    score1 = make_half_score(rng, groups)
+    import copy as _c
+    score2 = _c.deepcopy(score1)
+    gi = rng.randrange(len(score2))
+    if rng.random() < 0.5 and len(score2) >= 2:
+        gj = (gi + 1) % len(score2)
+        tot = score2[gi]["size"] + score2[gj]["size"]
+        a = rng.randint(max(2, tot - 4), min(4, tot - 2)) if tot >= 4 else score2[gi]["size"]
+        score2[gi] = make_half_score(rng, [a])[0]
+        score2[gj] = make_half_score(rng, [tot - a])[0]
+    else:
+        score2[gi] = make_half_score(rng, [score2[gi]["size"]])[0]
+    vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
+
+    def emit(voice_fn):
+        halves = []
+        for score in (score1, score2):
+            gconts = []
+            for grp in score:
+                cells = []
+                for k in range(grp["size"]):
+                    cells.append({**voice_fn(grp, k), "timing": grp["shares"][k]})
+                gconts.append(cont(cells, float(grp["size"])))
+            halves.append(cont(gconts, 1.0))
+        return cont(halves)
+
+    def kick_fn(grp, k):
+        if k == 0 and grp["kick"]:
+            return leaf(36, rng.randint(98, 114))
+        return rest()
+    def snare_fn(grp, k):
+        v = grp["pulses"][k]["snare"]
+        return leaf(38 if (v or 0) > 90 or rng.random() < 0.8 else 37, v) if v else rest()
+    def ride_fn(grp, k):
+        # subdivide the pulse x2: shimmer + pulse + grouping all audible
+        v1 = rng.randint(72, 88) if k == 0 else rng.randint(56, 70)
+        kids = [leaf(vehicle, v1, 1.0)]
+        kids.append(leaf(vehicle, rng.randint(40, 54), 1.0) if rng.random() < 0.6 else rest(1.0))
+        return cont(kids)
+    def ghost_fn(grp, k):
+        if grp["pulses"][k]["ghost"]:
+            n = rng.choice([2, 3])
+            sh = [float(rng.choice([1, 1, 2])) for _ in range(n)]
+            kids = [leaf(rng.choice(aux), rng.randint(36, 60), sh[j]) if rng.random() < 0.6
+                    else rest(sh[j]) for j in range(n)]
+            return cont(kids)
+        return rest()
+
+    lanes = [emit(kick_fn), emit(snare_fn), emit(ride_fn), emit(ghost_fn)]
+    lanes[0]["rolled"] = True
+    return {"midi_number": 0, "velocity": 0, "timing": float(N), "channel": 9,
+            "child_direction": "sidebyside", "children": lanes,
+            "start_time": 0.0, "end_time": 0.0, "name": name}, aux, N
+
 def walker(kind, aux, rng):
     recent = []
     home = {"buzz": 38, "over": rng.choice([36, 41, 43]),
@@ -439,20 +509,27 @@ def main():
     style = sys.argv[6] if len(sys.argv) > 6 else "base"
     measures = []
     calls = []
+    meter_index = []
     kinds = [("buzz", False, False), ("tumble", True, False),
              ("over", False, True), ("build", False, False)]
     for i in range(1, n + 1):
         rng = random.Random(seed ^ (i * 0x9e3779b1))
+        N = None
         if style == "tree":
             beat, aux = make_tree_beat(f"{song}b{i}", rng, barsecs)
         elif style == "groove":
             beat, aux = make_groove_beat(f"{song}b{i}", rng, barsecs)
+        elif style == "meter":
+            beat, aux, N = make_meter_beat(f"{song}b{i}", rng)
+            barsecs_i = N * PULSE
         else:
             beat, aux = make_beat(f"{song}b{i}", rng, barsecs, style)
+        barsecs_i = N * PULSE if N else barsecs
+        meter_index.append((i, N, barsecs_i))
         measures.append(beat)
         for j, (kind, spill, over) in enumerate(kinds, 1):
             measures.append(make_roll(f"{song}r{i}_{j}", kind, aux, rng,
-                                      spill=spill, over=over, barsecs=barsecs))
+                                      spill=spill, over=over, barsecs=barsecs_i))
         if bars_per_beat == 2:
             calls.append({"target": f"{song}b{i}", "function": "once"})
             calls.append({"target": f"{song}b{i}", "function": "once",
@@ -465,7 +542,19 @@ def main():
                                        "target": f"{song}r{i}_{j}", "amount": 1}})
     json.dump(measures, open(f"measures.{song}.json", "w", encoding="utf-8"), indent=1)
     json.dump(calls, open(f"calllist.{song}.browse.jsonc", "w", encoding="utf-8"), indent=1)
-    print(f"{song}: {n} beats, {n*4} rolls, {len(calls)} bars ({len(calls)*4.0:.0f}s)")
+    if style == "meter":
+        total = sum(bs * bars_per_beat for _, _, bs in meter_index)
+        with open(f"{song}_index.md", "w", encoding="utf-8") as f:
+            f.write(f"# {song} index (variable loops, pulse {PULSE}s)\n\n")
+            f.write("| beat | pulses | loop | starts at |\n|---|---|---|---|\n")
+            t = 0.0
+            for i, N, bs in meter_index:
+                mm, ss = divmod(t, 60)
+                f.write(f"| {i} | {N} | {bs:.2f}s | {int(mm)}:{ss:04.1f} |\n")
+                t += bs * bars_per_beat
+        print(f"{song}: {n} beats, meter style, total {total:.1f}s (index written)")
+    else:
+        print(f"{song}: {n} beats, {n*4} rolls, {len(calls)} bars")
 
 if __name__ == "__main__":
     main()

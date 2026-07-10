@@ -31,10 +31,11 @@ def main():
     ap.add_argument("--bars", type=int)
     ap.add_argument("--no-melody", action="store_true")
     ap.add_argument("--barsecs", type=float, default=4.0)
+    ap.add_argument("--duration", type=float, help="explicit song seconds (variable-length bars)")
     a = ap.parse_args()
 
     bars = a.bars or len(json.load(open(a.calllist, encoding="utf-8")))
-    dur = bars * a.barsecs
+    dur = a.duration or bars * a.barsecs
     os.makedirs(BUILD, exist_ok=True)
     drums = os.path.join(BUILD, f"{a.name}_drums.mid")
 
