@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HNote — Album</title>
+<style>
+  :root{
+    --bg:#17151d; --surface:#201d28; --line:#38334a;
+    --text:#efeae2; --muted:#8d8798; --accent:#f5a524;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:40px 16px 60px; max-width:520px; margin-inline:auto; line-height:1.5;}
+  header{text-align:center; margin-bottom:28px;}
+  h1{font-size:14px; letter-spacing:.32em; text-transform:uppercase; margin:0;
+    font-weight:700; color:var(--accent);}
+  .sub{font-size:12px; color:var(--muted); margin-top:6px; letter-spacing:.06em;}
+  .track{background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:18px 16px; margin-top:16px;}
+  .num{font-size:11px; letter-spacing:.2em; color:var(--muted);}
+  h2{font-size:18px; margin:2px 0 10px; font-weight:700;}
+  audio{width:100%; display:block;}
+  .dl{font-size:11.5px; color:var(--muted); margin-top:10px; text-align:right;}
+  .dl a{color:var(--accent); text-decoration:none;}
+</style>
+</head>
+<body>
+<header>
+  <h1>HNote</h1>
+  <div class="sub">an album, one track at a time</div>
+</header>
+
+<div class="track">
+  <div class="num">01</div>
+  <h2>Riders &amp; Bridges</h2>
+  <audio controls preload="none" src="album01.mp3"></audio>
+  <div class="dl"><a href="album01.mp3" download>download</a></div>
+</div>
+
+<script>
+  document.addEventListener('play', e=>{
+    if(e.target.tagName==='AUDIO')
+      document.querySelectorAll('audio').forEach(a=>{ if(a!==e.target) a.pause(); });
+  }, true);
+</script>
+</body>
+</html>
