@@ -521,90 +521,96 @@ CROSS_FOR = {4: [(3, 5), (5, 2), (7, 1)], 3: [(4, 5), (5, 2), (7, 1)],
              6: [(4, 5), (5, 2), (7, 1)]}
 
 def make_poly_beat(name, rng):
-    aux = rng.sample(COLORS, 2)
+    """Quadrupled loops: 8 cycles per bar in an A A B A / A B A C phrase form
+    (variants B and C are cumulative mutations of A). Kit roles vary per beat:
+    the 'foot' and 'right hand' aren't always kick and snare."""
     P = rng.choices([4, 4, 3, 6], weights=[3, 3, 2, 2])[0]
     qs, ws = zip(*CROSS_FOR[P])
     Q = rng.choices(qs, weights=ws)[0]
-    lhand = rng.choices([37, 48, 39, 40, 43], weights=[3, 3, 2, 2, 2])[0]
+    foot = rng.choices([36, 36, 36, 35, 41, 43], weights=[4, 4, 4, 1, 2, 2])[0]
+    rhand = rng.choices([38, 38, 40, 45, 37, 63], weights=[4, 4, 2, 2, 1, 2])[0]
+    lpool = [x for x in (37, 48, 39, 40, 43, 61) if x not in (rhand, foot)]
+    lhand = rng.choice(lpool)
     vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
-    cross_v = rng.choice([56, 75, 76, 53, 60])
-    hemi = rng.randrange(P) if rng.random() < 0.4 else None   # committed hemiola slot
+    xpool = [x for x in (56, 75, 76, 53, 60) if x not in (rhand, lhand)]
+    cross_v = rng.choice(xpool)
+    hemi = rng.randrange(P) if rng.random() < 0.4 else None
+    aux = [lhand, cross_v]
 
-    # committed per-cycle patterns
-    kick_on = [k == 0 or rng.random() < 0.55 for k in range(P)]
-    push = [rng.random() < 0.28 for _ in range(P)]
-    HTOK = ["R", "r", "L", "l", "F", None, None]
-    hands_pat = [[rng.choice(HTOK) if (k or e) else None for e in range(2)] for k in range(P)]
+    def draw_patterns():
+        return {"kick_on": [k == 0 or rng.random() < 0.55 for k in range(P)],
+                "push": [rng.random() < 0.28 for _ in range(P)],
+                "hands": [[rng.choice(["R", "r", "L", "l", "F", None, None]) if (k or e) else None
+                           for e in range(2)] for k in range(P)],
+                "ride2": [rng.random() < 0.8 for _ in range(P)],
+                "cross": [k == 0 or rng.random() < 0.8 for k in range(Q)]}
+    A = draw_patterns()
     if rng.random() < 0.3:
-        hands_pat[rng.randrange(P)][rng.randrange(2)] = "run3"
-    cross_on = [k == 0 or rng.random() < 0.8 for k in range(Q)]
+        A["hands"][rng.randrange(P)][rng.randrange(2)] = "run3"
+    import copy as _c
+    B = _c.deepcopy(A)
+    B["cross"][rng.randrange(1, Q)] ^= True
+    B["hands"][rng.randrange(P)][rng.randrange(2)] = rng.choice(["R", "L", "F", None])
+    C = _c.deepcopy(B)
+    C["kick_on"][rng.randrange(1, P)] ^= True
+    C["hands"][rng.randrange(P)][rng.randrange(2)] = "run3"
+    schedule = [A, A, B, A, A, B, A, C]
+
     cross2 = None
     if rng.random() < 0.35:
         rq = rng.choice([q for q, _ in CROSS_FOR[P] if q != Q])
-        cross2 = (rq, rng.choice([61, 62, 63, 64, 77]),
-                  [k == 0 or rng.random() < 0.5 for k in range(rq)])
+        x2pool = [x for x in (61, 62, 63, 64, 77) if x not in (rhand, lhand, cross_v)]
+        cross2 = (rq, rng.choice(x2pool), [k == 0 or rng.random() < 0.5 for k in range(rq)])
 
     def hand_leaf(tok):
-        R = lambda: leaf(38, rng.randint(96, 112))
+        R = lambda: leaf(rhand, rng.randint(96, 112))
         if tok == "R": return R()
-        if tok == "r": return leaf(38, rng.randint(50, 68))
+        if tok == "r": return leaf(rhand, rng.randint(50, 68))
         if tok == "L": return leaf(lhand, rng.randint(76, 94))
         if tok == "l": return leaf(lhand, rng.randint(44, 60))
         if tok == "F": return cont([leaf(lhand, rng.randint(48, 60), 1.0), {**R(), "timing": 6.0}])
         if tok == "run3":
-            return cont([leaf(38 if j % 2 == 0 else lhand, rng.randint(58, 88), 1.0) for j in range(3)])
+            return cont([leaf(rhand if j % 2 == 0 else lhand, rng.randint(58, 88), 1.0) for j in range(3)])
         return rest()
 
-    def cycle_kick(mut):
+    def cycle_kick(pat):
         cells = []
         for k in range(P):
-            head = leaf(36, rng.randint(98, 114)) if kick_on[k] else rest()
-            if push[k] and kick_on[(k + 1) % P]:
-                cells.append(cont([{**head, "timing": 3.0}, leaf(36, rng.randint(82, 96), 1.0)]))
+            head = leaf(foot, rng.randint(98, 114)) if pat["kick_on"][k] else rest()
+            if pat["push"][k] and pat["kick_on"][(k + 1) % P]:
+                cells.append(cont([{**head, "timing": 3.0}, leaf(foot, rng.randint(82, 96), 1.0)]))
             else:
                 cells.append(head)
         return cont(cells)
-    def cycle_hands(mut):
+    def cycle_hands(pat):
+        return cont([cont([hand_leaf(pat["hands"][k][0]), hand_leaf(pat["hands"][k][1])])
+                     for k in range(P)])
+    def cycle_ride(pat):
         cells = []
         for k in range(P):
-            if k == hemi:   # hands keep 2 against the ride's 3 in this slot
-                cells.append(cont([hand_leaf(hands_pat[k][0]), hand_leaf(hands_pat[k][1])]))
-            else:
-                cells.append(cont([hand_leaf(hands_pat[k][0]), hand_leaf(hands_pat[k][1])]))
-        return cont(cells)
-    def cycle_ride(mut):
-        cells = []
-        for k in range(P):
-            if k == hemi:   # 3 in the space of 2: nested hemiola
+            if k == hemi:
                 kids = [leaf(vehicle, rng.randint(66, 82) if j == 0 else rng.randint(50, 64), 1.0)
                         for j in range(3)]
             else:
                 kids = [leaf(vehicle, rng.randint(70, 86), 1.0),
-                        leaf(vehicle, rng.randint(44, 58), 1.0) if rng.random() < 0.8 else rest(1.0)]
+                        leaf(vehicle, rng.randint(44, 58), 1.0) if pat["ride2"][k] else rest(1.0)]
             cells.append(cont(kids))
         return cont(cells)
-    def cycle_cross(mut_cell):
-        cells = []
-        for k in range(Q):
-            on = cross_on[k] if k != mut_cell else not cross_on[k]
-            v = rng.randint(84, 100) if k == 0 else rng.randint(62, 82)
-            cells.append(leaf(cross_v, v) if on else rest())
-        return cont(cells)
+    def cycle_cross(pat):
+        return cont([leaf(cross_v, rng.randint(84, 100) if k == 0 else rng.randint(62, 82))
+                     if pat["cross"][k] else rest() for k in range(Q)])
 
-    mut = rng.randrange(1, Q)
-    def two(fn, *a):
-        return cont([fn(*(a or (None,))), fn(*(a or (None,)))]) if not a else None
-    lanes = [cont([cycle_kick(0), cycle_kick(0)]),
-             cont([cycle_hands(0), cycle_hands(0)]),
-             cont([cycle_ride(0), cycle_ride(0)]),
-             cont([cycle_cross(None), cycle_cross(mut)])]
+    lanes = [cont([cycle_kick(p) for p in schedule]),
+             cont([cycle_hands(p) for p in schedule]),
+             cont([cycle_ride(p) for p in schedule]),
+             cont([cycle_cross(p) for p in schedule])]
     if cross2:
         rq, v2, on2 = cross2
         def c2():
             return cont([leaf(v2, rng.randint(48, 68)) if on2[k] else rest() for k in range(rq)])
-        lanes.append(cont([c2(), c2()]))
+        lanes.append(cont([c2() for _ in schedule]))
     lanes[0]["rolled"] = True
-    barsecs = 2 * P * 0.5                       # 2 cycles, ground beat = 500ms
+    barsecs = 8 * P * 0.5                      # 8 cycles, ground beat = 500ms
     return {"midi_number": 0, "velocity": 0, "timing": float(barsecs), "channel": 9,
             "child_direction": "sidebyside", "children": lanes,
             "start_time": 0.0, "end_time": 0.0, "name": name}, aux, barsecs
@@ -707,7 +713,11 @@ def main():
         for j, (kind, spill, over) in enumerate(kinds, 1):
             measures.append(make_roll(f"{song}r{i}_{j}", kind, aux, rng,
                                       spill=spill, over=over, barsecs=barsecs_i))
-        if bars_per_beat == 2:
+        if bars_per_beat == 1:
+            calls.append({"target": f"{song}b{i}", "function": "once",
+                          "then": {"function": "roll",
+                                   "target": f"{song}r{i}_2", "amount": 1}})
+        elif bars_per_beat == 2:
             calls.append({"target": f"{song}b{i}", "function": "once"})
             calls.append({"target": f"{song}b{i}", "function": "once",
                           "then": {"function": "roll",
