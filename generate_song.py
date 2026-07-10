@@ -521,46 +521,46 @@ CROSS_FOR = {4: [(3, 5), (5, 2), (7, 1)], 3: [(4, 5), (5, 2), (7, 1)],
              6: [(4, 5), (5, 2), (7, 1)]}
 
 def make_poly_beat(name, rng):
-    """Quadrupled loops: 8 cycles per bar in an A A B A / A B A C phrase form
-    (variants B and C are cumulative mutations of A). Kit roles vary per beat:
-    the 'foot' and 'right hand' aren't always kick and snare."""
-    P = rng.choices([4, 4, 3, 6], weights=[3, 3, 2, 2])[0]
-    qs, ws = zip(*CROSS_FOR[P])
-    Q = rng.choices(qs, weights=ws)[0]
+    """Long-cycle polyrhythm: the repeating unit (cycle) is ~6-8s - 12-16
+    ground beats structured by aksak grouping (kick on group starts, pushes,
+    committed hands figures) - with a cross voice dividing the WHOLE cycle by
+    a larger coprime Q (5..13), re-syncing only at the cycle boundary. Bar =
+    cycle A + mutated cycle A'. Kit roles vary per beat."""
+    P = rng.choices([12, 14, 16, 16], weights=[2, 2, 3, 3])[0]   # beats/cycle
+    cyc = P * 0.5
+    Q = rng.choices([5, 7, 9, 11, 13], weights=[3, 3, 2, 2, 1])[0]
     foot = rng.choices([36, 36, 36, 35, 41, 43], weights=[4, 4, 4, 1, 2, 2])[0]
     rhand = rng.choices([38, 38, 40, 45, 37, 63], weights=[4, 4, 2, 2, 1, 2])[0]
-    lpool = [x for x in (37, 48, 39, 40, 43, 61) if x not in (rhand, foot)]
-    lhand = rng.choice(lpool)
+    lhand = rng.choice([x for x in (37, 48, 39, 40, 43, 61) if x not in (rhand, foot)])
     vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
-    xpool = [x for x in (56, 75, 76, 53, 60) if x not in (rhand, lhand)]
-    cross_v = rng.choice(xpool)
-    hemi = rng.randrange(P) if rng.random() < 0.4 else None
+    cross_v = rng.choice([x for x in (56, 75, 76, 53, 60) if x not in (rhand, lhand)])
     aux = [lhand, cross_v]
+    groups = partition_pulses(rng, P)
+    starts = []
+    acc = 0
+    for g in groups:
+        starts.append(acc); acc += g
+    start_set = set(starts)
+    hemis = set(rng.sample(range(P), rng.choice([1, 1, 2])))
 
-    def draw_patterns():
-        return {"kick_on": [k == 0 or rng.random() < 0.55 for k in range(P)],
-                "push": [rng.random() < 0.28 for _ in range(P)],
-                "hands": [[rng.choice(["R", "r", "L", "l", "F", None, None]) if (k or e) else None
+    def draw_pat():
+        kick_on = [(k in start_set and rng.random() < 0.85) or
+                   (k not in start_set and rng.random() < 0.10) for k in range(P)]
+        kick_on[0] = True
+        return {"kick_on": kick_on,
+                "push": [rng.random() < 0.25 for _ in range(P)],
+                "hands": [[rng.choice(["R", "r", "L", "l", "F", None, None, None]) if (k or e) else None
                            for e in range(2)] for k in range(P)],
                 "ride2": [rng.random() < 0.8 for _ in range(P)],
-                "cross": [k == 0 or rng.random() < 0.8 for k in range(Q)]}
-    A = draw_patterns()
-    if rng.random() < 0.3:
+                "cross": [k == 0 or rng.random() < 0.85 for k in range(Q)]}
+    A = draw_pat()
+    for _ in range(2):
         A["hands"][rng.randrange(P)][rng.randrange(2)] = "run3"
     import copy as _c
-    B = _c.deepcopy(A)
-    B["cross"][rng.randrange(1, Q)] ^= True
-    B["hands"][rng.randrange(P)][rng.randrange(2)] = rng.choice(["R", "L", "F", None])
-    C = _c.deepcopy(B)
-    C["kick_on"][rng.randrange(1, P)] ^= True
-    C["hands"][rng.randrange(P)][rng.randrange(2)] = "run3"
-    schedule = [A, A, B, A, A, B, A, C]
-
-    cross2 = None
-    if rng.random() < 0.35:
-        rq = rng.choice([q for q, _ in CROSS_FOR[P] if q != Q])
-        x2pool = [x for x in (61, 62, 63, 64, 77) if x not in (rhand, lhand, cross_v)]
-        cross2 = (rq, rng.choice(x2pool), [k == 0 or rng.random() < 0.5 for k in range(rq)])
+    A2 = _c.deepcopy(A)
+    A2["cross"][rng.randrange(1, Q)] ^= True
+    A2["hands"][rng.randrange(P)][rng.randrange(2)] = rng.choice(["R", "L", "F", "run3", None])
+    A2["kick_on"][rng.randrange(1, P)] ^= True
 
     def hand_leaf(tok):
         R = lambda: leaf(rhand, rng.randint(96, 112))
@@ -576,7 +576,8 @@ def make_poly_beat(name, rng):
     def cycle_kick(pat):
         cells = []
         for k in range(P):
-            head = leaf(foot, rng.randint(98, 114)) if pat["kick_on"][k] else rest()
+            v = rng.randint(98, 114) if k in start_set else rng.randint(76, 92)
+            head = leaf(foot, v) if pat["kick_on"][k] else rest()
             if pat["push"][k] and pat["kick_on"][(k + 1) % P]:
                 cells.append(cont([{**head, "timing": 3.0}, leaf(foot, rng.randint(82, 96), 1.0)]))
             else:
@@ -588,11 +589,12 @@ def make_poly_beat(name, rng):
     def cycle_ride(pat):
         cells = []
         for k in range(P):
-            if k == hemi:
+            if k in hemis:
                 kids = [leaf(vehicle, rng.randint(66, 82) if j == 0 else rng.randint(50, 64), 1.0)
                         for j in range(3)]
             else:
-                kids = [leaf(vehicle, rng.randint(70, 86), 1.0),
+                acc_v = rng.randint(70, 86) if k in start_set else rng.randint(58, 72)
+                kids = [leaf(vehicle, acc_v, 1.0),
                         leaf(vehicle, rng.randint(44, 58), 1.0) if pat["ride2"][k] else rest(1.0)]
             cells.append(cont(kids))
         return cont(cells)
@@ -600,17 +602,12 @@ def make_poly_beat(name, rng):
         return cont([leaf(cross_v, rng.randint(84, 100) if k == 0 else rng.randint(62, 82))
                      if pat["cross"][k] else rest() for k in range(Q)])
 
-    lanes = [cont([cycle_kick(p) for p in schedule]),
-             cont([cycle_hands(p) for p in schedule]),
-             cont([cycle_ride(p) for p in schedule]),
-             cont([cycle_cross(p) for p in schedule])]
-    if cross2:
-        rq, v2, on2 = cross2
-        def c2():
-            return cont([leaf(v2, rng.randint(48, 68)) if on2[k] else rest() for k in range(rq)])
-        lanes.append(cont([c2() for _ in schedule]))
+    lanes = [cont([cycle_kick(A), cycle_kick(A2)]),
+             cont([cycle_hands(A), cycle_hands(A2)]),
+             cont([cycle_ride(A), cycle_ride(A2)]),
+             cont([cycle_cross(A), cycle_cross(A2)])]
     lanes[0]["rolled"] = True
-    barsecs = 8 * P * 0.5                      # 8 cycles, ground beat = 500ms
+    barsecs = 2 * cyc
     return {"midi_number": 0, "velocity": 0, "timing": float(barsecs), "channel": 9,
             "child_direction": "sidebyside", "children": lanes,
             "start_time": 0.0, "end_time": 0.0, "name": name}, aux, barsecs
