@@ -387,17 +387,34 @@ def make_meter_beat(name, rng):
     half = N // 2
     groups = partition_pulses(rng, half)
     vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
+    lhand = rng.choices([37, 48, 39, 40, 43], weights=[3, 3, 2, 2, 2])[0]
     ride_tex = rng.choice(["straight", "straight", "lilt", "sparse"])
     swing = rng.uniform(1.08, 1.20) if rng.random() < 0.35 else None
 
     def draw_fig(size):
-        snare = [None]
+        # two-handed sticking per pulse: R=snare accent, r=snare ghost,
+        # L=left-hand voice, l=left ghost, F=flam (L grace into R),
+        # B=both together, run2/3/4=hand-to-hand alternation
+        hands = [None]
         for k in range(1, size):
             r = rng.random()
-            snare.append("acc" if r < 0.18 else "ghost" if r < 0.42 else None)
-        if size >= 3 and not any(snare):
-            snare[rng.randrange(1, size)] = "acc"
-        return {"snare": snare,
+            if r < 0.14: hands.append("R")
+            elif r < 0.30: hands.append("r")
+            elif r < 0.44: hands.append("L")
+            elif r < 0.52: hands.append("l")
+            else: hands.append(None)
+        if size >= 3 and not any(h in ("R", "F", "B") for h in hands):
+            hands[rng.randrange(1, size)] = "R"
+        # committed devices: flam on the accent, run into the next group,
+        # occasional both-hands hit
+        for k, h in enumerate(hands):
+            if h == "R" and rng.random() < 0.28:
+                hands[k] = "F"
+        if rng.random() < 0.26:
+            hands[size - 1] = rng.choice(["run2", "run3", "run4"])
+        if size >= 2 and rng.random() < 0.15:
+            hands[rng.randrange(1, size)] = "B"
+        return {"hands": hands,
                 "ghost": [rng.random() < 0.28 for _ in range(size)],
                 "push": rng.random() < 0.32,
                 "kick": rng.random() > 0.12,
@@ -446,12 +463,28 @@ def make_meter_beat(name, rng):
         if last and fig["push"] and nxt["fig"]["kick"]:
             return cont([{**head, "timing": 1.0}, leaf(36, rng.randint(84, 98), 1.0)])
         return head
-    def snare_fn(grp, k, nxt):
-        cls = grp["fig"]["snare"][k]
-        if cls == "acc":
-            return leaf(38, rng.randint(96, 112))
-        if cls == "ghost":
-            return leaf(38 if rng.random() < 0.7 else 37, rng.randint(52, 74))
+    def hands_fn(grp, k, nxt):
+        cls = grp["fig"]["hands"][k]
+        R = lambda: leaf(38, rng.randint(96, 112))
+        rr = lambda: leaf(38, rng.randint(50, 70))
+        L = lambda: leaf(lhand, rng.randint(76, 96))
+        ll = lambda: leaf(lhand, rng.randint(44, 62))
+        if cls == "R": return R()
+        if cls == "r": return rr()
+        if cls == "L": return L()
+        if cls == "l": return ll()
+        if cls == "F":                      # flam: left grace crushed into the accent
+            return cont([leaf(lhand, rng.randint(48, 62), 1.0),
+                         {**R(), "timing": 6.0}])
+        if cls == "B":                      # both hands land together
+            return cont([R(), L()], direction="sidebyside")
+        if cls and cls.startswith("run"):   # hand-to-hand alternation
+            n = int(cls[3])
+            kids = []
+            for j in range(n):
+                v = rng.randint(58, 86) + (8 if j == n - 1 else 0)
+                kids.append(leaf(38 if j % 2 == 0 else lhand, min(112, v), 1.0))
+            return cont(kids)
         return rest()
     def ride_fn(grp, k, nxt):
         v1 = rng.randint(72, 88) if k == 0 else rng.randint(56, 70)
@@ -469,7 +502,7 @@ def make_meter_beat(name, rng):
             return cont(kids)
         return rest()
 
-    lanes = [emit(kick_fn), emit(snare_fn), emit(ride_fn), emit(ghost_fn)]
+    lanes = [emit(kick_fn), emit(hands_fn), emit(ride_fn), emit(ghost_fn)]
     lanes[0]["rolled"] = True
     return {"midi_number": 0, "velocity": 0, "timing": float(N), "channel": 9,
             "child_direction": "sidebyside", "children": lanes,
