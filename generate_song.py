@@ -508,6 +508,107 @@ def make_meter_beat(name, rng):
             "child_direction": "sidebyside", "children": lanes,
             "start_time": 0.0, "end_time": 0.0, "name": name}, aux, N
 
+# --- poly style: polyrhythm as tree siblings ---------------------------------
+# Aksak = one stream divided unequally (children shares). Polyrhythm =
+# simultaneous streams dividing the SAME span differently (sidebyside
+# siblings with coprime child counts). No common grid exists or is needed:
+# the cycle node's lanes divide it by P (ground: kick/hands/ride) and by Q
+# (cross voice), 4:3, 3:2, 5:4, 7:4... Nested hemiola: one ground beat's
+# slot subdivides x2 in the hands lane and x3 in the ride lane (3:2 inside
+# a single node). Beat = 2 identical cycles with one mutated cross cell.
+
+CROSS_FOR = {4: [(3, 5), (5, 2), (7, 1)], 3: [(4, 5), (5, 2), (7, 1)],
+             6: [(4, 5), (5, 2), (7, 1)]}
+
+def make_poly_beat(name, rng):
+    aux = rng.sample(COLORS, 2)
+    P = rng.choices([4, 4, 3, 6], weights=[3, 3, 2, 2])[0]
+    qs, ws = zip(*CROSS_FOR[P])
+    Q = rng.choices(qs, weights=ws)[0]
+    lhand = rng.choices([37, 48, 39, 40, 43], weights=[3, 3, 2, 2, 2])[0]
+    vehicle = rng.choices([42, 51, 70], weights=[5, 3, 2])[0]
+    cross_v = rng.choice([56, 75, 76, 53, 60])
+    hemi = rng.randrange(P) if rng.random() < 0.4 else None   # committed hemiola slot
+
+    # committed per-cycle patterns
+    kick_on = [k == 0 or rng.random() < 0.55 for k in range(P)]
+    push = [rng.random() < 0.28 for _ in range(P)]
+    HTOK = ["R", "r", "L", "l", "F", None, None]
+    hands_pat = [[rng.choice(HTOK) if (k or e) else None for e in range(2)] for k in range(P)]
+    if rng.random() < 0.3:
+        hands_pat[rng.randrange(P)][rng.randrange(2)] = "run3"
+    cross_on = [k == 0 or rng.random() < 0.8 for k in range(Q)]
+    cross2 = None
+    if rng.random() < 0.35:
+        rq = rng.choice([q for q, _ in CROSS_FOR[P] if q != Q])
+        cross2 = (rq, rng.choice([61, 62, 63, 64, 77]),
+                  [k == 0 or rng.random() < 0.5 for k in range(rq)])
+
+    def hand_leaf(tok):
+        R = lambda: leaf(38, rng.randint(96, 112))
+        if tok == "R": return R()
+        if tok == "r": return leaf(38, rng.randint(50, 68))
+        if tok == "L": return leaf(lhand, rng.randint(76, 94))
+        if tok == "l": return leaf(lhand, rng.randint(44, 60))
+        if tok == "F": return cont([leaf(lhand, rng.randint(48, 60), 1.0), {**R(), "timing": 6.0}])
+        if tok == "run3":
+            return cont([leaf(38 if j % 2 == 0 else lhand, rng.randint(58, 88), 1.0) for j in range(3)])
+        return rest()
+
+    def cycle_kick(mut):
+        cells = []
+        for k in range(P):
+            head = leaf(36, rng.randint(98, 114)) if kick_on[k] else rest()
+            if push[k] and kick_on[(k + 1) % P]:
+                cells.append(cont([{**head, "timing": 3.0}, leaf(36, rng.randint(82, 96), 1.0)]))
+            else:
+                cells.append(head)
+        return cont(cells)
+    def cycle_hands(mut):
+        cells = []
+        for k in range(P):
+            if k == hemi:   # hands keep 2 against the ride's 3 in this slot
+                cells.append(cont([hand_leaf(hands_pat[k][0]), hand_leaf(hands_pat[k][1])]))
+            else:
+                cells.append(cont([hand_leaf(hands_pat[k][0]), hand_leaf(hands_pat[k][1])]))
+        return cont(cells)
+    def cycle_ride(mut):
+        cells = []
+        for k in range(P):
+            if k == hemi:   # 3 in the space of 2: nested hemiola
+                kids = [leaf(vehicle, rng.randint(66, 82) if j == 0 else rng.randint(50, 64), 1.0)
+                        for j in range(3)]
+            else:
+                kids = [leaf(vehicle, rng.randint(70, 86), 1.0),
+                        leaf(vehicle, rng.randint(44, 58), 1.0) if rng.random() < 0.8 else rest(1.0)]
+            cells.append(cont(kids))
+        return cont(cells)
+    def cycle_cross(mut_cell):
+        cells = []
+        for k in range(Q):
+            on = cross_on[k] if k != mut_cell else not cross_on[k]
+            v = rng.randint(84, 100) if k == 0 else rng.randint(62, 82)
+            cells.append(leaf(cross_v, v) if on else rest())
+        return cont(cells)
+
+    mut = rng.randrange(1, Q)
+    def two(fn, *a):
+        return cont([fn(*(a or (None,))), fn(*(a or (None,)))]) if not a else None
+    lanes = [cont([cycle_kick(0), cycle_kick(0)]),
+             cont([cycle_hands(0), cycle_hands(0)]),
+             cont([cycle_ride(0), cycle_ride(0)]),
+             cont([cycle_cross(None), cycle_cross(mut)])]
+    if cross2:
+        rq, v2, on2 = cross2
+        def c2():
+            return cont([leaf(v2, rng.randint(48, 68)) if on2[k] else rest() for k in range(rq)])
+        lanes.append(cont([c2(), c2()]))
+    lanes[0]["rolled"] = True
+    barsecs = 2 * P * 0.5                       # 2 cycles, ground beat = 500ms
+    return {"midi_number": 0, "velocity": 0, "timing": float(barsecs), "channel": 9,
+            "child_direction": "sidebyside", "children": lanes,
+            "start_time": 0.0, "end_time": 0.0, "name": name}, aux, barsecs
+
 def walker(kind, aux, rng):
     recent = []
     home = {"buzz": 38, "over": rng.choice([36, 41, 43]),
@@ -594,6 +695,10 @@ def main():
         elif style == "meter":
             beat, aux, N = make_meter_beat(f"{song}b{i}", rng)
             barsecs_i = N * PULSE
+        elif style == "poly":
+            beat, aux, bsecs = make_poly_beat(f"{song}b{i}", rng)
+            N = bsecs / PULSE
+            barsecs_i = bsecs
         else:
             beat, aux = make_beat(f"{song}b{i}", rng, barsecs, style)
         barsecs_i = N * PULSE if N else barsecs
@@ -614,7 +719,7 @@ def main():
                                        "target": f"{song}r{i}_{j}", "amount": 1}})
     json.dump(measures, open(f"measures.{song}.json", "w", encoding="utf-8"), indent=1)
     json.dump(calls, open(f"calllist.{song}.browse.jsonc", "w", encoding="utf-8"), indent=1)
-    if style == "meter":
+    if style in ("meter", "poly"):
         total = sum(bs * bars_per_beat for _, _, bs in meter_index)
         with open(f"{song}_index.md", "w", encoding="utf-8") as f:
             f.write(f"# {song} index (variable loops, pulse {PULSE}s)\n\n")
