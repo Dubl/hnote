@@ -1,0 +1,434 @@
+[
+ {
+  "target": "ptest1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp5",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp5",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp5",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp5",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp6",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp6",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp6",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp6",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp7",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp7",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp7",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp7",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp8",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp8",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp8",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp8",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp9",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp9",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp9",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp9",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp10",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp10",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp10",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp10",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp11",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp11",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp11",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp11",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp12",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp12",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp12",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "pl3sp12",
+   "amount": 1
+  }
+ }
+]
