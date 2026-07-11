@@ -44,6 +44,22 @@
 </header>
 
 <div class="card">
+  <div class="tag">Engine Test · Pure Poly</div>
+  <h2>16 pure parallel polyrhythms</h2>
+  <p>Deterministic engine test: no rolls, no ghosts, no variation. Each 8s beat is just
+     sidebyside lanes dividing the same cycle by different counts — pairs 2:3 through 5:9,
+     then triples (2:3:4, 3:4:5, 4:5:6, 2:5:7, 3:5:7, 4:6:9). Every onset sounds, constant
+     velocity, cycle starts accented so the re-sync is audible. Kick = slowest voice,
+     snare / cowbell / clave upward. Machine-verified: all 522 onsets exact to within one
+     MIDI tick (≤0.45ms). Ratios and times:
+     <a href="polytest_index.md" style="color:var(--snare)">polytest_index.md</a>. 2.1 min.</p>
+  <p style="margin:0 0 4px"><strong style="color:var(--text)">MP3</strong> — pre-rendered:</p>
+  <audio controls preload="none" src="polytest.mp3" style="width:100%; margin-bottom:12px;"></audio>
+  <midi-player data-src="polytest.mid" sound-font style="display:none"></midi-player>
+  <div class="dl"><a href="polytest.mid" download>download .mid</a> · <a href="polytest.mp3" download>download .mp3</a></div>
+</div>
+
+<div class="card">
   <div class="tag">Song 2 · Poly v3</div>
   <h2>50 beats — 8-second polyrhythm cycles</h2>
   <p>The repeating unit itself is now 6-8s: 12-16 ground beats per cycle, structured by

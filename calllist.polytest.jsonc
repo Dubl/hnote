@@ -1,0 +1,66 @@
+[
+ {
+  "target": "ptest1",
+  "function": "once"
+ },
+ {
+  "target": "ptest2",
+  "function": "once"
+ },
+ {
+  "target": "ptest3",
+  "function": "once"
+ },
+ {
+  "target": "ptest4",
+  "function": "once"
+ },
+ {
+  "target": "ptest5",
+  "function": "once"
+ },
+ {
+  "target": "ptest6",
+  "function": "once"
+ },
+ {
+  "target": "ptest7",
+  "function": "once"
+ },
+ {
+  "target": "ptest8",
+  "function": "once"
+ },
+ {
+  "target": "ptest9",
+  "function": "once"
+ },
+ {
+  "target": "ptest10",
+  "function": "once"
+ },
+ {
+  "target": "ptest11",
+  "function": "once"
+ },
+ {
+  "target": "ptest12",
+  "function": "once"
+ },
+ {
+  "target": "ptest13",
+  "function": "once"
+ },
+ {
+  "target": "ptest14",
+  "function": "once"
+ },
+ {
+  "target": "ptest15",
+  "function": "once"
+ },
+ {
+  "target": "ptest16",
+  "function": "once"
+ }
+]
