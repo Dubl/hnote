@@ -48,17 +48,91 @@ def slice_lanes(byname, src, t0, t1):
         lanes.append(cont(cells))
     return cont(lanes, d="sidebyside") if lanes else cont([rest(1.0)], d="sidebyside")
 
+def parse_mid_file(path):
+    d = open(path, "rb").read(); ppq = struct.unpack(">H", d[12:14])[0]
+    i = d.index(b"MTrk") + 8; end = i + struct.unpack(">I", d[i-4:i])[0]
+    t = 0; tempo = 500000; on = []; run = None
+    while i < end:
+        dv = 0
+        while True:
+            b = d[i]; i += 1; dv = (dv << 7) | (b & 0x7f)
+            if not b & 0x80: break
+        t += dv; b = d[i]
+        if b == 0xFF:
+            mt = d[i+1]; ln = d[i+2]
+            if mt == 0x51: tempo = int.from_bytes(d[i+3:i+3+ln], "big")
+            i += 3 + ln; run = None
+        elif b in (0xF0, 0xF7): i += 2 + d[i+1]; run = None
+        else:
+            if b & 0x80: st = b; i += 1; run = st
+            else: st = run
+            if st & 0xF0 in (0x80, 0x90, 0xA0, 0xB0, 0xE0):
+                d1, d2 = d[i], d[i+1]; i += 2
+                if st & 0xF0 == 0x90 and d2 > 0: on.append((t*tempo/ppq/1e6, d1))
+            else: i += 1
+    return on
+
 def main():
     blob = sys.argv[1]
     name = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv else "spliced1"
-    m = re.search(r"host=(\w+)\([\d:]+\) guest=(\w+)\([\d:]+\) windows=(.+)", blob)
+    m = re.search(r"host=(\w+)\([\d:]+\) guest=(\w+)\([\d:]+\) windows=(\S+)", blob)
     host, guest = m.group(1), m.group(2)
     wins = [(float(a), float(b)) for a, b in re.findall(r"\[([\d.]+),([\d.]+)\)", m.group(3))]
     wins.sort()
-    print(f"{name}: host {host}, guest {guest}, windows {wins}")
+    cm = re.search(r"crop=\[([\d.]+),([\d.]+)\)", blob)
+    crop = (float(cm.group(1)), float(cm.group(2))) if cm else (0.0, BAR)
+    print(f"{name}: host {host}, guest {guest}, windows {wins}, crop {crop}")
 
     data = json.load(open("measures.polytest.json", encoding="utf-8"))
     byname = {mm.get("name"): mm for mm in data}
+    C0, C1 = crop
+    span = C1 - C0
+    if span < BAR - 1e-9:
+        # cropped composite: emit the audible mix directly as share lanes over
+        # a measure of length `span` (variable-length bars are just shares)
+        hh = []; walk(byname[host], 0.0, BAR, hh)
+        gh = []; walk(byname[guest], 0.0, BAR, gh)
+        def inw(t): return any(a <= t < b for a, b in wins)
+        hits = sorted([(t, p, v) for t, p, v in hh if p and not inw(t) and C0 <= t < C1] +
+                      [(t, p, v) for t, p, v in gh if p and inw(t) and C0 <= t < C1])
+        voices = {}
+        for t, p, v in hits: voices.setdefault(p, []).append((t - C0, v))
+        lanes = []
+        for p, evs in voices.items():
+            cells = []; prev = 0.0
+            for t, v in evs:
+                if t - prev > 1e-6: cells.append(rest(t - prev))
+                cells.append(leaf(p, v, 0.02)); prev = t + 0.02
+            if span - prev > 1e-6: cells.append(rest(span - prev))
+            lanes.append(cont(cells))
+        comp = {"midi_number": 0, "velocity": 0, "timing": float(span), "channel": 9,
+                "child_direction": "sidebyside", "children": lanes,
+                "start_time": 0.0, "end_time": 0.0, "name": f"{name}_host"}
+        measures = data + [comp]
+        calls = [{"target": f"{name}_host", "function": "once"}] * 4
+        json.dump(measures, open(f"measures.{name}.json", "w", encoding="utf-8"), indent=1)
+        json.dump(calls, open(f"calllist.{name}.jsonc", "w", encoding="utf-8"), indent=1)
+        r = subprocess.run([sys.executable, "build_track.py", name, f"calllist.{name}.jsonc",
+                            "--measures", f"measures.{name}.json", "--no-melody",
+                            "--duration", str(4 * span)], capture_output=True, text=True)
+        if r.returncode != 0: raise SystemExit(r.stdout[-500:] + r.stderr[-500:])
+        print(r.stdout.strip().splitlines()[-1])
+        on = parse_mid_file(f"{name}.mid")
+        pred = sorted((t - C0, p) for t, p, v in hits)
+        ok = 0
+        for bar in range(4):
+            got = sorted((t - bar*span, p) for t, p in on
+                         if bar*span - 0.003 <= t < (bar+1)*span - 0.003)
+            pool = list(got); good = len(got) == len(pred)
+            if good:
+                for tt, pp in pred:
+                    mm2 = [j for j, (t2, p2) in enumerate(pool) if p2 == pp and abs(t2-tt) <= 0.03]
+                    if not mm2: good = False; break
+                    pool.pop(mm2[0])
+            ok += good
+        print(f"verification (cropped): {ok}/4 bars match")
+        if ok < 4: raise SystemExit(1)
+        return
     # covering window [wins[0][0]-EPS, wins[-1][1]-EPS); content alternates
     # guest slices (aligned) and host re-supply in the gaps
     W0, W1 = wins[0][0] - EPS, wins[-1][1] - EPS
@@ -93,30 +167,7 @@ def main():
     print(r.stdout.strip().splitlines()[-1])
 
     # verify: predicted = host outside wins + guest inside wins (aligned)
-    def parse_mid(path):
-        d = open(path, "rb").read(); ppq = struct.unpack(">H", d[12:14])[0]
-        i = d.index(b"MTrk") + 8; end = i + struct.unpack(">I", d[i-4:i])[0]
-        t = 0; tempo = 500000; on = []; run = None
-        while i < end:
-            dv = 0
-            while True:
-                b = d[i]; i += 1; dv = (dv << 7) | (b & 0x7f)
-                if not b & 0x80: break
-            t += dv; b = d[i]
-            if b == 0xFF:
-                mt = d[i+1]; ln = d[i+2]
-                if mt == 0x51: tempo = int.from_bytes(d[i+3:i+3+ln], "big")
-                i += 3 + ln; run = None
-            elif b in (0xF0, 0xF7): i += 2 + d[i+1]; run = None
-            else:
-                if b & 0x80: st = b; i += 1; run = st
-                else: st = run
-                if st & 0xF0 in (0x80, 0x90, 0xA0, 0xB0, 0xE0):
-                    d1, d2 = d[i], d[i+1]; i += 2
-                    if st & 0xF0 == 0x90 and d2 > 0: on.append((t*tempo/ppq/1e6, d1))
-                else: i += 1
-        return on
-    on = parse_mid(f"{name}.mid")
+    on = parse_mid_file(f"{name}.mid")
     hh = []; walk(byname[host], 0.0, BAR, hh)
     gh = []; walk(byname[guest], 0.0, BAR, gh)
     def inwin(t): return any(a - EPS - 1e-9 <= t < b - EPS for a, b in wins)

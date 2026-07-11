@@ -35,6 +35,12 @@
     border-radius:50%; pointer-events:none;}
   .layer.host .hit{background:var(--hostc);} .layer.guest .hit{background:var(--guestc);}
   .hit.off{opacity:.15;}
+  #croplay{position:relative; height:26px; background:var(--surface);
+    border:1px solid var(--line); border-radius:10px; margin-bottom:6px; overflow:hidden;}
+  #cropreg{position:absolute; top:0; bottom:0; background:rgba(245,165,36,.16);
+    border-left:3px solid var(--accent); border-right:3px solid var(--accent); cursor:grab;}
+  #cropreg .wlabel{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:9.5px; color:var(--accent); font-weight:700; pointer-events:none; white-space:nowrap;}
   #winlay{position:relative; height:44px; background:var(--surface);
     border:1px solid var(--line); border-radius:12px; margin-bottom:12px; overflow:hidden;}
   .win{position:absolute; top:0; bottom:0; background:rgba(62,201,176,.18);
@@ -72,6 +78,7 @@ guest layer, outside the host. Drag a window or its edges; nudge for precision.<
   <span id="astatus">first play fetches drum samples</span>
 </div>
 
+<div id="croplay"></div>
 <div class="layer host"><h2>Layer A — host</h2><div id="hostlanes"></div></div>
 <div id="winlay"></div>
 <div class="layer guest"><h2>Layer B — guest</h2><div id="guestlanes"></div></div>
@@ -97,6 +104,7 @@ const BAR=SPL.barlen, KEY='hnote_splice_v1';
 const st=JSON.parse(localStorage.getItem(KEY)||'{}');
 let hostIdx=st.hostIdx??2, guestIdx=st.guestIdx??9;
 let wins=st.wins??[[3.0,5.0]];
+let crop=st.crop??[0,BAR];
 let selW=0;
 const NUDGE=0.1;
 
@@ -109,7 +117,8 @@ hostsel.onchange=()=>{hostIdx=+hostsel.value; changed();};
 guestsel.onchange=()=>{guestIdx=+guestsel.value; changed();};
 
 function inWin(t){ return wins.some(([a,b])=>t>=a&&t<b); }
-function persist(){ localStorage.setItem(KEY,JSON.stringify({hostIdx,guestIdx,wins})); }
+function inCrop(t){ return t>=crop[0]&&t<crop[1]; }
+function persist(){ localStorage.setItem(KEY,JSON.stringify({hostIdx,guestIdx,wins,crop})); }
 
 // --- layer rendering ---
 function drawLayer(el, beat, isHost){
@@ -126,12 +135,48 @@ function drawLayer(el, beat, isHost){
     beat.hits.filter(h=>h[1]===v).forEach(([t,p,vel])=>{
       const d=document.createElement('div'); d.className='hit';
       d.style.left=(t/BAR*100)+'%';
-      const audible = isHost ? !inWin(t) : inWin(t);
+      const audible = (isHost ? !inWin(t) : inWin(t)) && inCrop(t);
       if(!audible) d.classList.add('off');
       tr.appendChild(d);
     });
     lane.appendChild(tr); el.appendChild(lane);
   });
+}
+// --- crop strip: the loop region ---
+const croplay=document.getElementById('croplay');
+function drawCrop(){
+  croplay.innerHTML='';
+  const r=document.createElement('div'); r.id='cropreg';
+  r.style.left=(crop[0]/BAR*100)+'%'; r.style.width=((crop[1]-crop[0])/BAR*100)+'%';
+  r.innerHTML=`<div class="wlabel">loop ${crop[0].toFixed(2)}–${crop[1].toFixed(2)}s</div>`;
+  const hl=document.createElement('div'); hl.className='handle l';
+  const hr=document.createElement('div'); hr.className='handle r';
+  r.appendChild(hl); r.appendChild(hr);
+  let mode=null,x0=0,c0=null;
+  const px2s=dx=>dx/croplay.clientWidth*BAR;
+  const down=(e,m)=>{ mode=m; x0=e.clientX; c0=[...crop]; e.preventDefault();
+    e.target.setPointerCapture&&e.target.setPointerCapture(e.pointerId); };
+  r.onpointerdown=e=>{ if(e.target===r) down(e,'move'); };
+  hl.onpointerdown=e=>down(e,'l');
+  hr.onpointerdown=e=>down(e,'r');
+  const move=e=>{
+    if(mode===null) return;
+    const ds=px2s(e.clientX-x0);
+    if(mode==='move'){ const len=c0[1]-c0[0];
+      let a=Math.max(0,Math.min(c0[0]+ds,BAR-len)); crop=[a,a+len]; }
+    if(mode==='l') crop=[Math.max(0,Math.min(c0[0]+ds,crop[1]-1.0)),crop[1]];
+    if(mode==='r') crop=[crop[0],Math.min(BAR,Math.max(c0[1]+ds,crop[0]+1.0))];
+    crop=[Math.round(crop[0]*200)/200,Math.round(crop[1]*200)/200];
+    drawCrop(); redrawLayersOnly();
+  };
+  const up=()=>{ if(mode!==null){ mode=null; changed(); } };
+  r.onpointermove=hl.onpointermove=hr.onpointermove=move;
+  r.onpointerup=hl.onpointerup=hr.onpointerup=up;
+  croplay.appendChild(r);
+}
+function redrawLayersOnly(){
+  drawLayer(document.getElementById('hostlanes'),SPL.beats[hostIdx],true);
+  drawLayer(document.getElementById('guestlanes'),SPL.beats[guestIdx],false);
 }
 // --- window layer ---
 const winlay=document.getElementById('winlay');
@@ -208,7 +253,7 @@ document.getElementById('w-del').onclick=()=>{
   if(wins.length<=1) return show('keep at least one');
   wins.splice(selW,1); selW=0; changed();
 };
-document.getElementById('reset').onclick=()=>{ wins=[[3.0,5.0]]; selW=0; changed(); };
+document.getElementById('reset').onclick=()=>{ wins=[[3.0,5.0]]; crop=[0,BAR]; selW=0; changed(); };
 
 // --- gapless looper (same approach as edit.html) ---
 const SFURL='https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus/percussion';
@@ -217,7 +262,8 @@ let actx=null,samples={},srcNode=null,anchor=0,playing=false,rendering=false,reb
 const status=m=>{document.getElementById('astatus').textContent=m;};
 function mixHits(){
   const H=SPL.beats[hostIdx].hits, G=SPL.beats[guestIdx].hits;
-  return H.filter(h=>!inWin(h[0])).concat(G.filter(h=>inWin(h[0])));
+  return H.filter(h=>!inWin(h[0])&&inCrop(h[0]))
+          .concat(G.filter(h=>inWin(h[0])&&inCrop(h[0])));
 }
 async function loadSamples(){
   actx=actx||new (window.AudioContext||window.webkitAudioContext)();
@@ -237,16 +283,17 @@ async function loadSamples(){
     status(`loading ${++done}/${keys.length}`);
   }));
 }
+function loopSpan(){ return Math.max(1.0, crop[1]-crop[0]); }
 async function renderLoop(){
-  const sr=actx.sampleRate;
-  const off=new OfflineAudioContext(2, Math.ceil(2*BAR*sr), sr);
+  const sr=actx.sampleRate, D=loopSpan();
+  const off=new OfflineAudioContext(2, Math.ceil(2*D*sr), sr);
   mixHits().forEach(([t,p,vel])=>{
     const v=VLEV.reduce((a,c)=>Math.abs(c-vel)<Math.abs(a-vel)?c:a);
     const buf=samples[p+'_'+v]; if(!buf) return;
-    [0,BAR].forEach(ofs=>{
+    [0,D].forEach(ofs=>{
       const s=off.createBufferSource(); s.buffer=buf;
       const g=off.createGain(); g.gain.value=Math.min(1.4,vel/v);
-      s.connect(g); g.connect(off.destination); s.start(t+ofs);
+      s.connect(g); g.connect(off.destination); s.start(t-crop[0]+ofs);
     });
   });
   return off.startRendering();
@@ -256,11 +303,12 @@ async function refreshLoop(){
   try{
     const buf=await renderLoop();
     if(playing){
-      const phase=(actx.currentTime-anchor)%BAR;
+      const D=loopSpan();
+      const phase=(actx.currentTime-anchor)%D;
       const s=actx.createBufferSource();
-      s.buffer=buf; s.loop=true; s.loopStart=BAR; s.loopEnd=2*BAR;
+      s.buffer=buf; s.loop=true; s.loopStart=D; s.loopEnd=2*D;
       if(srcNode) try{srcNode.stop()}catch(_){}
-      s.connect(actx.destination); s.start(0,BAR+phase); srcNode=s;
+      s.connect(actx.destination); s.start(0,loopSpan()+phase); srcNode=s;
       anchor=actx.currentTime-phase;
     }
     status(playing?'looping — gapless':'ready');
@@ -284,15 +332,15 @@ function changed(){
   if(playing) rebuildTimer=setTimeout(refreshLoop,300);
 }
 function redraw(){
-  drawLayer(document.getElementById('hostlanes'),SPL.beats[hostIdx],true);
-  drawLayer(document.getElementById('guestlanes'),SPL.beats[guestIdx],false);
+  redrawLayersOnly();
   drawWins();
+  drawCrop();
 }
 // --- export ---
 const flash=document.getElementById('flash');
 function show(m){ flash.textContent=m; flash.style.opacity=1; setTimeout(()=>flash.style.opacity=0,800); }
 document.getElementById('copy').onclick=async()=>{
-  const text=`hnote splice v1 host=${SPL.beats[hostIdx].name}(${SPL.beats[hostIdx].ratio}) guest=${SPL.beats[guestIdx].name}(${SPL.beats[guestIdx].ratio}) windows=${wins.map(([a,b])=>`[${a.toFixed(3)},${b.toFixed(3)})`).join(';')}`;
+  const text=`hnote splice v1 host=${SPL.beats[hostIdx].name}(${SPL.beats[hostIdx].ratio}) guest=${SPL.beats[guestIdx].name}(${SPL.beats[guestIdx].ratio}) windows=${wins.map(([a,b])=>`[${a.toFixed(3)},${b.toFixed(3)})`).join(';')} crop=[${crop[0].toFixed(3)},${crop[1].toFixed(3)})`;
   try{ await navigator.clipboard.writeText(text); show('copied'); }
   catch(e){ prompt('copy this:',text); }
 };
