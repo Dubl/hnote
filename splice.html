@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HNote — Splice Editor</title>
+<style>
+  :root{
+    --bg:#17151d; --surface:#201d28; --line:#38334a; --text:#efeae2; --muted:#8d8798;
+    --accent:#f5a524; --hostc:#f5a524; --guestc:#3ec9b0; --win:#3ec9b0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px 12px 60px; max-width:640px; margin-inline:auto;}
+  h1{font-size:13px; letter-spacing:.25em; text-transform:uppercase; color:var(--accent); margin:0 0 2px;}
+  .sub{font-size:12px; color:var(--muted); margin-bottom:12px;}
+  .bar{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; margin-bottom:12px; display:flex; align-items:center; gap:8px;}
+  .bar .lbl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); flex-shrink:0;}
+  select{flex:1; background:#2a2635; color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:10px; font-size:14px;}
+  #playbtn{border:none; border-radius:8px; padding:12px 18px; font-size:14px; font-weight:700;
+    background:var(--guestc); color:#10131a; cursor:pointer; flex-shrink:0;}
+  #astatus{flex:1; font-size:11px; color:var(--muted); text-align:center;}
+  .layer{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:8px 6px 8px 6px; margin-bottom:6px; position:relative;}
+  .layer h2{font-size:10px; letter-spacing:.18em; text-transform:uppercase; margin:0 0 4px 6px;}
+  .layer.host h2{color:var(--hostc);} .layer.guest h2{color:var(--guestc);}
+  .lane{display:flex; align-items:center; height:26px;}
+  .lname{width:44px; font-size:9px; color:var(--muted); text-transform:uppercase; flex-shrink:0;}
+  .ltrack{position:relative; flex:1; height:100%;}
+  .gridline{position:absolute; top:0; bottom:0; width:1px; background:#2a2635;}
+  .hit{position:absolute; top:50%; width:10px; height:10px; margin:-5px 0 0 -5px;
+    border-radius:50%; pointer-events:none;}
+  .layer.host .hit{background:var(--hostc);} .layer.guest .hit{background:var(--guestc);}
+  .hit.off{opacity:.15;}
+  #winlay{position:relative; height:44px; background:var(--surface);
+    border:1px solid var(--line); border-radius:12px; margin-bottom:12px; overflow:hidden;}
+  .win{position:absolute; top:0; bottom:0; background:rgba(62,201,176,.18);
+    border-left:3px solid var(--win); border-right:3px solid var(--win); cursor:grab;}
+  .win.sel{background:rgba(62,201,176,.32);}
+  .win .wlabel{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:10px; color:var(--guestc); font-weight:700; pointer-events:none; white-space:nowrap;}
+  .handle{position:absolute; top:0; bottom:0; width:22px; cursor:ew-resize;}
+  .handle.l{left:-11px;} .handle.r{right:-11px;}
+  .nudges{display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin-bottom:8px;}
+  .nudges button{border:none; border-radius:8px; padding:12px 2px; font-size:11.5px; font-weight:700;
+    background:#2a2635; color:var(--text); cursor:pointer;}
+  .nudges button:disabled{opacity:.3;}
+  .toolbar{display:flex; gap:8px; margin-top:4px;}
+  .toolbar button{flex:1; background:var(--surface); color:var(--text); border:1px solid var(--line);
+    border-radius:10px; padding:12px; font-size:13px; cursor:pointer;}
+  #info{font-size:11.5px; color:var(--muted); text-align:center; margin-bottom:8px; min-height:16px;
+    font-variant-numeric:tabular-nums;}
+  #flash{position:fixed; top:10px; left:50%; transform:translateX(-50%); background:var(--accent);
+    color:#10131a; font-weight:700; font-size:13px; padding:8px 18px; border-radius:20px;
+    opacity:0; transition:opacity .15s; pointer-events:none;}
+</style>
+</head>
+<body>
+<h1>Splice Editor</h1>
+<div class="sub">Two polyrhythms run in parallel. Windows are portals: inside them you hear the
+guest layer, outside the host. Drag a window or its edges; nudge for precision.</div>
+
+<div class="bar">
+  <span class="lbl">Host</span><select id="hostsel"></select>
+  <span class="lbl">Guest</span><select id="guestsel"></select>
+</div>
+<div class="bar">
+  <button id="playbtn">▸ Loop</button>
+  <span id="astatus">first play fetches drum samples</span>
+</div>
+
+<div class="layer host"><h2>Layer A — host</h2><div id="hostlanes"></div></div>
+<div id="winlay"></div>
+<div class="layer guest"><h2>Layer B — guest</h2><div id="guestlanes"></div></div>
+
+<div id="info"></div>
+<div class="nudges">
+  <button id="s-m">&#9664; start</button><button id="s-p">start &#9654;</button>
+  <button id="e-m">&#9664; end</button><button id="e-p">end &#9654;</button>
+  <button id="w-add">+ window</button><button id="w-del">&#10005; window</button>
+</div>
+<div class="toolbar">
+  <button id="copy">Copy splice</button>
+  <button id="reset">Reset</button>
+</div>
+<div id="flash"></div>
+
+<script src="splice_data.js"></script>
+<script>
+const GM={35:'kick2',36:'kick',38:'snare',56:'cowb',75:'clave',37:'rim',39:'clap',
+  40:'esnare',41:'ftom',42:'chat',43:'ltom',45:'mtom',48:'htom',51:'ride',53:'bell',
+  60:'hbongo',61:'lbongo',63:'oconga',70:'marac',76:'hwood'};
+const BAR=SPL.barlen, KEY='hnote_splice_v1';
+const st=JSON.parse(localStorage.getItem(KEY)||'{}');
+let hostIdx=st.hostIdx??2, guestIdx=st.guestIdx??9;
+let wins=st.wins??[[3.0,5.0]];
+let selW=0;
+const NUDGE=0.1;
+
+const hostsel=document.getElementById('hostsel'), guestsel=document.getElementById('guestsel');
+SPL.beats.forEach((b,i)=>{
+  hostsel.add(new Option(b.ratio,i)); guestsel.add(new Option(b.ratio,i));
+});
+hostsel.value=hostIdx; guestsel.value=guestIdx;
+hostsel.onchange=()=>{hostIdx=+hostsel.value; changed();};
+guestsel.onchange=()=>{guestIdx=+guestsel.value; changed();};
+
+function inWin(t){ return wins.some(([a,b])=>t>=a&&t<b); }
+function persist(){ localStorage.setItem(KEY,JSON.stringify({hostIdx,guestIdx,wins})); }
+
+// --- layer rendering ---
+function drawLayer(el, beat, isHost){
+  el.innerHTML='';
+  const voices=[...new Set(beat.hits.map(h=>h[1]))].sort((a,b)=>a-b);
+  voices.forEach(v=>{
+    const lane=document.createElement('div'); lane.className='lane';
+    lane.innerHTML=`<div class="lname">${GM[v]||v}</div>`;
+    const tr=document.createElement('div'); tr.className='ltrack';
+    for(let k=1;k<8;k++){
+      const g=document.createElement('div'); g.className='gridline'; g.style.left=(k/8*100)+'%';
+      tr.appendChild(g);
+    }
+    beat.hits.filter(h=>h[1]===v).forEach(([t,p,vel])=>{
+      const d=document.createElement('div'); d.className='hit';
+      d.style.left=(t/BAR*100)+'%';
+      const audible = isHost ? !inWin(t) : inWin(t);
+      if(!audible) d.classList.add('off');
+      tr.appendChild(d);
+    });
+    lane.appendChild(tr); el.appendChild(lane);
+  });
+}
+// --- window layer ---
+const winlay=document.getElementById('winlay');
+function drawWins(){
+  winlay.innerHTML='';
+  wins.forEach(([a,b],i)=>{
+    const w=document.createElement('div'); w.className='win'+(i===selW?' sel':'');
+    w.style.left=(a/BAR*100)+'%'; w.style.width=((b-a)/BAR*100)+'%';
+    w.innerHTML=`<div class="wlabel">${a.toFixed(2)}–${b.toFixed(2)}</div>`;
+    const hl=document.createElement('div'); hl.className='handle l';
+    const hr=document.createElement('div'); hr.className='handle r';
+    w.appendChild(hl); w.appendChild(hr);
+    attachDrag(w,hl,hr,i);
+    winlay.appendChild(w);
+  });
+  document.getElementById('info').textContent=
+    wins.map(([a,b],i)=>`w${i+1} [${a.toFixed(2)}, ${b.toFixed(2)})${i===selW?' ←':''}`).join('   ');
+}
+function clampWins(i){
+  let [a,b]=wins[i];
+  a=Math.max(0.05,Math.min(a,BAR-0.35)); b=Math.max(a+0.3,Math.min(b,BAR-0.05));
+  const prev=wins[i-1], next=wins[i+1];
+  if(prev) a=Math.max(a,prev[1]+0.05);
+  if(next) b=Math.min(b,next[0]-0.05);
+  if(b-a<0.3){ if(prev&&!next) a=b-0.3; else b=a+0.3; }
+  wins[i]=[Math.round(a*200)/200, Math.round(b*200)/200];
+}
+function attachDrag(w,hl,hr,i){
+  let mode=null,x0=0,w0=null;
+  const px2s=dx=>dx/winlay.clientWidth*BAR;
+  function down(e,m){ mode=m; selW=i; x0=e.clientX; w0=[...wins[i]];
+    e.preventDefault(); e.target.setPointerCapture&&e.target.setPointerCapture(e.pointerId);
+    drawWins(); }
+  w.onpointerdown=e=>{ if(e.target===w) down(e,'move'); };
+  hl.onpointerdown=e=>down(e,'l');
+  hr.onpointerdown=e=>down(e,'r');
+  const move=e=>{
+    if(mode===null) return;
+    const ds=px2s(e.clientX-x0);
+    if(mode==='move'){ const len=w0[1]-w0[0]; wins[i]=[w0[0]+ds,w0[0]+ds+len]; }
+    if(mode==='l') wins[i]=[w0[0]+ds,w0[1]];
+    if(mode==='r') wins[i]=[w0[0],w0[1]+ds];
+    clampWins(i); drawWins();
+  };
+  const up=()=>{ if(mode!==null){ mode=null; changed(); } };
+  w.onpointermove=hl.onpointermove=hr.onpointermove=move;
+  w.onpointerup=hl.onpointerup=hr.onpointerup=up;
+}
+// --- nudges / add / delete ---
+function nudge(edge,d){
+  const w=wins[selW]; if(!w) return;
+  if(edge==='s') w[0]+=d; else w[1]+=d;
+  clampWins(selW); changed();
+}
+document.getElementById('s-m').onclick=()=>nudge('s',-NUDGE);
+document.getElementById('s-p').onclick=()=>nudge('s',NUDGE);
+document.getElementById('e-m').onclick=()=>nudge('e',-NUDGE);
+document.getElementById('e-p').onclick=()=>nudge('e',NUDGE);
+document.getElementById('w-add').onclick=()=>{
+  if(wins.length>=3) return show('max 3 windows');
+  // place in the largest gap
+  const edges=[0,...wins.flat(),BAR];
+  let best=[0,0];
+  for(let k=0;k<edges.length;k+=2){
+    if(edges[k+1]-edges[k]>best[1]-best[0]) best=[edges[k],edges[k+1]];
+  }
+  const mid=(best[0]+best[1])/2;
+  wins.push([Math.max(best[0]+0.1,mid-0.75), Math.min(best[1]-0.1,mid+0.75)]);
+  wins.sort((x,y)=>x[0]-y[0]); selW=wins.findIndex(w=>Math.abs((w[0]+w[1])/2-mid)<0.8);
+  if(selW<0)selW=0;
+  changed();
+};
+document.getElementById('w-del').onclick=()=>{
+  if(wins.length<=1) return show('keep at least one');
+  wins.splice(selW,1); selW=0; changed();
+};
+document.getElementById('reset').onclick=()=>{ wins=[[3.0,5.0]]; selW=0; changed(); };
+
+// --- gapless looper (same approach as edit.html) ---
+const SFURL='https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus/percussion';
+const VLEV=[15,31,47,63,79,95,111,127];
+let actx=null,samples={},srcNode=null,anchor=0,playing=false,rendering=false,rebuildTimer=null;
+const status=m=>{document.getElementById('astatus').textContent=m;};
+function mixHits(){
+  const H=SPL.beats[hostIdx].hits, G=SPL.beats[guestIdx].hits;
+  return H.filter(h=>!inWin(h[0])).concat(G.filter(h=>inWin(h[0])));
+}
+async function loadSamples(){
+  actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const need=new Set();
+  SPL.beats.forEach(b=>b.hits.forEach(h=>{
+    const v=VLEV.reduce((a,c)=>Math.abs(c-h[2])<Math.abs(a-h[2])?c:a);
+    need.add(h[1]+'_'+v);
+  }));
+  const keys=[...need].filter(k=>!(k in samples));
+  let done=0;
+  await Promise.all(keys.map(async k=>{
+    const [p,v]=k.split('_');
+    try{
+      const r=await fetch(`${SFURL}/p${p}_v${v}.mp3`);
+      samples[k]=r.ok?await actx.decodeAudioData(await r.arrayBuffer()):null;
+    }catch(e){ samples[k]=null; }
+    status(`loading ${++done}/${keys.length}`);
+  }));
+}
+async function renderLoop(){
+  const sr=actx.sampleRate;
+  const off=new OfflineAudioContext(2, Math.ceil(2*BAR*sr), sr);
+  mixHits().forEach(([t,p,vel])=>{
+    const v=VLEV.reduce((a,c)=>Math.abs(c-vel)<Math.abs(a-vel)?c:a);
+    const buf=samples[p+'_'+v]; if(!buf) return;
+    [0,BAR].forEach(ofs=>{
+      const s=off.createBufferSource(); s.buffer=buf;
+      const g=off.createGain(); g.gain.value=Math.min(1.4,vel/v);
+      s.connect(g); g.connect(off.destination); s.start(t+ofs);
+    });
+  });
+  return off.startRendering();
+}
+async function refreshLoop(){
+  if(rendering) return; rendering=true; status('rendering…');
+  try{
+    const buf=await renderLoop();
+    if(playing){
+      const phase=(actx.currentTime-anchor)%BAR;
+      const s=actx.createBufferSource();
+      s.buffer=buf; s.loop=true; s.loopStart=BAR; s.loopEnd=2*BAR;
+      if(srcNode) try{srcNode.stop()}catch(_){}
+      s.connect(actx.destination); s.start(0,BAR+phase); srcNode=s;
+      anchor=actx.currentTime-phase;
+    }
+    status(playing?'looping — gapless':'ready');
+  }catch(e){ status('render failed'); }
+  rendering=false;
+}
+document.getElementById('playbtn').onclick=async()=>{
+  const btn=document.getElementById('playbtn');
+  if(playing){
+    playing=false; if(srcNode) try{srcNode.stop()}catch(_){}
+    srcNode=null; btn.textContent='▸ Loop'; status('stopped'); return;
+  }
+  if(!actx||!Object.keys(samples).length){ btn.disabled=true; await loadSamples(); btn.disabled=false; }
+  if(actx.state==='suspended') await actx.resume();
+  playing=true; anchor=actx.currentTime; btn.textContent='■ Stop';
+  await refreshLoop();
+};
+function changed(){
+  persist(); redraw();
+  clearTimeout(rebuildTimer);
+  if(playing) rebuildTimer=setTimeout(refreshLoop,300);
+}
+function redraw(){
+  drawLayer(document.getElementById('hostlanes'),SPL.beats[hostIdx],true);
+  drawLayer(document.getElementById('guestlanes'),SPL.beats[guestIdx],false);
+  drawWins();
+}
+// --- export ---
+const flash=document.getElementById('flash');
+function show(m){ flash.textContent=m; flash.style.opacity=1; setTimeout(()=>flash.style.opacity=0,800); }
+document.getElementById('copy').onclick=async()=>{
+  const text=`hnote splice v1 host=${SPL.beats[hostIdx].name}(${SPL.beats[hostIdx].ratio}) guest=${SPL.beats[guestIdx].name}(${SPL.beats[guestIdx].ratio}) windows=${wins.map(([a,b])=>`[${a.toFixed(3)},${b.toFixed(3)})`).join(';')}`;
+  try{ await navigator.clipboard.writeText(text); show('copied'); }
+  catch(e){ prompt('copy this:',text); }
+};
+redraw();
+</script>
+</body>
+</html>
