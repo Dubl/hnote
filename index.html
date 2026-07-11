@@ -44,6 +44,21 @@
 </header>
 
 <div class="card">
+  <div class="tag">Engine Test · Splice</div>
+  <h2>Overwrite a section of one beat with another</h2>
+  <p>Mid-bar splice, no engine change: a roll whose prechildren are [content, trailing
+     rest, anchor] with end_of_silence_prechild aimed at the rest — the erasure starts
+     AND ends inside the parent. Three 8s bars: pure groove A / A with a 4:5-flavored
+     slice of beat B replacing [3s, 6s) / pure A again. Verified exact: outside the
+     window bar 2 is byte-identical to A, inside it is exactly B's slice (9 A-hits
+     erased, 0 leaked), and A resumes precisely at 6.0s. 24s.</p>
+  <p style="margin:0 0 4px"><strong style="color:var(--text)">MP3</strong> — pre-rendered:</p>
+  <audio controls preload="none" src="splicetest.mp3" style="width:100%; margin-bottom:12px;"></audio>
+  <midi-player data-src="splicetest.mid" sound-font style="display:none"></midi-player>
+  <div class="dl"><a href="splicetest.mid" download>download .mid</a> · <a href="splicetest.mp3" download>download .mp3</a></div>
+</div>
+
+<div class="card">
   <div class="tag">Engine Test · Pure Poly</div>
   <h2>16 pure parallel polyrhythms</h2>
   <p>Deterministic engine test: no rolls, no ghosts, no variation. Each 8s beat is just

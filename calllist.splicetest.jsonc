@@ -1,0 +1,19 @@
+[
+ {
+  "target": "spA",
+  "function": "once"
+ },
+ {
+  "target": "spA",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spliceB",
+   "amount": 1
+  }
+ },
+ {
+  "target": "spA",
+  "function": "once"
+ }
+]

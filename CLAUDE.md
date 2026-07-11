@@ -41,6 +41,13 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   [42,46] by convention; whitelist 35..81 = non-silencing roll);
   `ancestor_overwrite_level: 2` + `end_of_silence_prechild: 8` = erasure past
   the bar line. Mute a roll = zero prechildren + whitelist 35..81 (data only).
+- **Splice pattern** (discovered 2026-07-10, splicetest.*): a roll can start
+  AND end mid-parent — prechildren `[content, trailing rest, 0-width pads,
+  anchor]` with `end_of_silence_prechild` aimed at the trailing rest. The
+  erasure window equals the content span; the base resumes at the window's
+  half-open end. "Overwrite section [a,b) of beat A with a slice of beat B"
+  is therefore pure data: content = B's slice sized (b-a), trailing rest =
+  bar_end - b. Verified exact (0 leaked, boundary hits survive).
 - Beat measure shape: sidebyside root, 3–4 sequential lanes (kick/snare lane
   carries `"rolled": true`), flat cells with uniform shares, rests explicit.
 
