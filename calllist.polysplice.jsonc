@@ -1,0 +1,146 @@
+[
+ {
+  "target": "ptest1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest5",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp5",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp6",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest7",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp7",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest8",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp8",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp9",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp10",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp11",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest12",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp12",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest13",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp13",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest14",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp14",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest15",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp15",
+   "amount": 1
+  }
+ },
+ {
+  "target": "ptest16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "psp16",
+   "amount": 1
+  }
+ }
+]
