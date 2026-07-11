@@ -89,6 +89,11 @@ guest layer, outside the host. Drag a window or its edges; nudge for precision.<
   <button id="e-m">&#9664; end</button><button id="e-p">end &#9654;</button>
   <button id="w-add">+ window</button><button id="w-del">&#10005; window</button>
 </div>
+<div class="nudges" style="grid-template-columns:repeat(5,1fr);">
+  <button id="c-sm">&#9664; loop st</button><button id="c-sp">loop st &#9654;</button>
+  <button id="c-em">&#9664; loop end</button><button id="c-ep">loop end &#9654;</button>
+  <button id="c-full">full 8s</button>
+</div>
 <div class="toolbar">
   <button id="copy">Copy splice</button>
   <button id="reset">Reset</button>
@@ -254,6 +259,17 @@ document.getElementById('w-del').onclick=()=>{
   if(!wins.length) return;
   wins.splice(selW,1); selW=0; changed();   // zero windows = pure host
 };
+function cropNudge(edge,d){
+  if(edge==='s') crop=[Math.max(0,Math.min(crop[0]+d,crop[1]-1.0)),crop[1]];
+  else crop=[crop[0],Math.min(BAR,Math.max(crop[1]+d,crop[0]+1.0))];
+  crop=[Math.round(crop[0]*200)/200,Math.round(crop[1]*200)/200];
+  changed();
+}
+document.getElementById('c-sm').onclick=()=>cropNudge('s',-NUDGE);
+document.getElementById('c-sp').onclick=()=>cropNudge('s',NUDGE);
+document.getElementById('c-em').onclick=()=>cropNudge('e',-NUDGE);
+document.getElementById('c-ep').onclick=()=>cropNudge('e',NUDGE);
+document.getElementById('c-full').onclick=()=>{ crop=[0,BAR]; changed(); };
 document.getElementById('reset').onclick=()=>{ wins=[[3.0,5.0]]; crop=[0,BAR]; selW=0; changed(); };
 
 // --- gapless looper (same approach as edit.html) ---
