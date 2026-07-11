@@ -192,8 +192,9 @@ function drawWins(){
     attachDrag(w,hl,hr,i);
     winlay.appendChild(w);
   });
-  document.getElementById('info').textContent=
-    wins.map(([a,b],i)=>`w${i+1} [${a.toFixed(2)}, ${b.toFixed(2)})${i===selW?' ←':''}`).join('   ');
+  document.getElementById('info').textContent= wins.length ?
+    wins.map(([a,b],i)=>`w${i+1} [${a.toFixed(2)}, ${b.toFixed(2)})${i===selW?' ←':''}`).join('   ')
+    : 'no windows — pure host';
 }
 function clampWins(i){
   let [a,b]=wins[i];
@@ -227,7 +228,7 @@ function attachDrag(w,hl,hr,i){
 }
 // --- nudges / add / delete ---
 function nudge(edge,d){
-  const w=wins[selW]; if(!w) return;
+  const w=wins[selW]; if(!w) return show('no window selected');
   if(edge==='s') w[0]+=d; else w[1]+=d;
   clampWins(selW); changed();
 }
@@ -250,8 +251,8 @@ document.getElementById('w-add').onclick=()=>{
   changed();
 };
 document.getElementById('w-del').onclick=()=>{
-  if(wins.length<=1) return show('keep at least one');
-  wins.splice(selW,1); selW=0; changed();
+  if(!wins.length) return;
+  wins.splice(selW,1); selW=0; changed();   // zero windows = pure host
 };
 document.getElementById('reset').onclick=()=>{ wins=[[3.0,5.0]]; crop=[0,BAR]; selW=0; changed(); };
 
@@ -340,7 +341,7 @@ function redraw(){
 const flash=document.getElementById('flash');
 function show(m){ flash.textContent=m; flash.style.opacity=1; setTimeout(()=>flash.style.opacity=0,800); }
 document.getElementById('copy').onclick=async()=>{
-  const text=`hnote splice v1 host=${SPL.beats[hostIdx].name}(${SPL.beats[hostIdx].ratio}) guest=${SPL.beats[guestIdx].name}(${SPL.beats[guestIdx].ratio}) windows=${wins.map(([a,b])=>`[${a.toFixed(3)},${b.toFixed(3)})`).join(';')} crop=[${crop[0].toFixed(3)},${crop[1].toFixed(3)})`;
+  const text=`hnote splice v1 host=${SPL.beats[hostIdx].name}(${SPL.beats[hostIdx].ratio}) guest=${SPL.beats[guestIdx].name}(${SPL.beats[guestIdx].ratio}) windows=${wins.length?wins.map(([a,b])=>`[${a.toFixed(3)},${b.toFixed(3)})`).join(';'):'none'} crop=[${crop[0].toFixed(3)},${crop[1].toFixed(3)})`;
   try{ await navigator.clipboard.writeText(text); show('copied'); }
   catch(e){ prompt('copy this:',text); }
 };

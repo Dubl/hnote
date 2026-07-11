@@ -87,6 +87,20 @@ def main():
     byname = {mm.get("name"): mm for mm in data}
     C0, C1 = crop
     span = C1 - C0
+    if not wins and span >= BAR - 1e-9:
+        # no windows, no crop: the composite IS the host - fource it plain
+        hostm = json.loads(json.dumps(byname[host]))
+        hostm["name"] = f"{name}_host"
+        measures = data + [hostm]
+        calls = [{"target": f"{name}_host", "function": "once"}] * 4
+        json.dump(measures, open(f"measures.{name}.json", "w", encoding="utf-8"), indent=1)
+        json.dump(calls, open(f"calllist.{name}.jsonc", "w", encoding="utf-8"), indent=1)
+        r = subprocess.run([sys.executable, "build_track.py", name, f"calllist.{name}.jsonc",
+                            "--measures", f"measures.{name}.json", "--no-melody",
+                            "--duration", "32"], capture_output=True, text=True)
+        if r.returncode != 0: raise SystemExit(r.stdout[-500:] + r.stderr[-500:])
+        print(r.stdout.strip().splitlines()[-1], "(pure host, no splice)")
+        return
     if span < BAR - 1e-9:
         # cropped composite: emit the audible mix directly as share lanes over
         # a measure of length `span` (variable-length bars are just shares)
