@@ -1,0 +1,119 @@
+[
+ {
+  "target": "song2p3b1",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl1",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b2",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl2",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b3",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl3",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b4",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl4",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b6",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl6",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b9",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl9",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b10",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl10",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b11",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl11",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b16",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl16",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b17",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl17",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b18",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl18",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b29",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl29",
+   "amount": 1
+  }
+ },
+ {
+  "target": "song2p3b33",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "spl33",
+   "amount": 1
+  }
+ }
+]
