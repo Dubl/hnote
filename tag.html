@@ -41,7 +41,7 @@
 </head>
 <body>
 <h1>HNote Tagger</h1>
-<audio id="a" controls preload="metadata" src="polysplice.mp3"></audio>
+<audio id="a" controls preload="metadata" src="polyloop.mp3"></audio>
 <div class="pos" id="pos">unit — · bar —</div>
 
 <div class="groups">
@@ -112,7 +112,7 @@ document.querySelectorAll('button.tag').forEach(b=>b.onclick=()=>{
 
 document.getElementById('copy').onclick=async()=>{
   const lines=tags.map(t=>`u${t.unit} b${t.bar} @${t.t}s ${t.layer} ${t.ref} ${t.v}`);
-  const text=`hnote tags v1 (track: polysplice pure-ratio chain, bar=8s - see polysplice_index.md)\n`+lines.join('\n');
+  const text=`hnote tags v1 (track: polyloop spliced composites fourced, 32s/composite - see polyloop_index.md)\n`+lines.join('\n');
   try{ await navigator.clipboard.writeText(text); show('copied'); }
   catch(e){ prompt('copy this:', text); }
 };
