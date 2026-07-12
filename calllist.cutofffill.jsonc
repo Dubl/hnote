@@ -1,0 +1,102 @@
+[
+ {
+  "target": "cut1f",
+  "function": "once"
+ },
+ {
+  "target": "cut1f",
+  "function": "once"
+ },
+ {
+  "target": "cut1f",
+  "function": "once"
+ },
+ {
+  "target": "cut1f",
+  "function": "once"
+ },
+ {
+  "target": "cut2f",
+  "function": "once"
+ },
+ {
+  "target": "cut2f",
+  "function": "once"
+ },
+ {
+  "target": "cut2f",
+  "function": "once"
+ },
+ {
+  "target": "cut2f",
+  "function": "once"
+ },
+ {
+  "target": "cut3f",
+  "function": "once"
+ },
+ {
+  "target": "cut3f",
+  "function": "once"
+ },
+ {
+  "target": "cut3f",
+  "function": "once"
+ },
+ {
+  "target": "cut3f",
+  "function": "once"
+ },
+ {
+  "target": "cut4f",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "cut4f_roll",
+   "amount": 1
+  }
+ },
+ {
+  "target": "cut4f",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "cut4f_roll",
+   "amount": 1
+  }
+ },
+ {
+  "target": "cut4f",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "cut4f_roll",
+   "amount": 1
+  }
+ },
+ {
+  "target": "cut4f",
+  "function": "once",
+  "then": {
+   "function": "roll",
+   "target": "cut4f_roll",
+   "amount": 1
+  }
+ },
+ {
+  "target": "cut7f",
+  "function": "once"
+ },
+ {
+  "target": "cut7f",
+  "function": "once"
+ },
+ {
+  "target": "cut7f",
+  "function": "once"
+ },
+ {
+  "target": "cut7f",
+  "function": "once"
+ }
+]
