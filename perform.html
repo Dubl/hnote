@@ -107,7 +107,7 @@ const NUDGE=0.1;
 const beatsel=document.getElementById('beatsel');
 PERF.beats.forEach((b,i)=>beatsel.add(new Option(`${b.name} — ${b.desc}`,i)));
 beatsel.value=beatIdx;
-beatsel.onchange=()=>{ beatIdx=+beatsel.value; queue=null; if(playing) queueSwitch(active); redraw(); persist(); };
+beatsel.onchange=()=>{ beatIdx=+beatsel.value; queue=null; if(playing){ playing=false; clearInterval(timer); markDecks(); } redraw(); persist(); };
 
 function B(){ return PERF.beats[beatIdx]; }
 function W(){ return winsBy[B().name]??[1.0,Math.min(3.0,B().barlen)]; }
