@@ -1,0 +1,114 @@
+[
+ {
+  "target": "cut1",
+  "function": "once"
+ },
+ {
+  "target": "cut1",
+  "function": "once"
+ },
+ {
+  "target": "cut1",
+  "function": "once"
+ },
+ {
+  "target": "cut1",
+  "function": "once"
+ },
+ {
+  "target": "cut2",
+  "function": "once"
+ },
+ {
+  "target": "cut2",
+  "function": "once"
+ },
+ {
+  "target": "cut2",
+  "function": "once"
+ },
+ {
+  "target": "cut2",
+  "function": "once"
+ },
+ {
+  "target": "cut3",
+  "function": "once"
+ },
+ {
+  "target": "cut3",
+  "function": "once"
+ },
+ {
+  "target": "cut3",
+  "function": "once"
+ },
+ {
+  "target": "cut3",
+  "function": "once"
+ },
+ {
+  "target": "cut4",
+  "function": "once"
+ },
+ {
+  "target": "cut4",
+  "function": "once"
+ },
+ {
+  "target": "cut4",
+  "function": "once"
+ },
+ {
+  "target": "cut4",
+  "function": "once"
+ },
+ {
+  "target": "cut5",
+  "function": "once"
+ },
+ {
+  "target": "cut5",
+  "function": "once"
+ },
+ {
+  "target": "cut5",
+  "function": "once"
+ },
+ {
+  "target": "cut5",
+  "function": "once"
+ },
+ {
+  "target": "cut6",
+  "function": "once"
+ },
+ {
+  "target": "cut6",
+  "function": "once"
+ },
+ {
+  "target": "cut6",
+  "function": "once"
+ },
+ {
+  "target": "cut6",
+  "function": "once"
+ },
+ {
+  "target": "cut7",
+  "function": "once"
+ },
+ {
+  "target": "cut7",
+  "function": "once"
+ },
+ {
+  "target": "cut7",
+  "function": "once"
+ },
+ {
+  "target": "cut7",
+  "function": "once"
+ }
+]
