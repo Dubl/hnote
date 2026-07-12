@@ -193,14 +193,21 @@ async function loadSamples(){
   actx=actx||new (window.AudioContext||window.webkitAudioContext)();
   const need=new Set();
   PERF.beats.forEach(b=>b.hits.forEach(([t,p,v,ch])=>{
+    if(ch===3){ need.add('bass/'+p); return; }
     const vl=VLEV.reduce((a,c)=>Math.abs(c-v)<Math.abs(a-v)?c:a);
-    need.add((ch===3?'synth_bass_2':'percussion')+'/'+p+'_'+vl);
+    need.add('percussion/'+p+'_'+vl);
   }));
   let done=0; const keys=[...need];
   await Promise.all(keys.map(async k=>{
-    const [inst,pv]=k.split('/'); const [p,vl]=pv.split('_');
     try{
-      const r=await fetch(`${SF}/${inst}/p${p}_v${vl}.mp3`);
+      let url;
+      if(k.startsWith('bass/')){
+        url=`bass_samples/p${k.split('/')[1]}.mp3`;   // GeneralUser GS render - the mp3's bass
+      }else{
+        const [p,vl]=k.split('/')[1].split('_');
+        url=`${SF}/percussion/p${p}_v${vl}.mp3`;
+      }
+      const r=await fetch(url);
       if(!r.ok) throw 0;
       samples[k]=await actx.decodeAudioData(await r.arrayBuffer());
     }catch(e){ samples[k]=null; }
@@ -260,11 +267,15 @@ function schedule(){
   updateRec();
 }
 function playHit([at,p,v,ch]){
-  const vl=VLEV.reduce((a,c)=>Math.abs(c-v)<Math.abs(a-v)?c:a);
-  const buf=samples[(ch===3?'synth_bass_2':'percussion')+'/'+p+'_'+vl];
+  let buf,gain;
+  if(ch===3){ buf=samples['bass/'+p]; gain=v/110; }
+  else{
+    const vl=VLEV.reduce((a,c)=>Math.abs(c-v)<Math.abs(a-v)?c:a);
+    buf=samples['percussion/'+p+'_'+vl]; gain=Math.min(1.4,v/vl);
+  }
   if(buf){
     const s=actx.createBufferSource(); s.buffer=buf;
-    const g=actx.createGain(); g.gain.value=Math.min(1.4,v/vl);
+    const g=actx.createGain(); g.gain.value=gain;
     s.connect(g); g.connect(actx.destination); s.start(at);
     if(ch===3){ try{s.stop(at+0.16);}catch(_){} }
   }
