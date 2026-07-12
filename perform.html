@@ -36,8 +36,19 @@
   .deck small{display:block; font-weight:400; font-size:9px; margin-top:2px; opacity:.75;}
   .gear{background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:4px; flex-shrink:0;}
   .winedit{display:none; background:var(--surface); border:1px solid var(--line); border-radius:10px;
-    margin:-4px 0 8px; padding:8px; grid-template-columns:repeat(4,1fr); gap:6px;}
-  .winedit.show{display:grid;}
+    margin:-4px 0 8px; padding:8px;}
+  .winedit.show{display:block;}
+  .viz{position:relative; height:58px; background:#17151d; border:1px solid var(--line);
+    border-radius:8px; margin-bottom:8px; overflow:hidden;}
+  .viz .g{position:absolute; top:0; bottom:0; width:1px; background:#26222f;}
+  .viz .h{position:absolute; width:7px; height:7px; margin:-3.5px 0 0 -3.5px;
+    border-radius:50%; background:var(--accent); pointer-events:none;}
+  .viz .h.bass{background:var(--win); border-radius:2px;}
+  .viz .wreg{position:absolute; top:0; bottom:0; background:rgba(62,201,176,.20);
+    border-left:3px solid var(--win); border-right:3px solid var(--win); cursor:grab;}
+  .viz .handle{position:absolute; top:0; bottom:0; width:20px; cursor:ew-resize;}
+  .viz .handle.l{left:-10px;} .viz .handle.r{right:-10px;}
+  .nrow{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
   .winedit button{border:none; border-radius:8px; padding:10px 2px; font-size:11px; font-weight:700;
     background:#2a2635; color:var(--text); cursor:pointer;}
   #recbar{font-size:11.5px; color:var(--muted); text-align:center; margin:10px 0;
@@ -95,6 +106,9 @@ PERF.beats.forEach((b,bi)=>{
   bw.onclick=()=>launch(bi,'win');
   const gear=document.createElement('button'); gear.className='gear'; gear.textContent='⚙';
   const edit=document.createElement('div'); edit.className='winedit';
+  const viz=document.createElement('div'); viz.className='viz';
+  edit.appendChild(viz);
+  const nrow=document.createElement('div'); nrow.className='nrow';
   [['◀ start','s',-NUDGE],['start ▶','s',NUDGE],
    ['◀ end','e',-NUDGE],['end ▶','e',NUDGE]].forEach(([lbl,edge,d])=>{
     const btn=document.createElement('button'); btn.textContent=lbl;
@@ -103,11 +117,12 @@ PERF.beats.forEach((b,bi)=>{
       if(edge==='s') w=[Math.max(0,Math.min(w[0]+d,w[1]-0.5)),w[1]];
       else w=[w[0],Math.min(bl,Math.max(w[1]+d,w[0]+0.5))];
       setW(bi,[Math.round(w[0]*100)/100,Math.round(w[1]*100)/100]);
-      updateRowLabel(bi);
+      updateRowLabel(bi); drawViz(bi,viz);
     };
-    edit.appendChild(btn);
+    nrow.appendChild(btn);
   });
-  gear.onclick=()=>edit.classList.toggle('show');
+  edit.appendChild(nrow);
+  gear.onclick=()=>{ edit.classList.toggle('show'); if(edit.classList.contains('show')) drawViz(bi,viz); };
   row.appendChild(bf); row.appendChild(bw); row.appendChild(gear);
   board.appendChild(row); board.appendChild(edit);
   rows.push({bf,bw});
@@ -116,6 +131,52 @@ PERF.beats.forEach((b,bi)=>{
 function updateRowLabel(bi){
   const w=W(bi);
   rows[bi].bw.innerHTML=`WIN<small>${w[0].toFixed(2)}–${w[1].toFixed(2)}s</small>`;
+}
+// --- fold-out visual: hits + draggable window ---
+function drawViz(bi,viz){
+  viz.innerHTML='';
+  const b=PERF.beats[bi], bl=b.barlen, w=W(bi);
+  const npulse=Math.round(bl/PERF.pulse);
+  for(let k=1;k<npulse;k++){
+    const g=document.createElement('div'); g.className='g'; g.style.left=(k/npulse*100)+'%';
+    viz.appendChild(g);
+  }
+  const drumVoices=[...new Set(b.hits.filter(h=>h[3]===9).map(h=>h[1]))].sort((a,b2)=>a-b2);
+  b.hits.forEach(([t,p,v,ch])=>{
+    const d=document.createElement('div'); d.className='h'+(ch===3?' bass':'');
+    d.style.left=(t/bl*100)+'%';
+    if(ch===3) d.style.top='48px';
+    else d.style.top=(10+drumVoices.indexOf(p)*(30/Math.max(drumVoices.length-1,1)))+'px';
+    viz.appendChild(d);
+  });
+  const reg=document.createElement('div'); reg.className='wreg';
+  reg.style.left=(w[0]/bl*100)+'%'; reg.style.width=((w[1]-w[0])/bl*100)+'%';
+  const hl=document.createElement('div'); hl.className='handle l';
+  const hr=document.createElement('div'); hr.className='handle r';
+  reg.appendChild(hl); reg.appendChild(hr);
+  let mode=null,x0=0,w0=null;
+  const px2s=dx=>dx/viz.clientWidth*bl;
+  const down=(e,m)=>{ mode=m; x0=e.clientX; w0=[...W(bi)]; e.preventDefault();
+    e.target.setPointerCapture&&e.target.setPointerCapture(e.pointerId); };
+  reg.onpointerdown=e=>{ if(e.target===reg) down(e,'move'); };
+  hl.onpointerdown=e=>down(e,'l');
+  hr.onpointerdown=e=>down(e,'r');
+  const move=e=>{
+    if(mode===null) return;
+    const ds=px2s(e.clientX-x0);
+    let w2=[...W(bi)];
+    if(mode==='move'){ const len=w0[1]-w0[0];
+      let a=Math.max(0,Math.min(w0[0]+ds,bl-len)); w2=[a,a+len]; }
+    if(mode==='l') w2=[Math.max(0,Math.min(w0[0]+ds,W(bi)[1]-0.5)),W(bi)[1]];
+    if(mode==='r') w2=[W(bi)[0],Math.min(bl,Math.max(w0[1]+ds,W(bi)[0]+0.5))];
+    setW(bi,[Math.round(w2[0]*100)/100,Math.round(w2[1]*100)/100]);
+    reg.style.left=(W(bi)[0]/bl*100)+'%'; reg.style.width=((W(bi)[1]-W(bi)[0])/bl*100)+'%';
+    updateRowLabel(bi);
+  };
+  const up=()=>{ mode=null; };
+  reg.onpointermove=hl.onpointermove=hr.onpointermove=move;
+  reg.onpointerup=hl.onpointerup=hr.onpointerup=up;
+  viz.appendChild(reg);
 }
 function markDecks(){
   rows.forEach((r,bi)=>{
