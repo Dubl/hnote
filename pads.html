@@ -13,17 +13,17 @@
     user-select:none; -webkit-user-select:none;}
   html,body{margin:0; height:100%; background:var(--bg); overflow:hidden;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  #row{display:flex; width:100%; height:100%;}
+  #row{display:flex; flex-direction:column; width:100%; height:100%;}
   .pad{display:flex; align-items:center; justify-content:center; min-width:0;
     font-size:16px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
     color:rgba(23,21,29,.85); cursor:pointer; transition:filter .06s; overflow:hidden;}
-  .pad span{transform:rotate(-90deg); white-space:nowrap;}
+  .pad span{white-space:nowrap;}
   .pad.c1{background:var(--c1);} .pad.c2{background:var(--c2);}
   .pad.c3{background:var(--c3);} .pad.c4{background:var(--c4);}
   .pad.hit{filter:brightness(1.6);}
-  .div{width:14px; background:var(--line); cursor:ew-resize; flex-shrink:0;
+  .div{height:14px; background:var(--line); cursor:ns-resize; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;}
-  .div::after{content:''; width:4px; height:44px; border-radius:2px; background:#8d8798;}
+  .div::after{content:''; height:4px; width:44px; border-radius:2px; background:#8d8798;}
   #load{position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
     background:rgba(23,21,29,.9); color:var(--text); font-size:13px;
     padding:10px 20px; border-radius:20px; pointer-events:none; display:none;}
@@ -69,13 +69,13 @@ PADS.forEach(([name,p,cls],i)=>{
     const k=i;                       // boundary between pads k-1 and k
     let x0=0,w0=null,drag=false;
     dv.addEventListener('pointerdown',e=>{
-      drag=true; x0=e.clientX; w0=[...weights];
+      drag=true; x0=e.clientY; w0=[...weights];
       dv.setPointerCapture(e.pointerId); e.preventDefault();
     });
     dv.addEventListener('pointermove',e=>{
       if(!drag) return;
       const total=weights.reduce((a,b)=>a+b,0);
-      const d=(e.clientX-x0)/row.clientWidth*total;   // px -> weight units
+      const d=(e.clientY-x0)/row.clientHeight*total;  // px -> weight units
       const a=w0[k-1]+d, b=w0[k]-d;
       const min=total*0.06;
       if(a>=min&&b>=min){ weights[k-1]=a; weights[k]=b; layout(); }
