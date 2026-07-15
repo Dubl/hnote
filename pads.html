@@ -44,15 +44,29 @@ async function init(){
   if(actx||loading) return;
   loading=true;
   document.getElementById('load').style.display='block';
-  actx=new (window.AudioContext||window.webkitAudioContext)();
+  actx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:0});
   await Promise.all(PADS.map(async ([n,p])=>{
     try{
       const r=await fetch(`${SF}/p${p}_v111.mp3`);
-      samples[p]=await actx.decodeAudioData(await r.arrayBuffer());
+      samples[p]=trimOnset(await actx.decodeAudioData(await r.arrayBuffer()));
     }catch(e){ samples[p]=null; }
   }));
+  // warm the output path so the first real hit isn't the wake-up call
+  const z=actx.createBufferSource(); z.buffer=actx.createBuffer(1,1,actx.sampleRate);
+  z.connect(actx.destination); z.start();
   document.getElementById('load').style.display='none';
   loading=false;
+}
+function trimOnset(buf){
+  // MP3 encoder padding puts silence before the transient - cut to the onset
+  const ch=buf.getChannelData(0);
+  let i=0;
+  while(i<ch.length && Math.abs(ch[i])<0.01) i++;
+  if(i===0||i>=ch.length) return buf;
+  const out=actx.createBuffer(buf.numberOfChannels, buf.length-i, buf.sampleRate);
+  for(let c=0;c<buf.numberOfChannels;c++)
+    out.getChannelData(c).set(buf.getChannelData(c).subarray(i));
+  return out;
 }
 function hit(p){
   const buf=samples[p];
@@ -87,11 +101,15 @@ PADS.forEach(([name,p,cls],i)=>{
   const el=document.createElement('div');
   el.className='pad '+cls;
   el.innerHTML=`<span>${name}</span>`;
-  el.addEventListener('pointerdown', async e=>{
+  el.addEventListener('pointerdown', e=>{
     e.preventDefault();
-    if(!actx) await init();
-    if(actx.state==='suspended') await actx.resume();
-    hit(p);
+    if(!actx||actx.state==='suspended'){          // first tap: init/unlock, then sound
+      (async()=>{ if(!actx) await init();
+        if(actx.state==='suspended') await actx.resume();
+        hit(p); })();
+    }else{
+      hit(p);                                     // hot path: fully synchronous
+    }
     el.classList.add('hit');
     setTimeout(()=>el.classList.remove('hit'),120);
     if(navigator.vibrate) navigator.vibrate(15);
