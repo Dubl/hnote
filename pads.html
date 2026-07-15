@@ -9,35 +9,35 @@
     --bg:#17151d; --line:#38334a; --text:#efeae2;
     --c1:#f5a524; --c2:#ef6351; --c3:#3ec9b0; --c4:#8d7bf5;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:none;
     user-select:none; -webkit-user-select:none;}
   html,body{margin:0; height:100%; background:var(--bg); overflow:hidden;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  #grid{display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
-    width:100%; height:100%; gap:2px; background:var(--line);}
-  .pad{display:flex; align-items:center; justify-content:center;
-    font-size:20px; font-weight:800; letter-spacing:.15em; text-transform:uppercase;
-    color:rgba(23,21,29,.85); cursor:pointer; transition:filter .06s;}
-  .pad:nth-child(1){background:var(--c1);}
-  .pad:nth-child(2){background:var(--c2);}
-  .pad:nth-child(3){background:var(--c3);}
-  .pad:nth-child(4){background:var(--c4);}
+  #row{display:flex; width:100%; height:100%;}
+  .pad{display:flex; align-items:center; justify-content:center; min-width:0;
+    font-size:16px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+    color:rgba(23,21,29,.85); cursor:pointer; transition:filter .06s; overflow:hidden;}
+  .pad span{transform:rotate(-90deg); white-space:nowrap;}
+  .pad.c1{background:var(--c1);} .pad.c2{background:var(--c2);}
+  .pad.c3{background:var(--c3);} .pad.c4{background:var(--c4);}
   .pad.hit{filter:brightness(1.6);}
+  .div{width:14px; background:var(--line); cursor:ew-resize; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;}
+  .div::after{content:''; width:4px; height:44px; border-radius:2px; background:#8d8798;}
   #load{position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
     background:rgba(23,21,29,.9); color:var(--text); font-size:13px;
     padding:10px 20px; border-radius:20px; pointer-events:none; display:none;}
 </style>
 </head>
 <body>
-<div id="grid">
-  <div class="pad" data-p="36">Kick</div>
-  <div class="pad" data-p="38">Snare</div>
-  <div class="pad" data-p="42">Hat</div>
-  <div class="pad" data-p="56">Cowbell</div>
-</div>
+<div id="row"></div>
 <div id="load">loading sounds…</div>
 
 <script>
+const PADS=[["Kick",36,"c1"],["Snare",38,"c2"],["Hat",42,"c3"],["Cowbell",56,"c4"]];
+const KEY='hnote_pads_v1';
+let weights=JSON.parse(localStorage.getItem(KEY)||'null')||[1,1,1,1];
+
 const SF='https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus/percussion';
 let actx=null, samples={}, loading=false;
 async function init(){
@@ -45,7 +45,7 @@ async function init(){
   loading=true;
   document.getElementById('load').style.display='block';
   actx=new (window.AudioContext||window.webkitAudioContext)();
-  await Promise.all([36,38,42,56].map(async p=>{
+  await Promise.all(PADS.map(async ([n,p])=>{
     try{
       const r=await fetch(`${SF}/p${p}_v111.mp3`);
       samples[p]=await actx.decodeAudioData(await r.arrayBuffer());
@@ -60,17 +60,49 @@ function hit(p){
   const s=actx.createBufferSource(); s.buffer=buf;
   s.connect(actx.destination); s.start();
 }
-document.querySelectorAll('.pad').forEach(el=>{
+
+const row=document.getElementById('row');
+const padEls=[];
+PADS.forEach(([name,p,cls],i)=>{
+  if(i>0){
+    const dv=document.createElement('div'); dv.className='div';
+    const k=i;                       // boundary between pads k-1 and k
+    let x0=0,w0=null,drag=false;
+    dv.addEventListener('pointerdown',e=>{
+      drag=true; x0=e.clientX; w0=[...weights];
+      dv.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    dv.addEventListener('pointermove',e=>{
+      if(!drag) return;
+      const total=weights.reduce((a,b)=>a+b,0);
+      const d=(e.clientX-x0)/row.clientWidth*total;   // px -> weight units
+      const a=w0[k-1]+d, b=w0[k]-d;
+      const min=total*0.06;
+      if(a>=min&&b>=min){ weights[k-1]=a; weights[k]=b; layout(); }
+    });
+    dv.addEventListener('pointerup',()=>{ drag=false;
+      localStorage.setItem(KEY,JSON.stringify(weights)); });
+    row.appendChild(dv);
+  }
+  const el=document.createElement('div');
+  el.className='pad '+cls;
+  el.innerHTML=`<span>${name}</span>`;
   el.addEventListener('pointerdown', async e=>{
     e.preventDefault();
     if(!actx) await init();
     if(actx.state==='suspended') await actx.resume();
-    hit(+el.dataset.p);
+    hit(p);
     el.classList.add('hit');
     setTimeout(()=>el.classList.remove('hit'),120);
     if(navigator.vibrate) navigator.vibrate(15);
   });
+  row.appendChild(el);
+  padEls.push(el);
 });
+function layout(){
+  padEls.forEach((el,i)=>{ el.style.flexGrow=weights[i]; });
+}
+layout();
 </script>
 </body>
 </html>
