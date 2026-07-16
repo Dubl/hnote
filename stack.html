@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HNote — Stack Sequencer</title>
+<style>
+  :root{
+    --bg:#17151d; --surface:#201d28; --line:#38334a; --text:#efeae2; --muted:#8d8798;
+    --accent:#f5a524; --teal:#3ec9b0; --rec:#ef6351;
+    --s1:#f5a524; --s2:#ef6351; --s3:#3ec9b0; --s4:#8d7bf5; --s5:#e8c14d;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px 12px 60px; max-width:640px; margin-inline:auto;}
+  h1{font-size:13px; letter-spacing:.25em; text-transform:uppercase; color:var(--accent); margin:0 0 2px;}
+  .sub{font-size:12px; color:var(--muted); margin-bottom:12px;}
+  .bar{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; margin-bottom:10px; display:flex; align-items:center; gap:8px;}
+  #playbtn{border:none; border-radius:10px; padding:14px 22px; font-size:15px; font-weight:800;
+    background:var(--teal); color:#10131a; cursor:pointer;}
+  #recbar{flex:1; font-size:11.5px; color:var(--muted); text-align:center;
+    font-variant-numeric:tabular-nums;}
+  #recbar .on{color:var(--rec); font-weight:700;}
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; margin-bottom:10px;}
+  .panel h2{font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+    margin:0 0 8px;}
+  .lvl{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .lvl .num{font-size:22px; font-weight:800; width:56px; text-align:center;
+    font-variant-numeric:tabular-nums;}
+  .lvl button{border:none; border-radius:8px; padding:10px 14px; font-size:15px; font-weight:700;
+    background:#2a2635; color:var(--text); cursor:pointer;}
+  .lvl .x{background:#4a2530; margin-left:auto;}
+  .lvl .secs{font-size:10.5px; color:var(--muted); margin-left:auto;}
+  .addlvl{width:100%; border:1px dashed var(--line); background:none; color:var(--muted);
+    border-radius:8px; padding:8px; font-size:12px; cursor:pointer;}
+  #real{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:15px; letter-spacing:2px;
+    line-height:1.8; word-break:break-all; padding:4px 2px;}
+  #real b{font-weight:800;}
+  .sym1{color:var(--s1);} .sym2{color:var(--s2);} .sym3{color:var(--s3);}
+  .sym4{color:var(--s4);} .sym5{color:var(--s5);}
+  .mrow{display:flex; gap:6px; flex-wrap:wrap;}
+  .mspot{border:none; border-radius:10px; width:54px; height:54px; font-size:16px; font-weight:800;
+    color:#10131a; cursor:pointer; position:relative;}
+  .mspot.sel{box-shadow:0 0 0 3px var(--text) inset;}
+  .mspot .star{position:absolute; top:2px; right:5px; font-size:11px;}
+  .mrow .add,.mrow .rem{background:#2a2635; color:var(--text); width:40px; font-size:18px;}
+  #spoted{margin-top:10px; border-top:1px solid var(--line); padding-top:10px; display:none;}
+  #spoted.show{display:block;}
+  #spoted .row2{display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;}
+  #spoted .row2 .lbl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);}
+  #spoted button{border:none; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:700;
+    background:#2a2635; color:var(--text); cursor:pointer;}
+  #spoted .mspot{width:42px; height:42px; font-size:13px;}
+  .toolbar{display:flex; gap:8px;}
+  .toolbar button{flex:1; background:var(--surface); color:var(--text); border:1px solid var(--line);
+    border-radius:10px; padding:12px; font-size:13px; cursor:pointer;}
+  #flash{position:fixed; top:10px; left:50%; transform:translateX(-50%); background:var(--accent);
+    color:#10131a; font-weight:700; font-size:13px; padding:8px 18px; border-radius:20px;
+    opacity:0; transition:opacity .15s; pointer-events:none;}
+</style>
+</head>
+<body>
+<h1>Stack Sequencer</h1>
+<div class="sub">Pure numbers: a motif and a column of periods. Each level repeats the one
+below and cuts it off. Tap a motif spot to give it a child loop (restart phase).</div>
+
+<div class="bar">
+  <button id="playbtn">▸ Play</button>
+  <div id="recbar">ready</div>
+</div>
+
+<div class="panel">
+  <h2>Periods — outermost first (each cuts the level below)</h2>
+  <div id="levels"></div>
+  <button class="addlvl" id="addlvl">+ add a level above</button>
+</div>
+
+<div class="panel">
+  <h2>Realized loop</h2>
+  <div id="real"></div>
+</div>
+
+<div class="panel">
+  <h2>Motif — the innermost loop (tap to select, tap again to change sound)</h2>
+  <div class="mrow" id="mrow"></div>
+  <div id="spoted"></div>
+</div>
+
+<div class="toolbar">
+  <button id="copy">Copy stack</button>
+  <button id="dl">Download MIDI take</button>
+  <button id="cleartake">Clear take</button>
+</div>
+<div id="flash"></div>
+
+<script>
+const PULSE=0.25;
+const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[56,'C'],[75,'V']];   // kick snare hat cowbell clave
+const KEY='hnote_stack_v1';
+const st=JSON.parse(localStorage.getItem(KEY)||'{}');
+let motif=st.motif??[1,2,3];                  // 1-based sound indices
+let periods=st.periods??[16,8];               // outermost first; innermost implicit = motif.length
+let children=st.children??{};                 // spot index -> {S:int, m:[sound indices]}
+let sel=null;
+
+function persist(){ localStorage.setItem(KEY,JSON.stringify({motif,periods,children})); }
+
+// --- realization: nested modulo, restart-phase element children ---
+function fold(t){
+  let x=t;
+  for(const P of periods) x=x%P;
+  return x%motif.length;
+}
+function topPeriod(){ return periods.length?periods[0]:motif.length; }
+function realizeHits(){
+  // -> [t_seconds, midi, vel] for one loop of the top period
+  const out=[];
+  for(let t=0;t<topPeriod();t++){
+    const mi=fold(t);
+    const ch=children[mi];
+    const base=t*PULSE;
+    const accent=(t===0)?116:(fold(t)===0?102:88);
+    if(ch){
+      const sub=PULSE/ch.S;
+      for(let j=0;j<ch.S;j++){
+        const sym=ch.m[j%ch.m.length];
+        out.push([base+j*sub, SOUNDS[sym-1][0], j===0?accent:Math.max(52,accent-26)]);
+      }
+    }else{
+      out.push([base, SOUNDS[motif[mi]-1][0], accent]);
+    }
+  }
+  return out;
+}
+function realizeString(){
+  let s='';
+  for(let t=0;t<topPeriod();t++){
+    const mi=fold(t);
+    s+=`<b class="sym${motif[mi]}">${mi+1}${children[mi]?'*':''}</b>`;
+  }
+  return s;
+}
+
+// --- UI ---
+function draw(){
+  const lv=document.getElementById('levels'); lv.innerHTML='';
+  periods.forEach((P,i)=>{
+    const row=document.createElement('div'); row.className='lvl';
+    const minus=document.createElement('button'); minus.textContent='−';
+    minus.onclick=()=>{ if(periods[i]>2){periods[i]--; changed();} };
+    const num=document.createElement('div'); num.className='num'; num.textContent=P;
+    const plus=document.createElement('button'); plus.textContent='+';
+    plus.onclick=()=>{ periods[i]++; changed(); };
+    const secs=document.createElement('div'); secs.className='secs';
+    secs.textContent=(P*PULSE).toFixed(2)+'s';
+    const x=document.createElement('button'); x.className='x'; x.textContent='✕';
+    x.onclick=()=>{ periods.splice(i,1); changed(); };
+    row.append(minus,num,plus,secs,x); lv.appendChild(row);
+  });
+  const inner=document.createElement('div'); inner.className='lvl';
+  inner.innerHTML=`<div class="num" style="color:var(--muted)">${motif.length}</div>
+    <div class="secs">motif (innermost)</div>`;
+  lv.appendChild(inner);
+
+  document.getElementById('real').innerHTML=realizeString();
+
+  const mr=document.getElementById('mrow'); mr.innerHTML='';
+  motif.forEach((sym,i)=>{
+    const b=document.createElement('button'); b.className='mspot';
+    b.style.background=`var(--s${sym})`;
+    b.innerHTML=`${i+1}·${SOUNDS[sym-1][1]}${children[i]?'<span class="star">✱</span>':''}`;
+    if(sel===i) b.classList.add('sel');
+    b.onclick=()=>{
+      if(sel===i){ motif[i]=sym%SOUNDS.length+1; changed(); }
+      else { sel=i; draw(); }
+    };
+    mr.appendChild(b);
+  });
+  const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
+  add.onclick=()=>{ if(motif.length<8){ motif.push(1); changed(); } };
+  const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
+  rem.onclick=()=>{ if(motif.length>1){ motif.pop(); delete children[motif.length]; if(sel>=motif.length) sel=null; changed(); } };
+  mr.append(add,rem);
+
+  const sp=document.getElementById('spoted');
+  if(sel===null){ sp.className=''; sp.innerHTML=''; }
+  else{
+    sp.className='show';
+    const ch=children[sel];
+    let html=`<div class="row2"><span class="lbl">spot ${sel+1} child</span>`;
+    if(!ch){
+      sp.innerHTML=html+`<button id="addch">+ give it a child loop</button></div>`;
+      document.getElementById('addch').onclick=()=>{ children[sel]={S:2,m:[motif[sel],1]}; changed(); };
+    }else{
+      sp.innerHTML=html+`<button id="delch">✕ remove child</button></div>
+        <div class="row2"><span class="lbl">slot ticks</span>
+          <button id="sm">−</button><b style="font-size:18px">${ch.S}</b><button id="sp2">+</button>
+          <span class="lbl" style="margin-left:8px">sub-motif (${ch.m.length}) — cut at ${ch.S}, restart each visit</span></div>
+        <div class="row2 mrow" id="subrow"></div>`;
+      document.getElementById('delch').onclick=()=>{ delete children[sel]; changed(); };
+      document.getElementById('sm').onclick=()=>{ if(ch.S>1){ch.S--; changed();} };
+      document.getElementById('sp2').onclick=()=>{ if(ch.S<8){ch.S++; changed();} };
+      const sr=document.getElementById('subrow');
+      ch.m.forEach((sym,j)=>{
+        const b=document.createElement('button'); b.className='mspot';
+        b.style.background=`var(--s${sym})`;
+        b.textContent=SOUNDS[sym-1][1];
+        b.onclick=()=>{ ch.m[j]=sym%SOUNDS.length+1; changed(); };
+        sr.appendChild(b);
+      });
+      const a2=document.createElement('button'); a2.className='mspot add'; a2.textContent='+';
+      a2.onclick=()=>{ if(ch.m.length<6){ ch.m.push(1); changed(); } };
+      const r2=document.createElement('button'); r2.className='mspot rem'; r2.textContent='−';
+      r2.onclick=()=>{ if(ch.m.length>1){ ch.m.pop(); changed(); } };
+      sr.append(a2,r2);
+    }
+  }
+  document.getElementById('addlvl').onclick=()=>{
+    periods.unshift(Math.max(2,topPeriod()*2)); changed();
+  };
+}
+function changed(){ persist(); draw(); dirty=true; }
+
+// --- audio: lookahead loop player (restart semantics are in realizeHits) ---
+const SF='https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus/percussion';
+let actx=null, samples={}, playing=false, timer=null;
+let t0=0, schedUntil=0, dirty=true, hits=[], looplen=0;
+let take=[], takeStart=null;
+function trimOnset(buf){
+  const ch=buf.getChannelData(0);
+  let i=0;
+  while(i<ch.length && Math.abs(ch[i])<0.01) i++;
+  if(i===0||i>=ch.length) return buf;
+  const out=actx.createBuffer(buf.numberOfChannels, buf.length-i, buf.sampleRate);
+  for(let c=0;c<buf.numberOfChannels;c++)
+    out.getChannelData(c).set(buf.getChannelData(c).subarray(i));
+  return out;
+}
+async function initAudio(){
+  actx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:0});
+  await Promise.all(SOUNDS.map(async ([p])=>{
+    try{
+      const r=await fetch(`${SF}/p${p}_v111.mp3`);
+      samples[p]=trimOnset(await actx.decodeAudioData(await r.arrayBuffer()));
+    }catch(e){ samples[p]=null; }
+  }));
+}
+function refresh(){ hits=realizeHits(); looplen=topPeriod()*PULSE; dirty=false; }
+function schedule(){
+  if(!playing) return;
+  if(dirty) refresh();
+  const now=actx.currentTime, until=now+0.18;
+  while(schedUntil<until){
+    const to=Math.min(until,schedUntil+0.09);
+    hits.forEach(([t,p,v])=>{
+      let base=t0+Math.floor((schedUntil-t0)/looplen)*looplen;
+      for(let b=base;b<=to+looplen;b+=looplen){
+        const at=b+t;
+        if(at>=schedUntil-1e-9 && at<to-1e-9){
+          const buf=samples[p];
+          if(buf){
+            const s=actx.createBufferSource(); s.buffer=buf;
+            const g=actx.createGain(); g.gain.value=v/111;
+            s.connect(g); g.connect(actx.destination); s.start(at);
+          }
+          if(takeStart===null) takeStart=at;
+          take.push([at-takeStart,p,v]);
+        }
+      }
+    });
+    schedUntil=to;
+  }
+  updateRec();
+}
+document.getElementById('playbtn').onclick=async()=>{
+  const btn=document.getElementById('playbtn');
+  if(playing){
+    playing=false; clearInterval(timer); btn.textContent='▸ Play'; updateRec(); return;
+  }
+  if(!actx){ btn.disabled=true; await initAudio(); btn.disabled=false; }
+  if(actx.state==='suspended') await actx.resume();
+  refresh();
+  playing=true; t0=actx.currentTime+0.12; schedUntil=t0;
+  timer=setInterval(schedule,50);
+  btn.textContent='■ Stop';
+};
+function updateRec(){
+  const el=document.getElementById('recbar');
+  if(take.length)
+    el.innerHTML=`<span class="on">&#9679;</span> ${take.length} notes · ${(take[take.length-1][0]).toFixed(1)}s`;
+  else el.textContent=playing?'playing':'ready';
+}
+
+// --- blob + take writer ---
+document.getElementById('copy').onclick=async()=>{
+  const chs=Object.entries(children).map(([i,c])=>`child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]]`).join(' ');
+  const text=`hnote stack v1 pulse=${PULSE} periods=[${periods.join(',')}] motif=[${motif.join(',')}]${chs?' '+chs:''}`;
+  try{ await navigator.clipboard.writeText(text); show('copied'); }
+  catch(e){ prompt('copy this:', text); }
+};
+function vlq(n){ const b=[n&0x7f]; n>>=7; while(n){ b.push(0x80|(n&0x7f)); n>>=7; } return b.reverse(); }
+document.getElementById('dl').onclick=()=>{
+  if(!take.length) return show('no take yet');
+  const PPQ=480,T=500000, tick=s=>Math.round(s*1e6*PPQ/T);
+  const ev=[[0,0,[0xFF,0x51,0x03,(T>>16)&255,(T>>8)&255,T&255]]];
+  take.forEach(([t,p,v])=>{
+    ev.push([tick(t),1,[0x99,p,v]]);
+    ev.push([tick(t+0.06),0,[0x89,p,0]]);
+  });
+  ev.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const tr=[]; let last=0;
+  ev.forEach(([t,,b])=>{ tr.push(...vlq(t-last),...b); last=t; });
+  tr.push(0,0xFF,0x2F,0);
+  const head=[0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,PPQ>>8,PPQ&255,
+              0x4D,0x54,0x72,0x6B,(tr.length>>24)&255,(tr.length>>16)&255,(tr.length>>8)&255,tr.length&255];
+  const blob=new Blob([new Uint8Array([...head,...tr])],{type:'audio/midi'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`stack_take_${Date.now()%100000}.mid`;
+  a.click();
+};
+document.getElementById('cleartake').onclick=()=>{ take=[]; takeStart=null; updateRec(); show('cleared'); };
+function show(m){ const f=document.getElementById('flash');
+  f.textContent=m; f.style.opacity=1; setTimeout(()=>f.style.opacity=0,800); }
+draw();
+</script>
+</body>
+</html>
