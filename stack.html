@@ -9,13 +9,22 @@
     --bg:#17151d; --surface:#201d28; --line:#38334a; --text:#efeae2; --muted:#8d8798;
     --accent:#f5a524; --teal:#3ec9b0; --rec:#ef6351;
     --s1:#f5a524; --s2:#ef6351; --s3:#3ec9b0; --s4:#8d7bf5; --s5:#e8c14d;
+    --tA:#f5a524; --tB:#3ec9b0; --tC:#8d7bf5; --tD:#ef6351;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
   body{margin:0; background:var(--bg); color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     padding:16px 12px 60px; max-width:640px; margin-inline:auto;}
   h1{font-size:13px; letter-spacing:.25em; text-transform:uppercase; color:var(--accent); margin:0 0 2px;}
-  .sub{font-size:12px; color:var(--muted); margin-bottom:12px;}
+  .sub{font-size:12px; color:var(--muted); margin-bottom:10px;}
+  #tabs{display:flex; gap:6px; margin-bottom:10px;}
+  .tab{border:1px solid var(--line); background:var(--surface); color:var(--muted);
+    border-radius:10px; padding:10px 0; flex:1; font-size:13px; font-weight:800; cursor:pointer;}
+  .tab.on{color:#10131a;}
+  .tab.tA.on{background:var(--tA);} .tab.tB.on{background:var(--tB);}
+  .tab.tC.on{background:var(--tC);} .tab.tD.on{background:var(--tD);}
+  .tab.mix.on{background:var(--text);}
+  .tab.plus{flex:.5;}
   .bar{background:var(--surface); border:1px solid var(--line); border-radius:12px;
     padding:10px 12px; margin-bottom:10px; display:flex; align-items:center; gap:8px;}
   #playbtn{border:none; border-radius:10px; padding:14px 22px; font-size:15px; font-weight:800;
@@ -39,6 +48,7 @@
   #real{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:15px; letter-spacing:2px;
     line-height:1.8; word-break:break-all; padding:4px 2px;}
   #real b{font-weight:800;}
+  #real .w{background:rgba(239,234,226,.14); border-radius:3px;}
   .sym1{color:var(--s1);} .sym2{color:var(--s2);} .sym3{color:var(--s3);}
   .sym4{color:var(--s4);} .sym5{color:var(--s5);}
   .mrow{display:flex; gap:6px; flex-wrap:wrap;}
@@ -54,6 +64,22 @@
   #spoted button{border:none; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:700;
     background:#2a2635; color:var(--text); cursor:pointer;}
   #spoted .mspot{width:42px; height:42px; font-size:13px;}
+  /* mix view */
+  #mixlay{position:relative; height:64px; background:#17151d; border:1px solid var(--line);
+    border-radius:10px; overflow:hidden; margin-bottom:8px;}
+  #mixlay .g{position:absolute; top:0; bottom:0; width:1px; background:#26222f;}
+  .mwin{position:absolute; top:0; bottom:0; opacity:.85; cursor:grab;
+    border-left:3px solid; border-right:3px solid;}
+  .mwin .wl{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:12px; font-weight:800; pointer-events:none;}
+  .mwin .handle{position:absolute; top:0; bottom:0; width:20px; cursor:ew-resize;}
+  .mwin .handle.l{left:-10px;} .mwin .handle.r{right:-10px;}
+  .mwin.tB{background:rgba(62,201,176,.22); border-color:var(--tB);} .mwin.tB .wl{color:var(--tB);}
+  .mwin.tC{background:rgba(141,123,245,.22); border-color:var(--tC);} .mwin.tC .wl{color:var(--tC);}
+  .mwin.tD{background:rgba(239,99,81,.22); border-color:var(--tD);} .mwin.tD .wl{color:var(--tD);}
+  .mixrow{display:flex; gap:6px; flex-wrap:wrap;}
+  .mixrow button{border:none; border-radius:8px; padding:10px 12px; font-size:12px; font-weight:700;
+    background:#2a2635; color:var(--text); cursor:pointer;}
   .toolbar{display:flex; gap:8px;}
   .toolbar button{flex:1; background:var(--surface); color:var(--text); border:1px solid var(--line);
     border-radius:10px; padding:12px; font-size:13px; cursor:pointer;}
@@ -64,29 +90,44 @@
 </head>
 <body>
 <h1>Stack Sequencer</h1>
-<div class="sub">Pure numbers: a motif and a column of periods. Each level repeats the one
-below and cuts it off. Tap a motif spot to give it a child loop (restart phase).</div>
+<div class="sub">Pure numbers: motif + periods, each level cutting the one below. Tabs are
+parallel uberloops (+ duplicates the current one); MIX windows swap between them, aligned.</div>
+
+<div id="tabs"></div>
 
 <div class="bar">
   <button id="playbtn">▸ Play</button>
   <div id="recbar">ready</div>
 </div>
 
-<div class="panel">
-  <h2>Periods — outermost first (each cuts the level below)</h2>
-  <div id="levels"></div>
-  <button class="addlvl" id="addlvl">+ add a level above</button>
+<div id="stackview">
+  <div class="panel">
+    <h2>Periods — outermost first (each cuts the level below)</h2>
+    <div id="levels"></div>
+    <button class="addlvl" id="addlvl">+ add a level above</button>
+  </div>
+  <div class="panel">
+    <h2>Realized loop</h2>
+    <div id="real"></div>
+  </div>
+  <div class="panel">
+    <h2>Motif — the innermost loop (tap to select, tap again to change sound)</h2>
+    <div class="mrow" id="mrow"></div>
+    <div id="spoted"></div>
+  </div>
 </div>
 
-<div class="panel">
-  <h2>Realized loop</h2>
-  <div id="real"></div>
-</div>
-
-<div class="panel">
-  <h2>Motif — the innermost loop (tap to select, tap again to change sound)</h2>
-  <div class="mrow" id="mrow"></div>
-  <div id="spoted"></div>
+<div id="mixview" style="display:none">
+  <div class="panel">
+    <h2>Mix — tab A is the ground; windows reveal the other running uberloops</h2>
+    <div id="mixlay"></div>
+    <div class="mixrow" id="mixctl"></div>
+  </div>
+  <div class="panel">
+    <h2>Realized mix (per pulse: sourcing tab's digit)</h2>
+    <div id="real2" style="font-family:ui-monospace,Menlo,Consolas,monospace; font-size:15px;
+      letter-spacing:2px; line-height:1.8; word-break:break-all;"></div>
+  </div>
 </div>
 
 <div class="toolbar">
@@ -98,31 +139,34 @@ below and cuts it off. Tap a motif spot to give it a child loop (restart phase).
 
 <script>
 const PULSE=0.25;
-const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[56,'C'],[75,'V']];   // kick snare hat cowbell clave
-const KEY='hnote_stack_v1';
-const st=JSON.parse(localStorage.getItem(KEY)||'{}');
-let motif=st.motif??[1,2,3];                  // 1-based sound indices
-let periods=st.periods??[16,8];               // outermost first; innermost implicit = motif.length
-let children=st.children??{};                 // spot index -> {S:int, m:[sound indices]}
-let sel=null;
-
-function persist(){ localStorage.setItem(KEY,JSON.stringify({motif,periods,children})); }
-
-// --- realization: nested modulo, restart-phase element children ---
-function fold(t){
-  let x=t;
-  for(const P of periods) x=x%P;
-  return x%motif.length;
+const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[56,'C'],[75,'V']];
+const TABN=['A','B','C','D'];
+const KEY='hnote_stack_v2';
+let st=JSON.parse(localStorage.getItem(KEY)||'null');
+if(!st){
+  const old=JSON.parse(localStorage.getItem('hnote_stack_v1')||'{}');
+  st={stacks:[{motif:old.motif??[1,2,3], periods:old.periods??[16,8], children:old.children??{}}],
+      cur:0, view:'stack', wins:[]};
 }
-function topPeriod(){ return periods.length?periods[0]:motif.length; }
-function realizeHits(){
-  // -> [t_seconds, midi, vel] for one loop of the top period
+let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack', wins=st.wins??[];
+let sel=null;
+function persist(){ localStorage.setItem(KEY,JSON.stringify({stacks,cur,view,wins})); }
+function S(){ return stacks[cur]; }
+
+// --- realization ---
+function fold(t,stack){
+  let x=t;
+  for(const P of stack.periods) x=x%P;
+  return x%stack.motif.length;
+}
+function topPeriod(stack){ return stack.periods.length?stack.periods[0]:stack.motif.length; }
+function realizeHitsFor(stack){
   const out=[];
-  for(let t=0;t<topPeriod();t++){
-    const mi=fold(t);
-    const ch=children[mi];
+  for(let t=0;t<topPeriod(stack);t++){
+    const mi=fold(t,stack);
+    const ch=stack.children[mi];
     const base=t*PULSE;
-    const accent=(t===0)?116:(fold(t)===0?102:88);
+    const accent=(t===0)?116:(mi===0?102:88);
     if(ch){
       const sub=PULSE/ch.S;
       for(let j=0;j<ch.S;j++){
@@ -130,77 +174,126 @@ function realizeHits(){
         out.push([base+j*sub, SOUNDS[sym-1][0], j===0?accent:Math.max(52,accent-26)]);
       }
     }else{
-      out.push([base, SOUNDS[motif[mi]-1][0], accent]);
+      out.push([base, SOUNDS[stack.motif[mi]-1][0], accent]);
     }
   }
   return out;
 }
-function realizeString(){
-  let s='';
-  for(let t=0;t<topPeriod();t++){
-    const mi=fold(t);
-    s+=`<b class="sym${motif[mi]}">${mi+1}${children[mi]?'*':''}</b>`;
+function mixBarlen(){ return topPeriod(stacks[0])*PULSE; }
+function winAt(t){ return wins.find(w=>t>=w.a-1e-9&&t<w.b-1e-9)||null; }
+function realizeMixHits(){
+  const bl=mixBarlen();
+  const out=[];
+  realizeHitsFor(stacks[0]).forEach(h=>{ if(!winAt(h[0])) out.push(h); });
+  wins.forEach(w=>{
+    const tgt=stacks[w.tab]; if(!tgt) return;
+    const hits=realizeHitsFor(tgt), tbl=topPeriod(tgt)*PULSE;
+    hits.forEach(([tt,p,v])=>{
+      for(let base=0;base+tt<w.b-1e-9;base+=tbl){
+        const at=base+tt;
+        if(at>=w.a-1e-9 && winAt(at)===w) out.push([at,p,v]);
+      }
+    });
+  });
+  return out.sort((a,b)=>a[0]-b[0]);
+}
+function activeHits(){ return view==='mix'?realizeMixHits():realizeHitsFor(S()); }
+function activeLen(){ return view==='mix'?mixBarlen():topPeriod(S())*PULSE; }
+
+// --- tabs ---
+function drawTabs(){
+  const tb=document.getElementById('tabs'); tb.innerHTML='';
+  stacks.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.className=`tab t${TABN[i]}`+((view==='stack'&&cur===i)?' on':'');
+    b.textContent=TABN[i];
+    b.onclick=()=>{ view='stack'; cur=i; sel=null; changed(); };
+    tb.appendChild(b);
+  });
+  if(stacks.length<4){
+    const p=document.createElement('button'); p.className='tab plus'; p.textContent='+';
+    p.onclick=()=>{
+      stacks.push(JSON.parse(JSON.stringify(S())));
+      view='stack'; cur=stacks.length-1; changed();
+      show('duplicated '+TABN[cur-0]);
+    };
+    tb.appendChild(p);
   }
-  return s;
+  if(stacks.length>1){
+    const m=document.createElement('button');
+    m.className='tab mix'+(view==='mix'?' on':''); m.textContent='MIX';
+    m.onclick=()=>{ view='mix'; sel=null; changed(); };
+    tb.appendChild(m);
+  }
 }
 
-// --- UI ---
-function draw(){
+// --- stack view ---
+function drawStack(){
+  const stk=S();
   const lv=document.getElementById('levels'); lv.innerHTML='';
-  periods.forEach((P,i)=>{
+  stk.periods.forEach((P,i)=>{
     const row=document.createElement('div'); row.className='lvl';
     const minus=document.createElement('button'); minus.textContent='−';
-    minus.onclick=()=>{ if(periods[i]>2){periods[i]--; changed();} };
+    minus.onclick=()=>{ if(stk.periods[i]>2){stk.periods[i]--; changed();} };
     const num=document.createElement('div'); num.className='num'; num.textContent=P;
     const plus=document.createElement('button'); plus.textContent='+';
-    plus.onclick=()=>{ periods[i]++; changed(); };
+    plus.onclick=()=>{ stk.periods[i]++; changed(); };
     const secs=document.createElement('div'); secs.className='secs';
     secs.textContent=(P*PULSE).toFixed(2)+'s';
     const x=document.createElement('button'); x.className='x'; x.textContent='✕';
-    x.onclick=()=>{ periods.splice(i,1); changed(); };
+    x.onclick=()=>{ stk.periods.splice(i,1); changed(); };
     row.append(minus,num,plus,secs,x); lv.appendChild(row);
   });
   const inner=document.createElement('div'); inner.className='lvl';
-  inner.innerHTML=`<div class="num" style="color:var(--muted)">${motif.length}</div>
+  inner.innerHTML=`<div class="num" style="color:var(--muted)">${stk.motif.length}</div>
     <div class="secs">motif (innermost)</div>`;
   lv.appendChild(inner);
+  document.getElementById('addlvl').onclick=()=>{
+    stk.periods.unshift(Math.max(2,topPeriod(stk)*2)); changed();
+  };
 
-  document.getElementById('real').innerHTML=realizeString();
+  let s='';
+  for(let t=0;t<topPeriod(stk);t++){
+    const mi=fold(t,stk);
+    s+=`<b class="sym${stk.motif[mi]}">${mi+1}${stk.children[mi]?'*':''}</b>`;
+  }
+  document.getElementById('real').innerHTML=s;
 
   const mr=document.getElementById('mrow'); mr.innerHTML='';
-  motif.forEach((sym,i)=>{
+  stk.motif.forEach((sym,i)=>{
     const b=document.createElement('button'); b.className='mspot';
     b.style.background=`var(--s${sym})`;
-    b.innerHTML=`${i+1}·${SOUNDS[sym-1][1]}${children[i]?'<span class="star">✱</span>':''}`;
+    b.innerHTML=`${i+1}·${SOUNDS[sym-1][1]}${stk.children[i]?'<span class="star">✱</span>':''}`;
     if(sel===i) b.classList.add('sel');
     b.onclick=()=>{
-      if(sel===i){ motif[i]=sym%SOUNDS.length+1; changed(); }
+      if(sel===i){ stk.motif[i]=sym%SOUNDS.length+1; changed(); }
       else { sel=i; draw(); }
     };
     mr.appendChild(b);
   });
   const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
-  add.onclick=()=>{ if(motif.length<8){ motif.push(1); changed(); } };
+  add.onclick=()=>{ if(stk.motif.length<8){ stk.motif.push(1); changed(); } };
   const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
-  rem.onclick=()=>{ if(motif.length>1){ motif.pop(); delete children[motif.length]; if(sel>=motif.length) sel=null; changed(); } };
+  rem.onclick=()=>{ if(stk.motif.length>1){ stk.motif.pop(); delete stk.children[stk.motif.length];
+    if(sel>=stk.motif.length) sel=null; changed(); } };
   mr.append(add,rem);
 
   const sp=document.getElementById('spoted');
   if(sel===null){ sp.className=''; sp.innerHTML=''; }
   else{
     sp.className='show';
-    const ch=children[sel];
+    const ch=stk.children[sel];
     let html=`<div class="row2"><span class="lbl">spot ${sel+1} child</span>`;
     if(!ch){
       sp.innerHTML=html+`<button id="addch">+ give it a child loop</button></div>`;
-      document.getElementById('addch').onclick=()=>{ children[sel]={S:2,m:[motif[sel],1]}; changed(); };
+      document.getElementById('addch').onclick=()=>{ stk.children[sel]={S:2,m:[stk.motif[sel],1]}; changed(); };
     }else{
       sp.innerHTML=html+`<button id="delch">✕ remove child</button></div>
         <div class="row2"><span class="lbl">slot ticks</span>
           <button id="sm">−</button><b style="font-size:18px">${ch.S}</b><button id="sp2">+</button>
           <span class="lbl" style="margin-left:8px">sub-motif (${ch.m.length}) — cut at ${ch.S}, restart each visit</span></div>
         <div class="row2 mrow" id="subrow"></div>`;
-      document.getElementById('delch').onclick=()=>{ delete children[sel]; changed(); };
+      document.getElementById('delch').onclick=()=>{ delete stk.children[sel]; changed(); };
       document.getElementById('sm').onclick=()=>{ if(ch.S>1){ch.S--; changed();} };
       document.getElementById('sp2').onclick=()=>{ if(ch.S<8){ch.S++; changed();} };
       const sr=document.getElementById('subrow');
@@ -218,13 +311,91 @@ function draw(){
       sr.append(a2,r2);
     }
   }
-  document.getElementById('addlvl').onclick=()=>{
-    periods.unshift(Math.max(2,topPeriod()*2)); changed();
+}
+
+// --- mix view ---
+function drawMix(){
+  const bl=mixBarlen();
+  const lay=document.getElementById('mixlay'); lay.innerHTML='';
+  const np=topPeriod(stacks[0]);
+  for(let k=1;k<np;k++){
+    const g=document.createElement('div'); g.className='g'; g.style.left=(k/np*100)+'%';
+    lay.appendChild(g);
+  }
+  wins.forEach((w,wi)=>{
+    const d=document.createElement('div'); d.className='mwin t'+TABN[w.tab];
+    d.style.left=(w.a/bl*100)+'%'; d.style.width=((w.b-w.a)/bl*100)+'%';
+    d.innerHTML=`<div class="wl">${TABN[w.tab]}</div>`;
+    const hl=document.createElement('div'); hl.className='handle l';
+    const hr=document.createElement('div'); hr.className='handle r';
+    d.appendChild(hl); d.appendChild(hr);
+    let mode=null,x0=0,w0=null,moved=false;
+    const px2s=dx=>dx/lay.clientWidth*bl;
+    const down=(e,m)=>{ mode=m; x0=e.clientX; w0={...w}; moved=false; e.preventDefault();
+      e.target.setPointerCapture&&e.target.setPointerCapture(e.pointerId); };
+    d.onpointerdown=e=>{ if(e.target===d||e.target.className==='wl') down(e,'move'); };
+    hl.onpointerdown=e=>down(e,'l');
+    hr.onpointerdown=e=>down(e,'r');
+    const move=e=>{
+      if(mode===null) return;
+      const ds=px2s(e.clientX-x0);
+      if(Math.abs(ds)>0.02) moved=true;
+      if(mode==='move'){ const len=w0.b-w0.a;
+        w.a=Math.max(0,Math.min(w0.a+ds,bl-len)); w.b=w.a+len; }
+      if(mode==='l') w.a=Math.max(0,Math.min(w0.a+ds,w.b-PULSE));
+      if(mode==='r') w.b=Math.min(bl,Math.max(w0.b+ds,w.a+PULSE));
+      w.a=Math.round(w.a*100)/100; w.b=Math.round(w.b*100)/100;
+      d.style.left=(w.a/bl*100)+'%'; d.style.width=((w.b-w.a)/bl*100)+'%';
+      dirty=true;
+    };
+    const up=()=>{
+      if(mode!==null&&!moved){ w.tab=(w.tab)%(stacks.length-1)+1; }  // tap = cycle target B->C->D
+      mode=null; changed();
+    };
+    d.onpointermove=hl.onpointermove=hr.onpointermove=move;
+    d.onpointerup=hl.onpointerup=hr.onpointerup=up;
+    lay.appendChild(d);
+  });
+  const mc=document.getElementById('mixctl'); mc.innerHTML='';
+  const addw=document.createElement('button'); addw.textContent='+ window';
+  addw.onclick=()=>{
+    const bl2=mixBarlen();
+    wins.push({tab:Math.min(1,stacks.length-1), a:Math.round(bl2*0.25*100)/100,
+               b:Math.round(bl2*0.5*100)/100});
+    changed();
   };
+  mc.appendChild(addw);
+  if(wins.length){
+    const delw=document.createElement('button'); delw.textContent='✕ last window';
+    delw.onclick=()=>{ wins.pop(); changed(); };
+    mc.appendChild(delw);
+    const hint=document.createElement('span');
+    hint.style.cssText='font-size:10.5px;color:var(--muted);align-self:center;';
+    hint.textContent='tap a window to cycle its tab · drag to move · edges resize';
+    mc.appendChild(hint);
+  }
+  // realized mix string: per pulse, sourcing tab's digit
+  let s='';
+  for(let t=0;t<topPeriod(stacks[0]);t++){
+    const w=winAt(t*PULSE+1e-6);
+    const src=w?stacks[w.tab]:stacks[0];
+    const tt=w? (t*PULSE)% (topPeriod(src)*PULSE) : t*PULSE;
+    const mi=fold(Math.round(tt/PULSE),src);
+    const cls=w?` class="sym${src.motif[mi]} w"`:` class="sym${src.motif[mi]}"`;
+    s+=`<b${cls}>${mi+1}</b>`;
+  }
+  document.getElementById('real2').innerHTML=s;
+}
+
+function draw(){
+  drawTabs();
+  document.getElementById('stackview').style.display=view==='stack'?'':'none';
+  document.getElementById('mixview').style.display=view==='mix'?'':'none';
+  if(view==='stack') drawStack(); else drawMix();
 }
 function changed(){ persist(); draw(); dirty=true; }
 
-// --- audio: lookahead loop player (restart semantics are in realizeHits) ---
+// --- audio ---
 const SF='https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus/percussion';
 let actx=null, samples={}, playing=false, timer=null;
 let t0=0, schedUntil=0, dirty=true, hits=[], looplen=0;
@@ -248,7 +419,7 @@ async function initAudio(){
     }catch(e){ samples[p]=null; }
   }));
 }
-function refresh(){ hits=realizeHits(); looplen=topPeriod()*PULSE; dirty=false; }
+function refresh(){ hits=activeHits(); looplen=activeLen(); dirty=false; }
 function schedule(){
   if(!playing) return;
   if(dirty) refresh();
@@ -295,9 +466,19 @@ function updateRec(){
 }
 
 // --- blob + take writer ---
+function stackBlob(stk){
+  const chs=Object.entries(stk.children).map(([i,c])=>`child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]]`).join(' ');
+  return `periods=[${stk.periods.join(',')}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}`;
+}
 document.getElementById('copy').onclick=async()=>{
-  const chs=Object.entries(children).map(([i,c])=>`child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]]`).join(' ');
-  const text=`hnote stack v1 pulse=${PULSE} periods=[${periods.join(',')}] motif=[${motif.join(',')}]${chs?' '+chs:''}`;
+  let text;
+  if(view==='mix'){
+    const tabs=stacks.map((s,i)=>`${TABN[i]}={${stackBlob(s)}}`).join(' ');
+    const ws=wins.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',');
+    text=`hnote stackmix v1 pulse=${PULSE} ${tabs} wins=[${ws}]`;
+  }else{
+    text=`hnote stack v1 pulse=${PULSE} ${stackBlob(S())}`;
+  }
   try{ await navigator.clipboard.writeText(text); show('copied'); }
   catch(e){ prompt('copy this:', text); }
 };
