@@ -197,8 +197,15 @@ function realizeMixHits(){
   });
   return out.sort((a,b)=>a[0]-b[0]);
 }
-function activeHits(){ return view==='mix'?realizeMixHits():realizeHitsFor(S()); }
-function activeLen(){ return view==='mix'?mixBarlen():topPeriod(S())*PULSE; }
+let playTarget=null;      // locked at launch: {view:'mix'} or {view:'stack', cur:i}
+function targetHits(){
+  if(!playTarget) return [];
+  return playTarget.view==='mix' ? realizeMixHits() : realizeHitsFor(stacks[playTarget.cur]);
+}
+function targetLen(){
+  if(!playTarget) return 1;
+  return playTarget.view==='mix' ? mixBarlen() : topPeriod(stacks[playTarget.cur])*PULSE;
+}
 
 // --- tabs ---
 function drawTabs(){
@@ -419,7 +426,7 @@ async function initAudio(){
     }catch(e){ samples[p]=null; }
   }));
 }
-function refresh(){ hits=activeHits(); looplen=activeLen(); dirty=false; }
+function refresh(){ hits=targetHits(); looplen=targetLen(); dirty=false; }
 function schedule(){
   if(!playing) return;
   if(dirty) refresh();
@@ -453,16 +460,21 @@ document.getElementById('playbtn').onclick=async()=>{
   }
   if(!actx){ btn.disabled=true; await initAudio(); btn.disabled=false; }
   if(actx.state==='suspended') await actx.resume();
+  playTarget = view==='mix' ? {view:'mix'} : {view:'stack', cur};
   refresh();
   playing=true; t0=actx.currentTime+0.12; schedUntil=t0;
   timer=setInterval(schedule,50);
   btn.textContent='■ Stop';
 };
+function playLabel(){
+  if(!playing||!playTarget) return '';
+  return ' · playing '+(playTarget.view==='mix'?'MIX':TABN[playTarget.cur]);
+}
 function updateRec(){
   const el=document.getElementById('recbar');
   if(take.length)
-    el.innerHTML=`<span class="on">&#9679;</span> ${take.length} notes · ${(take[take.length-1][0]).toFixed(1)}s`;
-  else el.textContent=playing?'playing':'ready';
+    el.innerHTML=`<span class="on">&#9679;</span> ${take.length} notes · ${(take[take.length-1][0]).toFixed(1)}s${playLabel()}`;
+  else el.textContent=(playing?'playing'+playLabel().replace(' · playing',''):'ready');
 }
 
 // --- blob + take writer ---
