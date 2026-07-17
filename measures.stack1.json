@@ -1,0 +1,572 @@
+[
+ {
+  "midi_number": 0,
+  "velocity": 0,
+  "timing": 4.0,
+  "channel": 9,
+  "child_direction": "sidebyside",
+  "children": [
+   {
+    "midi_number": 0,
+    "velocity": 0,
+    "timing": 1.0,
+    "channel": 9,
+    "child_direction": "sequential",
+    "children": [
+     {
+      "midi_number": 0,
+      "velocity": 0,
+      "timing": 9.0,
+      "channel": 9,
+      "child_direction": "sequential",
+      "children": [
+       {
+        "midi_number": 0,
+        "velocity": 0,
+        "timing": 5.0,
+        "channel": 9,
+        "child_direction": "sequential",
+        "children": [
+         {
+          "midi_number": 0,
+          "velocity": 0,
+          "timing": 3.0,
+          "channel": 9,
+          "child_direction": "sequential",
+          "children": [
+           {
+            "midi_number": 0,
+            "velocity": 0,
+            "timing": 3.0,
+            "channel": 9,
+            "child_direction": "sequential",
+            "children": [
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 38,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 36,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 36,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 38,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 42,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 56,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "midi_number": 0,
+          "velocity": 0,
+          "timing": 2.0,
+          "channel": 9,
+          "child_direction": "sequential",
+          "children": [
+           {
+            "midi_number": 0,
+            "velocity": 0,
+            "timing": 2.0,
+            "channel": 9,
+            "child_direction": "sequential",
+            "children": [
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 38,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 36,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 36,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 38,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "midi_number": 0,
+        "velocity": 0,
+        "timing": 4.0,
+        "channel": 9,
+        "child_direction": "sequential",
+        "children": [
+         {
+          "midi_number": 0,
+          "velocity": 0,
+          "timing": 3.0,
+          "channel": 9,
+          "child_direction": "sequential",
+          "children": [
+           {
+            "midi_number": 0,
+            "velocity": 0,
+            "timing": 3.0,
+            "channel": 9,
+            "child_direction": "sequential",
+            "children": [
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 38,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 36,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 36,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 38,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 42,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 56,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "midi_number": 0,
+          "velocity": 0,
+          "timing": 1.0,
+          "channel": 9,
+          "child_direction": "sequential",
+          "children": [
+           {
+            "midi_number": 0,
+            "velocity": 0,
+            "timing": 1.0,
+            "channel": 9,
+            "child_direction": "sequential",
+            "children": [
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 38,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 36,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "midi_number": 0,
+      "velocity": 0,
+      "timing": 7.0,
+      "channel": 9,
+      "child_direction": "sequential",
+      "children": [
+       {
+        "midi_number": 0,
+        "velocity": 0,
+        "timing": 5.0,
+        "channel": 9,
+        "child_direction": "sequential",
+        "children": [
+         {
+          "midi_number": 0,
+          "velocity": 0,
+          "timing": 3.0,
+          "channel": 9,
+          "child_direction": "sequential",
+          "children": [
+           {
+            "midi_number": 0,
+            "velocity": 0,
+            "timing": 3.0,
+            "channel": 9,
+            "child_direction": "sequential",
+            "children": [
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 38,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 36,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 36,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 38,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 42,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 56,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "midi_number": 0,
+          "velocity": 0,
+          "timing": 2.0,
+          "channel": 9,
+          "child_direction": "sequential",
+          "children": [
+           {
+            "midi_number": 0,
+            "velocity": 0,
+            "timing": 2.0,
+            "channel": 9,
+            "child_direction": "sequential",
+            "children": [
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 38,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 36,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 36,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 38,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "midi_number": 0,
+        "velocity": 0,
+        "timing": 2.0,
+        "channel": 9,
+        "child_direction": "sequential",
+        "children": [
+         {
+          "midi_number": 0,
+          "velocity": 0,
+          "timing": 2.0,
+          "channel": 9,
+          "child_direction": "sequential",
+          "children": [
+           {
+            "midi_number": 0,
+            "velocity": 0,
+            "timing": 2.0,
+            "channel": 9,
+            "child_direction": "sequential",
+            "children": [
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 38,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 36,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             },
+             {
+              "midi_number": 0,
+              "velocity": 0,
+              "timing": 1.0,
+              "channel": 9,
+              "child_direction": "sequential",
+              "children": [
+               {
+                "midi_number": 36,
+                "velocity": 96,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               },
+               {
+                "midi_number": 38,
+                "velocity": 70,
+                "timing": 1.0,
+                "channel": 9,
+                "children": null
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "name": "stack1"
+   }
+  ],
+  "start_time": 0.0,
+  "end_time": 0.0,
+  "name": "stack1"
+ }
+]

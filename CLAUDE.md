@@ -75,7 +75,11 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   17,24,26,27,30,45,51,55,65,70,76,78,82,85,91,93,100.
 - Tooling: `hnote_edit_lib.py`, `bar_export.py`, `apply_edits.py`,
   `edit.html`, `tag.html`, `melody_layer.py`, `build_track.py`,
-  `setup_audio_tools.py`. NOTE: `bar_export.py` maps unit→beat via track-3's
+  `setup_audio_tools.py`. **Stack sequencer** (the cut-off core as pure
+  numbers): `stack.html` composes periods+motif+element-children; its Copy
+  Stack blob compiles via `apply_stack.py "<blob>" --name <n>` into a nested
+  HNote tree (realization = fold through nested moduli, restart semantics),
+  rendered + verified automatically. NOTE: `bar_export.py` maps unit→beat via track-3's
   cycle [70,87,96,98]; for other beats pass the unit that maps to the beat
   you want, or generalize it.
 - Memory: `~/.claude/projects/.../memory/` has project state + what the
