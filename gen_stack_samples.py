@@ -28,15 +28,16 @@ def hp1(x, fc):
     return y
 
 def kick():
-    # deep-house kick: 95->42Hz sweep, soft drive, long sub tail
-    n = int(0.50 * SR); out = []; ph = 0.0
+    # deep-house kick: 95->42Hz sweep; drive INSIDE the envelope so the
+    # tail actually decays instead of flattening into a block
+    n = int(0.55 * SR); out = []; ph = 0.0
     for i in range(n):
         t = i / SR
         f = 42 + 53 * math.exp(-t / 0.020)
         ph += 2 * math.pi * f / SR
-        x = math.sin(ph) * env(t, 0.16)
-        x += 0.35 * (random.random() * 2 - 1) * env(t, 0.004)   # click transient
-        out.append(math.tanh(1.9 * x))
+        body = math.tanh(2.2 * math.sin(ph)) * env(t, 0.10)
+        click = 0.35 * (random.random() * 2 - 1) * env(t, 0.004)
+        out.append(body + click)
     return out
 
 def clap():
@@ -65,16 +66,15 @@ def hat():
         raw.append((0.6 * m + 0.7 * (random.random() * 2 - 1)) * env(t, 0.028))
     return hp1(hp1(raw, 7000), 7000)
 
-def cowbell():
-    # 808 cowbell: detuned squares 540+800Hz through a mid bandpass
-    n = int(0.28 * SR); raw = []
+def openhat():
+    # open hat: same metallic squares as the closed hat, longer sizzle
+    freqs = [3113, 4160, 5333, 6217, 7597, 8412]
+    n = int(0.50 * SR); raw = []
     for i in range(n):
         t = i / SR
-        s = (1 if math.sin(2 * math.pi * 540 * t) > 0 else -1) * 0.6 \
-          + (1 if math.sin(2 * math.pi * 800 * t) > 0 else -1) * 0.4
-        e = env(t, 0.012) * 0.7 + env(t, 0.055) * 0.5
-        raw.append(s * e)
-    return biquad_bp(raw, 660, 2.2)
+        m = sum((1 if math.sin(2 * math.pi * f * t) > 0 else -1) for f in freqs) / len(freqs)
+        raw.append((0.6 * m + 0.7 * (random.random() * 2 - 1)) * env(t, 0.13))
+    return hp1(hp1(raw, 6500), 6500)
 
 def rim():
     # 808 rimshot: bright ping + woody knock, very short
@@ -87,7 +87,7 @@ def rim():
         out.append(math.tanh(2.0 * x))
     return out
 
-VOICES = {36: kick, 38: clap, 42: hat, 56: cowbell, 75: rim}
+VOICES = {36: kick, 38: clap, 42: hat, 46: openhat, 75: rim}
 os.makedirs("stack_samples", exist_ok=True)
 for p, fn in VOICES.items():
     x = fn()

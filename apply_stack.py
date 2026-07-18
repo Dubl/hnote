@@ -9,7 +9,7 @@
 
 import json, re, struct, subprocess, sys
 
-SOUNDS = [36, 38, 42, 56, 75]
+SOUNDS = [36, 38, 42, 46, 75]   # K S H O(open hat) V
 
 def leaf(m, v, t=1.0):
     return {"midi_number": m, "velocity": v, "timing": t, "channel": 9, "children": None}
