@@ -192,7 +192,7 @@ function run(name, cfg0, opts) {
 
 // ---------- setups used across scenarios ----------
 const A = { name: '', stacks: [stack([1,2,3], [16, 8])], cur: 0, view: 'stack', wins: [], deck: 'A' };
-const B = { name: '', stacks: [stack([2,1], [9], {0:{S:3,m:[1,4]}})], cur: 0, view: 'stack', wins: [], deck: 'A' };
+const B = { name: '', stacks: [stack([2,1], [9], {0:{S:3,m:[1,0,4]}})], cur: 0, view: 'stack', wins: [], deck: 'A' };  // incl. rest (0)
 const C = { name: '', stacks: [stack([1,2,3], [8]), stack([4,5], [6])], cur: 0, view: 'mix',
             wins: [{tab:1, a:0.5, b:1.5}], deck: 'MIX' };
 const D = { name: '', stacks: [stack([3,1,2,1], [10, 7])], cur: 0, view: 'stack', wins: [], deck: 'A' };

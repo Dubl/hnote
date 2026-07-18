@@ -33,6 +33,8 @@ def realize(pulse, periods, motif, children):
             sub = pulse / ch["S"]
             for j in range(ch["S"]):
                 sym = ch["m"][j % len(ch["m"])]
+                if not sym:
+                    continue                     # 0 = rest
                 hits.append((base + j * sub, SOUNDS[sym - 1], accent if j == 0 else max(52, accent - 26)))
         else:
             hits.append((base, SOUNDS[motif[mi] - 1], accent))
@@ -44,9 +46,11 @@ def build_measure(name, pulse, periods, motif, children):
         ch = children.get(mi)
         if not ch:
             return leaf(SOUNDS[motif[mi] - 1], vel, 1.0)
-        kids = [leaf(SOUNDS[ch["m"][j % len(ch["m"])] - 1],
-                     vel if j == 0 else max(52, vel - 26), 1.0)
-                for j in range(ch["S"])]
+        kids = []
+        for j in range(ch["S"]):
+            sym = ch["m"][j % len(ch["m"])]
+            kids.append(leaf(SOUNDS[sym - 1], vel if j == 0 else max(52, vel - 26), 1.0)
+                        if sym else leaf(0, 0, 1.0))   # 0 = explicit rest cell
         return cont(kids, 1.0)
 
     def make_unit(pulses_list):

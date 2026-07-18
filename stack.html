@@ -245,6 +245,7 @@ function realizeHitsFor(stack){
       const sub=PULSE/ch.S;
       for(let j=0;j<ch.S;j++){
         const sym=ch.m[j%ch.m.length];
+        if(!sym) continue;                                  // 0 = rest
         out.push([base+j*sub, SOUNDS[sym-1][0], j===0?accent:Math.max(52,accent-26)]);
       }
     }else{
@@ -391,9 +392,9 @@ function drawStack(){
       const sr=document.getElementById('subrow');
       ch.m.forEach((sym,j)=>{
         const b=document.createElement('button'); b.className='mspot';
-        b.style.background=`var(--s${sym})`;
-        b.textContent=SOUNDS[sym-1][1];
-        b.onclick=()=>{ ch.m[j]=sym%SOUNDS.length+1; changed(); };
+        if(sym){ b.style.background=`var(--s${sym})`; b.textContent=SOUNDS[sym-1][1]; }
+        else { b.style.background='#2a2635'; b.style.color='var(--muted)'; b.textContent='·'; }
+        b.onclick=()=>{ ch.m[j]=(sym+1)%(SOUNDS.length+1); changed(); };  // ...5 -> rest -> 1
         sr.appendChild(b);
       });
       const a2=document.createElement('button'); a2.className='mspot add'; a2.textContent='+';
