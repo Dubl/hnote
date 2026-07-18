@@ -8,7 +8,7 @@
   :root{
     --bg:#17151d; --surface:#201d28; --line:#38334a; --text:#efeae2; --muted:#8d8798;
     --accent:#f5a524; --teal:#3ec9b0; --rec:#ef6351;
-    --s1:#f5a524; --s2:#ef6351; --s3:#3ec9b0; --s4:#8d7bf5; --s5:#e8c14d;
+    --s1:#f5a524; --s2:#ef6351; --s3:#3ec9b0; --s4:#8d7bf5; --s5:#e8c14d; --s6:#5aa7e8;
     --tA:#f5a524; --tB:#3ec9b0; --tC:#8d7bf5; --tD:#ef6351;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
@@ -45,12 +45,12 @@
   .lvl .secs{font-size:10.5px; color:var(--muted); margin-left:auto;}
   .addlvl{width:100%; border:1px dashed var(--line); background:none; color:var(--muted);
     border-radius:8px; padding:8px; font-size:12px; cursor:pointer;}
-  #real{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:15px; letter-spacing:2px;
+  #real,#oreal{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:15px; letter-spacing:2px;
     line-height:1.8; word-break:break-all; padding:4px 2px;}
-  #real b{font-weight:800;}
+  #real b,#oreal b{font-weight:800;}
   #real .w{background:rgba(239,234,226,.14); border-radius:3px;}
   .sym1{color:var(--s1);} .sym2{color:var(--s2);} .sym3{color:var(--s3);}
-  .sym4{color:var(--s4);} .sym5{color:var(--s5);}
+  .sym4{color:var(--s4);} .sym5{color:var(--s5);} .sym6{color:var(--s6);}
   .mrow{display:flex; gap:6px; flex-wrap:wrap;}
   .mspot{border:none; border-radius:10px; width:54px; height:54px; font-size:16px; font-weight:800;
     color:#10131a; cursor:pointer; position:relative;}
@@ -83,6 +83,17 @@
   .toolbar{display:flex; gap:8px;}
   .toolbar button{flex:1; background:var(--surface); color:var(--text); border:1px solid var(--line);
     border-radius:10px; padding:12px; font-size:13px; cursor:pointer;}
+  /* orch view */
+  #setupbar{display:flex; gap:6px; margin-bottom:8px;}
+  .sucard{display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;}
+  .subig{border:none; border-radius:10px; width:54px; height:54px; font-size:18px; font-weight:800;
+    color:#10131a; cursor:pointer;}
+  .subig.active{box-shadow:0 0 0 3px var(--text) inset;}
+  .subig.queued{animation:qpulse .45s infinite alternate;}
+  @keyframes qpulse{from{opacity:.4}to{opacity:1}}
+  .dchip{border:1px solid var(--line); background:#2a2635; color:var(--muted);
+    border-radius:8px; padding:9px 11px; font-size:12px; font-weight:700; cursor:pointer;}
+  .dchip.on{background:var(--text); color:#10131a; border-color:var(--text);}
   #flash{position:fixed; top:10px; left:50%; transform:translateX(-50%); background:var(--accent);
     color:#10131a; font-weight:700; font-size:13px; padding:8px 18px; border-radius:20px;
     opacity:0; transition:opacity .15s; pointer-events:none;}
@@ -91,8 +102,10 @@
 <body>
 <h1>Stack Sequencer</h1>
 <div class="sub">Pure numbers: motif + periods, each level cutting the one below. Tabs are
-parallel uberloops (+ duplicates the current one); MIX windows swap between them, aligned.</div>
+parallel uberloops (+ duplicates the current one); MIX windows swap between them, aligned.
+Setups are whole instances; ORCH sequences them — a stack of stacks.</div>
 
+<div id="setupbar"></div>
 <div id="tabs"></div>
 
 <div class="bar">
@@ -130,6 +143,31 @@ parallel uberloops (+ duplicates the current one); MIX windows swap between them
   </div>
 </div>
 
+<div id="orchview" style="display:none">
+  <div class="panel">
+    <h2>Orch tick + periods — outermost first (each cuts the level below)</h2>
+    <div id="olevels"></div>
+    <button class="addlvl" id="oaddlvl">+ add a level above</button>
+  </div>
+  <div class="panel">
+    <h2>Realized orchestration (digit = setup; restarts where the digit changes)</h2>
+    <div id="oreal"></div>
+  </div>
+  <div class="panel">
+    <h2>Orch motif — symbols are setups (tap to select, tap again to cycle)</h2>
+    <div class="mrow" id="omrow"></div>
+  </div>
+  <div class="panel">
+    <h2>Setups — while playing: tap = queue switch · ✎ = edit</h2>
+    <div id="sucards"></div>
+    <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+      <span style="font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)">switch quantize</span>
+      <button class="dchip" id="qtick">orch tick</button>
+      <button class="dchip" id="qpulse">pulse</button>
+    </div>
+  </div>
+</div>
+
 <div class="toolbar">
   <button id="copy">Copy stack</button>
   <button id="dl">Download MIDI take</button>
@@ -141,16 +179,52 @@ parallel uberloops (+ duplicates the current one); MIX windows swap between them
 const PULSE=0.25;
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[56,'C'],[75,'V']];
 const TABN=['A','B','C','D'];
-const KEY='hnote_stack_v2';
-let st=JSON.parse(localStorage.getItem(KEY)||'null');
-if(!st){
-  const old=JSON.parse(localStorage.getItem('hnote_stack_v1')||'{}');
-  st={stacks:[{motif:old.motif??[1,2,3], periods:old.periods??[16,8], children:old.children??{}}],
-      cur:0, view:'stack', wins:[]};
+const KEY='hnote_stack_v3';
+const SETUPMAX=6;
+/* PURE-STATE-BEGIN */
+function migrateFrom(v3,v2,v1){
+  // old keys are never written back - migration only reads
+  if(v3&&v3.v===3){
+    v3.setups=(v3.setups&&v3.setups.length?v3.setups
+      :[{name:'',stacks:[{motif:[1,2,3],periods:[16,8],children:{}}],cur:0,view:'stack',wins:[],deck:'A'}])
+      .slice(0,SETUPMAX);
+    v3.curSetup=Math.min(v3.curSetup??0, v3.setups.length-1);
+    v3.orch=(v3.orch&&v3.orch.motif&&v3.orch.motif.length)?v3.orch:{periods:[],motif:[1]};
+    v3.orch.motif=v3.orch.motif.map(m=>Math.min(Math.max(1,m|0)||1, v3.setups.length));
+    v3.oview=(v3.oview==='orch'&&v3.setups.length>1)?'orch':'setup';
+    v3.q=v3.q==='pulse'?'pulse':'tick';
+    return v3;
+  }
+  if(!v2){
+    v2={stacks:[{motif:(v1&&v1.motif)||[1,2,3], periods:(v1&&v1.periods)||[16,8],
+                 children:(v1&&v1.children)||{}}], cur:0, view:'stack', wins:[]};
+  }
+  const cur=Math.min(v2.cur??0, v2.stacks.length-1);
+  return {v:3,
+    setups:[{name:'', stacks:v2.stacks, cur, view:v2.view??'stack', wins:v2.wins??[],
+             deck:(v2.view==='mix'&&v2.stacks.length>1)?'MIX':TABN[cur]}],
+    curSetup:0, oview:'setup', orch:{periods:[],motif:[1]}, opulse:null, q:'tick'};
 }
-let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack', wins=st.wins??[];
-let sel=null;
-function persist(){ localStorage.setItem(KEY,JSON.stringify({stacks,cur,view,wins})); }
+/* PURE-STATE-END */
+let st=migrateFrom(
+  JSON.parse(localStorage.getItem(KEY)||'null'),
+  JSON.parse(localStorage.getItem('hnote_stack_v2')||'null'),
+  JSON.parse(localStorage.getItem('hnote_stack_v1')||'null'));
+let setups=st.setups, curSetup=st.curSetup??0, oview=st.oview??'setup',
+    orch=st.orch, opulse=st.opulse, q=st.q;
+let stacks,cur,view,wins;
+let sel=null, osel=null;
+function bindSetup(i){ curSetup=i; const s=setups[i];
+  stacks=s.stacks; cur=Math.min(s.cur??0, s.stacks.length-1);
+  view=(s.view==='mix'&&s.stacks.length>1)?'mix':'stack';
+  wins=s.wins??(s.wins=[]); }
+bindSetup(curSetup);
+if(!opulse) opulse=topPeriod(setups[0].stacks[0]);
+opulse=Math.max(1,Math.min(64,opulse|0));
+function syncBack(){ const s=setups[curSetup]; s.cur=cur; s.view=view; }
+function persist(){ syncBack();
+  localStorage.setItem(KEY,JSON.stringify({v:3,setups,curSetup,oview,orch,opulse,q})); }
+function enterSetup(i){ syncBack(); bindSetup(i); sel=null; osel=null; oview='setup'; changed(); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
@@ -179,24 +253,35 @@ function realizeHitsFor(stack){
   }
   return out;
 }
-function mixBarlen(){ return topPeriod(stacks[0])*PULSE; }
-function winAt(t){ return wins.find(w=>t>=w.a-1e-9&&t<w.b-1e-9)||null; }
-function realizeMixHits(){
-  const bl=mixBarlen();
+function mixBarlen(ss=stacks){ return topPeriod(ss[0])*PULSE; }
+function winAt(t,ws=wins){ return ws.find(w=>t>=w.a-1e-9&&t<w.b-1e-9)||null; }
+function realizeMixHits(ss=stacks,ws=wins){
   const out=[];
-  realizeHitsFor(stacks[0]).forEach(h=>{ if(!winAt(h[0])) out.push(h); });
-  wins.forEach(w=>{
-    const tgt=stacks[w.tab]; if(!tgt) return;
+  realizeHitsFor(ss[0]).forEach(h=>{ if(!winAt(h[0],ws)) out.push(h); });
+  ws.forEach(w=>{
+    const tgt=ss[w.tab]; if(!tgt) return;
     const hits=realizeHitsFor(tgt), tbl=topPeriod(tgt)*PULSE;
     hits.forEach(([tt,p,v])=>{
       for(let base=0;base+tt<w.b-1e-9;base+=tbl){
         const at=base+tt;
-        if(at>=w.a-1e-9 && winAt(at)===w) out.push([at,p,v]);
+        if(at>=w.a-1e-9 && winAt(at,ws)===w) out.push([at,p,v]);
       }
     });
   });
   return out.sort((a,b)=>a[0]-b[0]);
 }
+// --- setup decks (what each setup contributes to the orchestrator) ---
+function deckOf(su){
+  const d=su.deck??TABN[su.cur??0];
+  if(d==='MIX'&&su.stacks.length>1) return {kind:'mix'};
+  const ti=TABN.indexOf(d);
+  return {kind:'stack', i:Math.max(0,Math.min(ti<0?(su.cur??0):ti, su.stacks.length-1))};
+}
+function deckHits(su){ const d=deckOf(su);
+  return d.kind==='mix' ? realizeMixHits(su.stacks,su.wins??[]) : realizeHitsFor(su.stacks[d.i]); }
+function deckLen(su){ const d=deckOf(su);
+  return d.kind==='mix' ? mixBarlen(su.stacks) : topPeriod(su.stacks[d.i])*PULSE; }
+function seqSetup(k){ return Math.min((orch.motif[fold(k,orch)]||1)-1, setups.length-1); }
 let playTarget=null;      // locked at launch: {view:'mix'} or {view:'stack', cur:i}
 function targetHits(){
   if(!playTarget) return [];
@@ -394,11 +479,142 @@ function drawMix(){
   document.getElementById('real2').innerHTML=s;
 }
 
+// --- setup bar + orch view ---
+function drawSetupBar(){
+  const sb=document.getElementById('setupbar'); sb.innerHTML='';
+  setups.forEach((su,i)=>{
+    const b=document.createElement('button');
+    b.className='tab'+((oview==='setup'&&curSetup===i)?' on':'');
+    if(oview==='setup'&&curSetup===i) b.style.background=`var(--s${i+1})`;
+    b.textContent=i+1;
+    b.onclick=()=>{ enterSetup(i); };
+    sb.appendChild(b);
+  });
+  if(setups.length<SETUPMAX){
+    const p=document.createElement('button'); p.className='tab plus'; p.textContent='+';
+    p.onclick=()=>{
+      syncBack();
+      setups.push(JSON.parse(JSON.stringify(setups[curSetup])));
+      enterSetup(setups.length-1);
+      show('setup '+setups.length+' created');
+    };
+    sb.appendChild(p);
+  }
+  if(setups.length>1){
+    const o=document.createElement('button');
+    o.className='tab mix'+(oview==='orch'?' on':''); o.textContent='ORCH';
+    o.onclick=()=>{ syncBack(); oview='orch'; sel=null; osel=null; changed(); };
+    sb.appendChild(o);
+  }
+}
+function drawOrch(){
+  const lv=document.getElementById('olevels'); lv.innerHTML='';
+  const orow=document.createElement('div'); orow.className='lvl';
+  const om=document.createElement('button'); om.textContent='−';
+  om.onclick=()=>{ if(opulse>1){ opulse--; opulseEdited(); } };
+  const onum=document.createElement('div'); onum.className='num'; onum.textContent=opulse;
+  const opl=document.createElement('button'); opl.textContent='+';
+  opl.onclick=()=>{ if(opulse<64){ opulse++; opulseEdited(); } };
+  const osec=document.createElement('div'); osec.className='secs';
+  osec.textContent='tick = '+(opulse*PULSE).toFixed(2)+'s ('+opulse+' pulses)';
+  orow.append(om,onum,opl,osec); lv.appendChild(orow);
+  orch.periods.forEach((P,i)=>{
+    const row=document.createElement('div'); row.className='lvl';
+    const minus=document.createElement('button'); minus.textContent='−';
+    minus.onclick=()=>{ if(orch.periods[i]>2){orch.periods[i]--; changed();} };
+    const num=document.createElement('div'); num.className='num'; num.textContent=P;
+    const plus=document.createElement('button'); plus.textContent='+';
+    plus.onclick=()=>{ orch.periods[i]++; changed(); };
+    const secs=document.createElement('div'); secs.className='secs';
+    secs.textContent=(P*opulse*PULSE).toFixed(2)+'s';
+    const x=document.createElement('button'); x.className='x'; x.textContent='✕';
+    x.onclick=()=>{ orch.periods.splice(i,1); changed(); };
+    row.append(minus,num,plus,secs,x); lv.appendChild(row);
+  });
+  const inner=document.createElement('div'); inner.className='lvl';
+  inner.innerHTML=`<div class="num" style="color:var(--muted)">${orch.motif.length}</div>
+    <div class="secs">orch motif (innermost)</div>`;
+  lv.appendChild(inner);
+  document.getElementById('oaddlvl').onclick=()=>{
+    orch.periods.unshift(Math.max(2,topPeriod(orch)*2)); changed();
+  };
+
+  let s='';
+  for(let k=0;k<topPeriod(orch);k++){ const n=seqSetup(k)+1; s+=`<b class="sym${n}">${n}</b>`; }
+  document.getElementById('oreal').innerHTML=s;
+
+  const mr=document.getElementById('omrow'); mr.innerHTML='';
+  orch.motif.forEach((sym,i)=>{
+    const b=document.createElement('button'); b.className='mspot';
+    const sc=Math.min(sym,setups.length);
+    b.style.background=`var(--s${sc})`;
+    b.textContent=sc;
+    if(osel===i) b.classList.add('sel');
+    b.onclick=()=>{
+      if(osel===i){ orch.motif[i]=sc%setups.length+1; changed(); }
+      else { osel=i; draw(); }
+    };
+    mr.appendChild(b);
+  });
+  const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
+  add.onclick=()=>{ if(orch.motif.length<8){ orch.motif.push(1); changed(); } };
+  const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
+  rem.onclick=()=>{ if(orch.motif.length>1){ orch.motif.pop();
+    if(osel>=orch.motif.length) osel=null; changed(); } };
+  mr.append(add,rem);
+
+  const sc2=document.getElementById('sucards'); sc2.innerHTML='';
+  setups.forEach((su,i)=>{
+    const row=document.createElement('div'); row.className='sucard';
+    const big=document.createElement('button'); big.className='subig'; big.dataset.su=i;
+    big.style.background=`var(--s${i+1})`; big.textContent=i+1;
+    big.onclick=()=>{
+      if(playing&&playTarget&&playTarget.view==='orch'){
+        if(i!==active){ oQueue=i; markSetups(); }
+      } else enterSetup(i);
+    };
+    row.appendChild(big);
+    const decks=TABN.slice(0,su.stacks.length); if(su.stacks.length>1) decks.push('MIX');
+    const cursel=(su.deck&&decks.includes(su.deck))?su.deck:TABN[Math.min(su.cur??0,su.stacks.length-1)];
+    decks.forEach(d=>{
+      const c=document.createElement('button'); c.className='dchip'+(cursel===d?' on':'');
+      c.textContent=d;
+      c.onclick=()=>{ su.deck=d; changed(); };
+      row.appendChild(c);
+    });
+    const ed=document.createElement('button'); ed.className='dchip'; ed.textContent='✎';
+    ed.onclick=()=>enterSetup(i);
+    row.appendChild(ed);
+    sc2.appendChild(row);
+  });
+  const qt=document.getElementById('qtick'), qp=document.getElementById('qpulse');
+  qt.className='dchip'+(q==='tick'?' on':''); qp.className='dchip'+(q==='pulse'?' on':'');
+  qt.onclick=()=>{ q='tick'; changed(); };
+  qp.onclick=()=>{ q='pulse'; changed(); };
+  markSetups();
+}
+function opulseEdited(){
+  opulse=Math.max(1,Math.min(64,opulse));
+  persist(); draw();
+  if(playing&&playTarget&&playTarget.view==='orch') show('applies on restart');
+}
+function markSetups(){
+  if(oview!=='orch') return;
+  document.querySelectorAll('.subig').forEach(el=>{
+    const i=+el.dataset.su;
+    el.classList.toggle('active', !!(playing&&playTarget&&playTarget.view==='orch'&&i===active));
+    el.classList.toggle('queued', oQueue===i);
+  });
+}
 function draw(){
-  drawTabs();
-  document.getElementById('stackview').style.display=view==='stack'?'':'none';
-  document.getElementById('mixview').style.display=view==='mix'?'':'none';
-  if(view==='stack') drawStack(); else drawMix();
+  drawSetupBar();
+  const inSetup=oview!=='orch';
+  document.getElementById('tabs').style.display=inSetup?'':'none';
+  document.getElementById('stackview').style.display=(inSetup&&view==='stack')?'':'none';
+  document.getElementById('mixview').style.display=(inSetup&&view==='mix')?'':'none';
+  document.getElementById('orchview').style.display=inSetup?'none':'';
+  if(inSetup){ drawTabs(); if(view==='stack') drawStack(); else drawMix(); }
+  else drawOrch();
 }
 function changed(){ persist(); draw(); dirty=true; }
 
@@ -407,6 +623,9 @@ const SF='https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus/perc
 let actx=null, samples={}, playing=false, timer=null;
 let t0=0, schedUntil=0, dirty=true, hits=[], looplen=0;
 let take=[], takeStart=null;
+// orch engine state
+let active=0, segStart=0, ovr=null, oQueue=null, opSec=0, orchCache=null;
+let onSwitch=(B)=>markSetups();
 function trimOnset(buf){
   const ch=buf.getChannelData(0);
   let i=0;
@@ -426,48 +645,117 @@ async function initAudio(){
     }catch(e){ samples[p]=null; }
   }));
 }
-function refresh(){ hits=targetHits(); looplen=targetLen(); dirty=false; }
+function playHit(at,p,v){
+  const buf=samples[p];
+  if(buf){
+    const s=actx.createBufferSource(); s.buffer=buf;
+    const g=actx.createGain(); g.gain.value=v/111;
+    s.connect(g); g.connect(actx.destination); s.start(at);
+  }
+  if(takeStart===null) takeStart=at;
+  take.push([at-takeStart,p,v]);
+}
+function refreshOrch(){ orchCache={hits:setups.map(deckHits), lens:setups.map(deckLen)}; }
+function refresh(){
+  if(playTarget&&playTarget.view==='orch') refreshOrch();
+  else { hits=targetHits(); looplen=targetLen(); }
+  dirty=false;
+}
+/* ORCH-CORE-BEGIN */
+function tileHits(hs,len,from,to){
+  let iter=Math.floor((from-segStart)/len);
+  for(; segStart+iter*len<to-1e-9; iter++){
+    const base=segStart+iter*len;
+    for(const [t,p,v] of hs){
+      const at=base+t;
+      if(at>=from-1e-9 && at<to-1e-9) playHit(at,p,v);
+    }
+  }
+}
+function consumTick(B,k){
+  const s=seqSetup(k);
+  if(ovr&&s!==ovr.baseSym) ovr=null;              // sequence moved to a new run -> resume
+  let next=ovr?ovr.su:s;
+  if(oQueue!=null){                                // queue lands on ticks in BOTH q modes
+    if(oQueue===s){ ovr=null; next=s; }            // tapped what the sequence wants -> cancel
+    else { ovr={su:oQueue,baseSym:s}; next=oQueue; }
+    oQueue=null;
+  }
+  if(next!==active){ active=next; segStart=B; }    // restart only when the setup changes
+  onSwitch(B);
+}
+function consumPulse(B){                           // strictly mid-tick, q==='pulse' only
+  const k=Math.floor((B-t0)/opSec+1e-9), s=seqSetup(k);
+  if(oQueue===s){ ovr=null; }
+  else { ovr={su:oQueue,baseSym:s}; }
+  const next=ovr?ovr.su:s;
+  oQueue=null;
+  if(next!==active){ active=next; segStart=B; }
+  onSwitch(B);
+}
+function scheduleOrch(now,until){
+  while(true){
+    const kB=Math.floor((schedUntil-t0)/opSec+1e-9)+1;   // next tick strictly after schedUntil
+    const tickB=t0+kB*opSec;                              // index-based: no drift
+    let boundary=tickB, mode='tick';
+    if(oQueue!=null&&q==='pulse'){
+      const pB=t0+Math.ceil((Math.max(schedUntil,now)-t0)/PULSE-1e-9)*PULSE;
+      if(pB<tickB-1e-6){ boundary=pB; mode='pulse'; }     // coincident -> the tick handles it
+    }
+    const to=Math.min(until,boundary);
+    if(to>schedUntil+1e-9){
+      tileHits(orchCache.hits[active],orchCache.lens[active],schedUntil,to);
+      schedUntil=to;
+    }
+    if(boundary<=until+1e-9){
+      if(mode==='tick') consumTick(boundary,kB); else consumPulse(boundary);
+      schedUntil=boundary;
+    } else break;
+  }
+}
+/* ORCH-CORE-END */
 function schedule(){
   if(!playing) return;
   if(dirty) refresh();
   const now=actx.currentTime, until=now+0.18;
-  while(schedUntil<until){
-    const to=Math.min(until,schedUntil+0.09);
-    hits.forEach(([t,p,v])=>{
-      let base=t0+Math.floor((schedUntil-t0)/looplen)*looplen;
-      for(let b=base;b<=to+looplen;b+=looplen){
-        const at=b+t;
-        if(at>=schedUntil-1e-9 && at<to-1e-9){
-          const buf=samples[p];
-          if(buf){
-            const s=actx.createBufferSource(); s.buffer=buf;
-            const g=actx.createGain(); g.gain.value=v/111;
-            s.connect(g); g.connect(actx.destination); s.start(at);
-          }
-          if(takeStart===null) takeStart=at;
-          take.push([at-takeStart,p,v]);
+  if(playTarget&&playTarget.view==='orch'){
+    scheduleOrch(now,until);
+  } else {
+    while(schedUntil<until){
+      const to=Math.min(until,schedUntil+0.09);
+      hits.forEach(([t,p,v])=>{
+        let base=t0+Math.floor((schedUntil-t0)/looplen)*looplen;
+        for(let b=base;b<=to+looplen;b+=looplen){
+          const at=b+t;
+          if(at>=schedUntil-1e-9 && at<to-1e-9) playHit(at,p,v);
         }
-      }
-    });
-    schedUntil=to;
+      });
+      schedUntil=to;
+    }
   }
   updateRec();
 }
 document.getElementById('playbtn').onclick=async()=>{
   const btn=document.getElementById('playbtn');
   if(playing){
-    playing=false; clearInterval(timer); btn.textContent='▸ Play'; updateRec(); return;
+    playing=false; clearInterval(timer); oQueue=null; ovr=null;
+    btn.textContent='▸ Play'; updateRec(); markSetups(); return;
   }
   if(!actx){ btn.disabled=true; await initAudio(); btn.disabled=false; }
   if(actx.state==='suspended') await actx.resume();
-  playTarget = view==='mix' ? {view:'mix'} : {view:'stack', cur};
+  playTarget = oview==='orch' ? {view:'orch'}
+             : (view==='mix' ? {view:'mix'} : {view:'stack', cur});
   refresh();
   playing=true; t0=actx.currentTime+0.12; schedUntil=t0;
+  if(playTarget.view==='orch'){
+    opSec=opulse*PULSE; active=seqSetup(0); segStart=t0; ovr=null; oQueue=null; markSetups();
+  }
   timer=setInterval(schedule,50);
   btn.textContent='■ Stop';
 };
 function playLabel(){
   if(!playing||!playTarget) return '';
+  if(playTarget.view==='orch') return ' · playing ORCH ▸ '+(active+1);
   return ' · playing '+(playTarget.view==='mix'?'MIX':TABN[playTarget.cur]);
 }
 function updateRec(){
@@ -484,7 +772,19 @@ function stackBlob(stk){
 }
 document.getElementById('copy').onclick=async()=>{
   let text;
-  if(view==='mix'){
+  if(oview==='orch'){
+    const bodies=setups.map((su,i)=>{
+      const d=deckOf(su);
+      if(d.kind==='mix'){
+        const tabs=su.stacks.map((s,j)=>`${TABN[j]}={${stackBlob(s)}}`).join(' ');
+        const ws=(su.wins??[]).map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',');
+        return `setup${i+1}={${tabs} wins=[${ws}]}`;
+      }
+      return `setup${i+1}={${stackBlob(su.stacks[d.i])}}`;
+    }).join(' ');
+    text=`hnote orch v1 pulse=${PULSE} opulse=${opulse} periods=[${orch.periods.join(',')}]`+
+         ` motif=[${orch.motif.join(',')}] q=${q} ${bodies}`;
+  }else if(view==='mix'){
     const tabs=stacks.map((s,i)=>`${TABN[i]}={${stackBlob(s)}}`).join(' ');
     const ws=wins.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',');
     text=`hnote stackmix v1 pulse=${PULSE} ${tabs} wins=[${ws}]`;
