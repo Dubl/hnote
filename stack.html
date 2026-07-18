@@ -639,10 +639,15 @@ function trimOnset(buf){
 async function initAudio(){
   actx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:0});
   await Promise.all(SOUNDS.map(async ([p])=>{
-    try{
-      const r=await fetch(`${SF}/p${p}_v111.mp3`);
-      samples[p]=trimOnset(await actx.decodeAudioData(await r.arrayBuffer()));
-    }catch(e){ samples[p]=null; }
+    samples[p]=null;
+    for(const url of [`stack_samples/p${p}.mp3`, `${SF}/p${p}_v111.mp3`]){
+      try{
+        const r=await fetch(url);
+        if(!r.ok) continue;
+        samples[p]=trimOnset(await actx.decodeAudioData(await r.arrayBuffer()));
+        break;
+      }catch(e){}
+    }
   }));
 }
 function playHit(at,p,v){
