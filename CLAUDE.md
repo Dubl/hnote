@@ -79,15 +79,20 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   numbers): `stack.html` composes periods+motif+element-children; its Copy
   Stack blob compiles via `apply_stack.py "<blob>" --name <n>` into a nested
   HNote tree (realization = fold through nested moduli, restart semantics),
-  rendered + verified automatically. stack.html v3 adds **setups** (up to 6
-  instances of the whole tabs+mix workspace, each with a deck A–D/MIX) and an
-  **ORCH layer**: the orchestrator is itself a stack whose motif symbols pick
-  setups (opulse = pulses per orch tick; restart on symbol change, phase
-  continues within a run; live tap-to-queue overrides, quantize tick/pulse;
-  override holds until fold changes symbol). Engine verified by `orch_sim.js`
-  (slices the shipped PURE-STATE/realization/ORCH-CORE regions out of
-  stack.html — run it after ANY stack.html engine change). Orch blob
-  `hnote orch v1 …` (apply_orch.py compiler = follow-up). NOTE: `bar_export.py` maps unit→beat via track-3's
+  rendered + verified automatically. stack.html v4 has an **ORCH layer** with
+  NO cutoff mechanism (redundant at arrangement scale — Jon composes the
+  sequence directly): symbols are **chains** = phrases of uberloop bars
+  (1=ABA; letters A–D = tabs, M = mix; each letter plays ONE full bar of that
+  uberloop at its own length — variable lengths compose, all boundaries stay
+  on the 0.25s grid because bar lens are dyadic). Orch motif (≤32 spots) =
+  sequence of chain numbers. Live tap on a chain = **inject then resume**
+  (chain plays once at the next boundary — quantize bar/pulse — then the
+  written motif continues where it was headed; a tap mid-injection pre-empts).
+  Sub-motif symbol 0 = rest. Engine verified by `orch_sim.js` (slices the
+  shipped PURE-STATE/realization/ORCH-CORE regions out of stack.html — run it
+  after ANY stack.html engine change). Orch blob `hnote orch v2 …`
+  (apply_orch.py compiler = follow-up). Drum kit = synthesized 808/909
+  `stack_samples/` (gen_stack_samples.py; voices 36/38/42/46/75). NOTE: `bar_export.py` maps unit→beat via track-3's
   cycle [70,87,96,98]; for other beats pass the unit that maps to the beat
   you want, or generalize it.
 - Memory: `~/.claude/projects/.../memory/` has project state + what the
