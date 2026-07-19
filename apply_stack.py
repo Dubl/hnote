@@ -21,13 +21,14 @@ def fold(t, periods, mlen):
     for P in periods: t %= P
     return t % mlen
 
-def realize(pulse, periods, motif, children):
+def realize(pulse, periods, motif, children, phase=0):
     top = periods[0] if periods else len(motif)
+    ph = phase % top
     hits = []
     for t in range(top):
         mi = fold(t, periods, len(motif))
         ch = children.get(mi)
-        base = t * pulse
+        base = ((t - ph) % top) * pulse          # phase = pulse the loop starts on
         accent = 116 if t == 0 else (102 if mi == 0 else 88)
         if ch:
             sub = pulse / ch["S"]
@@ -40,7 +41,7 @@ def realize(pulse, periods, motif, children):
             hits.append((base, SOUNDS[motif[mi] - 1], accent))
     return hits, top
 
-def build_measure(name, pulse, periods, motif, children):
+def build_measure(name, pulse, periods, motif, children, phase=0):
     """Nested tree: motif node -> wrap in each period (inside-out), trimming."""
     def motif_cell(mi, vel):
         ch = children.get(mi)
@@ -72,6 +73,9 @@ def build_measure(name, pulse, periods, motif, children):
             kids.append(trim_unit(node, rem))
         node = cont(kids, float(P))
         span = P
+    ph = phase % span
+    if ph:  # rotate: start on pulse ph -> [tail (span-ph pulses), head (ph pulses)]
+        node = cont([drop_unit(node, ph), trim_unit(node, ph)], float(span))
     node["name"] = name
     root = {"midi_number": 0, "velocity": 0, "timing": float(span * pulse), "channel": 9,
             "child_direction": "sidebyside", "children": [node],
@@ -79,6 +83,28 @@ def build_measure(name, pulse, periods, motif, children):
     # the lane holding everything must be a plain child list under sidebyside root
     node["timing"] = 1.0
     return root, span
+
+def drop_unit(node, pulses):
+    """Deep-copy node with its first `pulses` pulses removed (integer shares)."""
+    node = json.loads(json.dumps(node))
+    kids = node["children"]
+    span = 0
+    out = []
+    left = pulses
+    for k in kids:
+        kspan = 1
+        if k.get("children") and k["timing"] != 1.0:
+            kspan = int(round(k["timing"]))
+        span += kspan
+        if left <= 0:
+            out.append(k)
+        elif kspan <= left:
+            left -= kspan                       # drop whole child
+        else:
+            out.append(drop_unit(k, left)); left = 0
+    node["children"] = out
+    node["timing"] = float(span - pulses)
+    return node
 
 def trim_unit(node, pulses):
     """Deep-copy node truncated to its first `pulses` pulses (integer shares)."""
@@ -135,9 +161,11 @@ def main():
     for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([\d,]+)\]\]", blob):
         children[int(m.group(1)) - 1] = {"S": int(m.group(2)),
                                          "m": [int(x) for x in m.group(3).split(",")]}
-    print(f"{name}: periods {periods}, motif {motif}, children {children}")
+    phm = re.search(r"phase=(\d+)", blob)
+    phase = int(phm.group(1)) if phm else 0
+    print(f"{name}: periods {periods}, motif {motif}, children {children}, phase {phase}")
 
-    measure, top = build_measure(name, pulse, periods, motif, children)
+    measure, top = build_measure(name, pulse, periods, motif, children, phase)
     calls = [{"target": name, "function": "once"}] * 4
     json.dump([measure], open(f"measures.{name}.json", "w", encoding="utf-8"), indent=1)
     json.dump(calls, open(f"calllist.{name}.jsonc", "w", encoding="utf-8"), indent=1)
@@ -148,7 +176,7 @@ def main():
     if r.returncode != 0: raise SystemExit(r.stdout[-600:] + r.stderr[-600:])
     print(r.stdout.strip().splitlines()[-1])
 
-    pred, _ = realize(pulse, periods, motif, children)
+    pred, _ = realize(pulse, periods, motif, children, phase)
     on = parse_mid(f"{name}.mid")
     barlen = top * pulse
     ok = 0

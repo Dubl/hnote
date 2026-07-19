@@ -232,12 +232,15 @@ function fold(t,stack){
   return x%stack.motif.length;
 }
 function topPeriod(stack){ return stack.periods.length?stack.periods[0]:stack.motif.length; }
+function phaseOf(stack){ const top=topPeriod(stack); return (((stack.phase||0)%top)+top)%top; }
+function srcPulse(stack,p){ const top=topPeriod(stack); return (p+phaseOf(stack))%top; }
 function realizeHitsFor(stack){
   const out=[];
-  for(let t=0;t<topPeriod(stack);t++){
+  const top=topPeriod(stack), ph=phaseOf(stack);
+  for(let t=0;t<top;t++){
     const mi=fold(t,stack);
     const ch=stack.children[mi];
-    const base=t*PULSE;
+    const base=((t-ph+top)%top)*PULSE;              // phase = which pulse the loop starts on
     const accent=(t===0)?116:(mi===0?102:88);
     if(ch){
       const sub=PULSE/ch.S;
@@ -250,7 +253,7 @@ function realizeHitsFor(stack){
       out.push([base, SOUNDS[stack.motif[mi]-1][0], accent]);
     }
   }
-  return out;
+  return out.sort((a,b)=>a[0]-b[0]);
 }
 function mixBarlen(ss=stacks){ return topPeriod(ss[0])*PULSE; }
 function winAt(t,ws=wins){ return ws.find(w=>t>=w.a-1e-9&&t<w.b-1e-9)||null; }
@@ -350,13 +353,22 @@ function drawStack(){
   inner.innerHTML=`<div class="num" style="color:var(--muted)">${stk.motif.length}</div>
     <div class="secs">motif (innermost)</div>`;
   lv.appendChild(inner);
+  const phrow=document.createElement('div'); phrow.className='lvl';
+  const pm=document.createElement('button'); pm.textContent='−';
+  pm.onclick=()=>{ const top=topPeriod(stk); stk.phase=(phaseOf(stk)-1+top)%top; changed(); };
+  const pn=document.createElement('div'); pn.className='num'; pn.textContent=phaseOf(stk);
+  const pp=document.createElement('button'); pp.textContent='+';
+  pp.onclick=()=>{ stk.phase=(phaseOf(stk)+1)%topPeriod(stk); changed(); };
+  const ps=document.createElement('div'); ps.className='secs';
+  ps.textContent='phase — the pulse the loop starts on';
+  phrow.append(pm,pn,pp,ps); lv.appendChild(phrow);
   document.getElementById('addlvl').onclick=()=>{
     stk.periods.unshift(Math.max(2,topPeriod(stk)*2)); changed();
   };
 
   let s='';
-  for(let t=0;t<topPeriod(stk);t++){
-    const mi=fold(t,stk);
+  for(let p=0;p<topPeriod(stk);p++){
+    const t=srcPulse(stk,p), mi=fold(t,stk);
     s+=`<b class="sym${stk.motif[mi]}">${mi+1}${stk.children[mi]?'*':''}</b>`;
   }
   document.getElementById('real').innerHTML=s;
@@ -482,7 +494,7 @@ function drawMix(){
     const w=winAt(t*PULSE+1e-6);
     const src=w?stacks[w.tab]:stacks[0];
     const tt=w? (t*PULSE)% (topPeriod(src)*PULSE) : t*PULSE;
-    const mi=fold(Math.round(tt/PULSE),src);
+    const mi=fold(srcPulse(src,Math.round(tt/PULSE)),src);
     const cls=w?` class="sym${src.motif[mi]} w"`:` class="sym${src.motif[mi]}"`;
     s+=`<b${cls}>${mi+1}</b>`;
   }
@@ -724,7 +736,8 @@ function updateRec(){
 // --- blob + take writer ---
 function stackBlob(stk){
   const chs=Object.entries(stk.children).map(([i,c])=>`child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]]`).join(' ');
-  return `periods=[${stk.periods.join(',')}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}`;
+  const ph=phaseOf(stk);
+  return `periods=[${stk.periods.join(',')}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}${ph?` phase=${ph}`:''}`;
 }
 document.getElementById('copy').onclick=async()=>{
   let text;

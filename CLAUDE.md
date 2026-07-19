@@ -88,7 +88,9 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   sequence of chain numbers. Live tap on a chain = **inject then resume**
   (chain plays once at the next boundary — quantize bar/pulse — then the
   written motif continues where it was headed; a tap mid-injection pre-empts).
-  Sub-motif symbol 0 = rest. Engine verified by `orch_sim.js` (slices the
+  Sub-motif symbol 0 = rest. Per-uberloop **phase** (the pulse the loop
+  starts on; rotation, accents travel with content; blob `phase=N`, compiled
+  as [drop_unit tail, trim_unit head]). Engine verified by `orch_sim.js` (slices the
   shipped PURE-STATE/realization/ORCH-CORE regions out of stack.html — run it
   after ANY stack.html engine change). Orch blob `hnote orch v2 …`
   (apply_orch.py compiler = follow-up). Drum kit = synthesized 808/909

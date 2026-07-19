@@ -198,7 +198,7 @@ function ws() {
   return {
     stacks: [
       stack([1,2,3], [16]),                          // A: 4.00s
-      stack([2,1], [9], {0:{S:3,m:[1,0,4]}}),        // B: 2.25s (incl rest child)
+      { ...stack([2,1], [9], {0:{S:3,m:[1,0,4]}}), phase: 2 },  // B: 2.25s, rest child, phased
       stack([3,1,2,1], [10, 7]),                      // C: 2.50s
     ],
     wins: [{tab:1, a:0.5, b:1.5}, {tab:2, a:2.0, b:3.0}],   // used by M
@@ -250,6 +250,7 @@ console.log('V5 mid-play edits (chains, motif, tab periods)');
       { at: 108.0, edit: () => { orch5.chains[1] = ['C','B','C']; } },
       { at: 122.0, edit: () => { orch5.motif = [2,1,1]; } },
       { at: 137.0, edit: () => { w.stacks[1].periods = [11]; } },
+      { at: 151.0, edit: () => { w.stacks[0].phase = 5; } },
     ],
   });
 }
