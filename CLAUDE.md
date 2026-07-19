@@ -90,7 +90,9 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   written motif continues where it was headed; a tap mid-injection pre-empts).
   Sub-motif symbol 0 = rest. Per-uberloop **phase** (the pulse the loop
   starts on; rotation, accents travel with content; blob `phase=N`, compiled
-  as [drop_unit tail, trim_unit head]). Engine verified by `orch_sim.js` (slices the
+  as [drop_unit tail, trim_unit head]). Per-child **sub-motif phase** `p`
+  (index offset `m[(j+p)%|m|]`; cell accent stays positional; blob
+  `childN=[S=…,m=[…],p=…]`; when |m|>S, p selects which slice of m sounds). Engine verified by `orch_sim.js` (slices the
   shipped PURE-STATE/realization/ORCH-CORE regions out of stack.html — run it
   after ANY stack.html engine change). Orch blob `hnote orch v2 …`
   (apply_orch.py compiler = follow-up). Drum kit = synthesized 808/909

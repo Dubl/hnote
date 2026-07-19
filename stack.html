@@ -245,7 +245,7 @@ function realizeHitsFor(stack){
     if(ch){
       const sub=PULSE/ch.S;
       for(let j=0;j<ch.S;j++){
-        const sym=ch.m[j%ch.m.length];
+        const sym=ch.m[(j+(ch.p||0))%ch.m.length];         // p = sub-motif phase
         if(!sym) continue;                                  // 0 = rest
         out.push([base+j*sub, SOUNDS[sym-1][0], j===0?accent:Math.max(52,accent-26)]);
       }
@@ -406,10 +406,15 @@ function drawStack(){
         <div class="row2"><span class="lbl">slot ticks</span>
           <button id="sm">−</button><b style="font-size:18px">${ch.S}</b><button id="sp2">+</button>
           <span class="lbl" style="margin-left:8px">sub-motif (${ch.m.length}) — cut at ${ch.S}, restart each visit</span></div>
+        <div class="row2"><span class="lbl">phase</span>
+          <button id="cpm">−</button><b style="font-size:18px">${(ch.p||0)%ch.m.length}</b><button id="cpp">+</button>
+          <span class="lbl" style="margin-left:8px">sub-motif tick the cell starts on</span></div>
         <div class="row2 mrow" id="subrow"></div>`;
       document.getElementById('delch').onclick=()=>{ delete stk.children[sel]; changed(); };
       document.getElementById('sm').onclick=()=>{ if(ch.S>1){ch.S--; changed();} };
       document.getElementById('sp2').onclick=()=>{ if(ch.S<8){ch.S++; changed();} };
+      document.getElementById('cpm').onclick=()=>{ ch.p=(((ch.p||0)-1)%ch.m.length+ch.m.length)%ch.m.length; changed(); };
+      document.getElementById('cpp').onclick=()=>{ ch.p=((ch.p||0)+1)%ch.m.length; changed(); };
       const sr=document.getElementById('subrow');
       ch.m.forEach((sym,j)=>{
         const b=document.createElement('button'); b.className='mspot';
@@ -735,7 +740,8 @@ function updateRec(){
 
 // --- blob + take writer ---
 function stackBlob(stk){
-  const chs=Object.entries(stk.children).map(([i,c])=>`child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]]`).join(' ');
+  const chs=Object.entries(stk.children).map(([i,c])=>
+    `child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]${c.p?`,p=${c.p%c.m.length}`:''}]`).join(' ');
   const ph=phaseOf(stk);
   return `periods=[${stk.periods.join(',')}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}${ph?` phase=${ph}`:''}`;
 }

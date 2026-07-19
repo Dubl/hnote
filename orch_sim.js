@@ -198,7 +198,7 @@ function ws() {
   return {
     stacks: [
       stack([1,2,3], [16]),                          // A: 4.00s
-      { ...stack([2,1], [9], {0:{S:3,m:[1,0,4]}}), phase: 2 },  // B: 2.25s, rest child, phased
+      { ...stack([2,1], [9], {0:{S:3,m:[1,0,4],p:1}}), phase: 2 },  // B: 2.25s, phased + child phase
       stack([3,1,2,1], [10, 7]),                      // C: 2.50s
     ],
     wins: [{tab:1, a:0.5, b:1.5}, {tab:2, a:2.0, b:3.0}],   // used by M

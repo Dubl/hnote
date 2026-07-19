@@ -33,7 +33,7 @@ def realize(pulse, periods, motif, children, phase=0):
         if ch:
             sub = pulse / ch["S"]
             for j in range(ch["S"]):
-                sym = ch["m"][j % len(ch["m"])]
+                sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
                 if not sym:
                     continue                     # 0 = rest
                 hits.append((base + j * sub, SOUNDS[sym - 1], accent if j == 0 else max(52, accent - 26)))
@@ -49,7 +49,7 @@ def build_measure(name, pulse, periods, motif, children, phase=0):
             return leaf(SOUNDS[motif[mi] - 1], vel, 1.0)
         kids = []
         for j in range(ch["S"]):
-            sym = ch["m"][j % len(ch["m"])]
+            sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
             kids.append(leaf(SOUNDS[sym - 1], vel if j == 0 else max(52, vel - 26), 1.0)
                         if sym else leaf(0, 0, 1.0))   # 0 = explicit rest cell
         return cont(kids, 1.0)
@@ -158,9 +158,10 @@ def main():
     periods = [int(x) for x in re.search(r"periods=\[([\d,]*)\]", blob).group(1).split(",") if x]
     motif = [int(x) for x in re.search(r"motif=\[([\d,]+)\]", blob).group(1).split(",")]
     children = {}
-    for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([\d,]+)\]\]", blob):
+    for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([\d,]+)\](?:,p=(\d+))?\]", blob):
         children[int(m.group(1)) - 1] = {"S": int(m.group(2)),
-                                         "m": [int(x) for x in m.group(3).split(",")]}
+                                         "m": [int(x) for x in m.group(3).split(",")],
+                                         "p": int(m.group(4) or 0)}
     phm = re.search(r"phase=(\d+)", blob)
     phase = int(phm.group(1)) if phm else 0
     print(f"{name}: periods {periods}, motif {motif}, children {children}, phase {phase}")
