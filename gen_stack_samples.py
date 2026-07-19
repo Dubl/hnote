@@ -41,7 +41,8 @@ def kick():
     return out
 
 def clap():
-    # grime clap-snare: triple noise burst into bandpassed body + 190Hz thump
+    # grime clap: triple noise burst into bandpassed body - no low layer,
+    # the kick owns the low end (a 190Hz thump here measured 32x the clap band)
     n = int(0.35 * SR); noise = []
     for i in range(n):
         t = i / SR
@@ -49,12 +50,7 @@ def clap():
         else:         e = 0.9 * env(t - 0.030, 0.075)
         noise.append((random.random() * 2 - 1) * e)
     body = biquad_bp(noise, 1300, 1.1)
-    out = []
-    for i in range(n):
-        t = i / SR
-        thump = 0.5 * math.sin(2 * math.pi * 190 * t) * env(t, 0.045)
-        out.append(math.tanh(2.2 * (1.6 * body[i] + thump)))
-    return out
+    return [math.tanh(3.5 * b) for b in body]
 
 def hat():
     # crisp closed hat: metallic squares + highpassed noise, fast decay
