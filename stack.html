@@ -558,7 +558,7 @@ function drawOrch(){
     mr.appendChild(b);
   });
   const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
-  add.onclick=()=>{ if(orch.motif.length<8){ orch.motif.push(1); changed(); } };
+  add.onclick=()=>{ if(orch.motif.length<32){ orch.motif.push(1); changed(); } };
   const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
   rem.onclick=()=>{ if(orch.motif.length>1){ orch.motif.pop();
     if(osel>=orch.motif.length) osel=null; changed(); } };
