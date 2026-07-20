@@ -74,6 +74,8 @@
     font-size:12px; font-weight:800; pointer-events:none;}
   .mwin .handle{position:absolute; top:0; bottom:0; width:20px; cursor:ew-resize;}
   .mwin .handle.l{left:-10px;} .mwin .handle.r{right:-10px;}
+  .mwin.tA{background:rgba(245,165,36,.22); border-color:var(--tA);} .mwin.tA .wl{color:var(--tA);}
+  .mwin.inert{opacity:.3;}
   .mwin.tB{background:rgba(62,201,176,.22); border-color:var(--tB);} .mwin.tB .wl{color:var(--tB);}
   .mwin.tC{background:rgba(141,123,245,.22); border-color:var(--tC);} .mwin.tC .wl{color:var(--tC);}
   .mwin.tD{background:rgba(239,99,81,.22); border-color:var(--tD);} .mwin.tD .wl{color:var(--tD);}
@@ -135,7 +137,7 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
 
 <div id="mixview" style="display:none">
   <div class="panel">
-    <h2>Mix — tab A is the ground; windows reveal the other running uberloops</h2>
+    <h2 id="mixhead">Mix</h2>
     <div id="mixlay"></div>
     <div class="mixrow" id="mixctl"></div>
   </div>
@@ -194,6 +196,7 @@ function migrateFrom(v4,v3,v2,v1){
     v4.view=['stack','mix','orch'].includes(v4.view)?v4.view:'stack';
     if(v4.stacks.length<2&&v4.view!=='stack') v4.view='stack';
     v4.q=v4.q==='pulse'?'pulse':'bar';
+    v4.mixBase=Math.min(Math.max(0,v4.mixBase|0), v4.stacks.length-1);
     return v4;
   }
   if(v3&&v3.v===3&&v3.setups&&v3.setups.length){
@@ -220,9 +223,9 @@ let st=migrateFrom(
   JSON.parse(localStorage.getItem('hnote_stack_v2')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v1')||'null'));
 let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack', wins=st.wins??[],
-    orch=st.orch, q=st.q;
+    orch=st.orch, q=st.q, mixBase=st.mixBase??0;
 let sel=null, osel=null;
-function persist(){ localStorage.setItem(KEY,JSON.stringify({v:4,stacks,cur,view,wins,orch,q})); }
+function persist(){ localStorage.setItem(KEY,JSON.stringify({v:4,stacks,cur,view,wins,orch,q,mixBase})); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
@@ -255,18 +258,20 @@ function realizeHitsFor(stack){
   }
   return out.sort((a,b)=>a[0]-b[0]);
 }
-function mixBarlen(ss=stacks){ return topPeriod(ss[0])*PULSE; }
+function mixBarlen(ss=stacks,base=mixBase){ return topPeriod(ss[base]||ss[0])*PULSE; }
 function winAt(t,ws=wins){ return ws.find(w=>t>=w.a-1e-9&&t<w.b-1e-9)||null; }
-function realizeMixHits(ss=stacks,ws=wins){
+function realizeMixHits(ss=stacks,ws=wins,base=mixBase){
+  if(!ss[base]) base=0;
+  const wsA=ws.filter(w=>w.tab!==base&&ss[w.tab]);   // windows aimed at the ground are inert
   const out=[];
-  realizeHitsFor(ss[0]).forEach(h=>{ if(!winAt(h[0],ws)) out.push(h); });
-  ws.forEach(w=>{
-    const tgt=ss[w.tab]; if(!tgt) return;
+  realizeHitsFor(ss[base]).forEach(h=>{ if(!winAt(h[0],wsA)) out.push(h); });
+  wsA.forEach(w=>{
+    const tgt=ss[w.tab];
     const hits=realizeHitsFor(tgt), tbl=topPeriod(tgt)*PULSE;
     hits.forEach(([tt,p,v])=>{
-      for(let base=0;base+tt<w.b-1e-9;base+=tbl){
-        const at=base+tt;
-        if(at>=w.a-1e-9 && winAt(at,ws)===w) out.push([at,p,v]);
+      for(let b=0;b+tt<w.b-1e-9;b+=tbl){
+        const at=b+tt;
+        if(at>=w.a-1e-9 && winAt(at,wsA)===w) out.push([at,p,v]);
       }
     });
   });
@@ -323,7 +328,7 @@ function drawTabs(){
   if(stacks.length>1){
     const m=document.createElement('button');
     m.className='tab mix'+(view==='mix'?' on':''); m.textContent='MIX';
-    m.onclick=()=>{ view='mix'; sel=null; changed(); };
+    m.onclick=()=>{ if(view!=='mix') mixBase=cur; view='mix'; sel=null; changed(); };
     tb.appendChild(m);
     const o=document.createElement('button');
     o.className='tab mix'+(view==='orch'?' on':''); o.textContent='ORCH';
@@ -434,16 +439,21 @@ function drawStack(){
 
 // --- mix view ---
 function drawMix(){
+  if(mixBase>=stacks.length) mixBase=0;
+  document.getElementById('mixhead').textContent=
+    `Mix — tab ${TABN[mixBase]} is the ground; windows reveal the other running uberloops`;
   const bl=mixBarlen();
   const lay=document.getElementById('mixlay'); lay.innerHTML='';
-  const np=topPeriod(stacks[0]);
+  const np=topPeriod(stacks[mixBase]);
   for(let k=1;k<np;k++){
     const g=document.createElement('div'); g.className='g'; g.style.left=(k/np*100)+'%';
     lay.appendChild(g);
   }
   wins.forEach((w,wi)=>{
-    const d=document.createElement('div'); d.className='mwin t'+TABN[w.tab];
-    d.style.left=(w.a/bl*100)+'%'; d.style.width=((w.b-w.a)/bl*100)+'%';
+    const d=document.createElement('div');
+    d.className='mwin t'+TABN[w.tab]+(w.tab===mixBase?' inert':'');
+    d.style.left=(Math.min(w.a,bl)/bl*100)+'%';
+    d.style.width=((Math.min(w.b,bl)-Math.min(w.a,bl))/bl*100)+'%';
     d.innerHTML=`<div class="wl">${TABN[w.tab]}</div>`;
     const hl=document.createElement('div'); hl.className='handle l';
     const hr=document.createElement('div'); hr.className='handle r';
@@ -468,7 +478,9 @@ function drawMix(){
       dirty=true;
     };
     const up=()=>{
-      if(mode!==null&&!moved){ w.tab=(w.tab)%(stacks.length-1)+1; }  // tap = cycle target B->C->D
+      if(mode!==null&&!moved){                       // tap = cycle target over non-ground tabs
+        do{ w.tab=(w.tab+1)%stacks.length; }while(w.tab===mixBase);
+      }
       mode=null; changed();
     };
     d.onpointermove=hl.onpointermove=hr.onpointermove=move;
@@ -479,7 +491,7 @@ function drawMix(){
   const addw=document.createElement('button'); addw.textContent='+ window';
   addw.onclick=()=>{
     const bl2=mixBarlen();
-    wins.push({tab:Math.min(1,stacks.length-1), a:Math.round(bl2*0.25*100)/100,
+    wins.push({tab:(mixBase+1)%stacks.length, a:Math.round(bl2*0.25*100)/100,
                b:Math.round(bl2*0.5*100)/100});
     changed();
   };
@@ -494,10 +506,11 @@ function drawMix(){
     mc.appendChild(hint);
   }
   // realized mix string: per pulse, sourcing tab's digit
+  const wsA=wins.filter(w=>w.tab!==mixBase&&stacks[w.tab]);
   let s='';
-  for(let t=0;t<topPeriod(stacks[0]);t++){
-    const w=winAt(t*PULSE+1e-6);
-    const src=w?stacks[w.tab]:stacks[0];
+  for(let t=0;t<topPeriod(stacks[mixBase]);t++){
+    const w=winAt(t*PULSE+1e-6,wsA);
+    const src=w?stacks[w.tab]:stacks[mixBase];
     const tt=w? (t*PULSE)% (topPeriod(src)*PULSE) : t*PULSE;
     const mi=fold(srcPulse(src,Math.round(tt/PULSE)),src);
     const cls=w?` class="sym${src.motif[mi]} w"`:` class="sym${src.motif[mi]}"`;
@@ -751,11 +764,11 @@ document.getElementById('copy').onclick=async()=>{
     const ch=orch.chains.map((c,i)=>`chain${i+1}=${c.join('')}`).join(' ');
     const tabs=stacks.map((s,j)=>`${TABN[j]}={${stackBlob(s)}}`).join(' ');
     const ws=wins.length?` wins=[${wins.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',')}]`:'';
-    text=`hnote orch v2 pulse=${PULSE} motif=[${orch.motif.join(',')}] ${ch} q=${q} ${tabs}${ws}`;
+    text=`hnote orch v2 pulse=${PULSE}${mixBase?` mixbase=${TABN[mixBase]}`:''} motif=[${orch.motif.join(',')}] ${ch} q=${q} ${tabs}${ws}`;
   }else if(view==='mix'){
     const tabs=stacks.map((s,i)=>`${TABN[i]}={${stackBlob(s)}}`).join(' ');
     const ws=wins.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',');
-    text=`hnote stackmix v1 pulse=${PULSE} ${tabs} wins=[${ws}]`;
+    text=`hnote stackmix v1 pulse=${PULSE}${mixBase?` base=${TABN[mixBase]}`:''} ${tabs} wins=[${ws}]`;
   }else{
     text=`hnote stack v1 pulse=${PULSE} ${stackBlob(S())}`;
   }

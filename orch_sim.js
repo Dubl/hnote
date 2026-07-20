@@ -17,7 +17,7 @@ const core      = slice('/* ORCH-CORE-BEGIN */', '/* ORCH-CORE-END */');
 
 const PREAMBLE = `
 let stacks=[], wins=[], dirty=true, hits=[], looplen=0;
-let t0=0, schedUntil=0, segStart=0, oQueue=null, q='bar';
+let t0=0, schedUntil=0, segStart=0, oQueue=null, q='bar', mixBase=0;
 let orch=null, orchCache=null;
 let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
 `;
@@ -29,7 +29,7 @@ __api.buildCache = () => {
   if(wi>=orchCache.seq.length) wi=0;
   curHits=orchCache.by[curLetter].hits; curLen=orchCache.by[curLetter].len;
 };
-__api.init = (o) => { stacks=o.stacks; wins=o.wins||[]; orch=o.orch; q=o.q; t0=o.t0;
+__api.init = (o) => { stacks=o.stacks; wins=o.wins||[]; orch=o.orch; q=o.q; t0=o.t0; mixBase=o.mixBase||0;
   schedUntil=t0; wi=0; inj=null; oQueue=null;
   const by={};
   for(const L of ['A','B','C','D','M']) by[L]={hits:letterHits(L), len:letterLen(L)};
@@ -152,7 +152,8 @@ function run(name, cfg0, opts) {
     q: cfg0.q || 'bar', t0: cfg0.t0 ?? 100.12,
     letterHits: eng.api.letterHits, letterLen: eng.api.letterLen, flatLetters: eng.api.flatLetters,
   };
-  eng.api.init({ stacks: cfg.stacks, wins: cfg.wins, orch: cfg.orch, q: cfg.q, t0: cfg.t0 });
+  eng.api.init({ stacks: cfg.stacks, wins: cfg.wins, orch: cfg.orch, q: cfg.q, t0: cfg.t0,
+    mixBase: cfg0.mixBase || 0 });
   const snap = JSON.stringify({ stacks: cfg.stacks, wins: cfg.wins, orch: cfg.orch });
   const launchEv = eng.events.splice(0);          // advance(t0) fires one event pre-steps
   const r = rng(cfg0.seed ?? 42);
@@ -213,6 +214,9 @@ console.log('V1 written-sequence fidelity (variable-length letters incl M)');
   run('V1b', { ...w2, orch: { motif: [1,2,3,2], chains: [['A','B','A'],['M','B'],['C']] }, dur: 120, seed: 11 });
   const w3 = ws();
   run('V1c', { ...w3, orch: { motif: [2,2,1], chains: [['M'],['B','C','B','A']] }, dur: 120, seed: 13 });
+  const w4 = ws();                                  // M grounded on B (2.25s bar, tab-1 window inert)
+  w4.wins = [{tab:0, a:0.25, b:1.0}, {tab:1, a:1.25, b:2.0}];
+  run('V1d', { ...w4, mixBase: 1, orch: { motif: [1,2], chains: [['M','A'],['M']] }, dur: 90, seed: 19 });
 }
 
 console.log('V2 inject-then-resume (q=bar)');
