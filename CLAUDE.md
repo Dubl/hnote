@@ -93,6 +93,7 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   as [drop_unit tail, trim_unit head]). Per-child **sub-motif phase** `p`
   (index offset `m[(j+p)%|m|]`; cell accent stays positional; blob
   `childN=[S=…,m=[…],p=…]`; when |m|>S, p selects which slice of m sounds).
+  Tabs go up to 8 (A–H; chain alphabet A–H + a–h).
   **Per-base mixes** (`winsBy`, state v5): EVERY tab has its own mix (own
   window layout, ground = that tab). MIX view's ground chips pick which mix
   you're editing (`wins` is bound to `winsBy[mixBase]`). Chain letters:

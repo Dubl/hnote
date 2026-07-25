@@ -10,6 +10,7 @@
     --accent:#f5a524; --teal:#3ec9b0; --rec:#ef6351;
     --s1:#f5a524; --s2:#ef6351; --s3:#3ec9b0; --s4:#8d7bf5; --s5:#e8c14d; --s6:#5aa7e8;
     --tA:#f5a524; --tB:#3ec9b0; --tC:#8d7bf5; --tD:#ef6351;
+    --tE:#7bc96f; --tF:#e87bb1; --tG:#5aa7e8; --tH:#e8c14d;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
   body{margin:0; background:var(--bg); color:var(--text);
@@ -17,12 +18,14 @@
     padding:16px 12px 60px; max-width:640px; margin-inline:auto;}
   h1{font-size:13px; letter-spacing:.25em; text-transform:uppercase; color:var(--accent); margin:0 0 2px;}
   .sub{font-size:12px; color:var(--muted); margin-bottom:10px;}
-  #tabs{display:flex; gap:6px; margin-bottom:10px;}
+  #tabs{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;}
   .tab{border:1px solid var(--line); background:var(--surface); color:var(--muted);
-    border-radius:10px; padding:10px 0; flex:1; font-size:13px; font-weight:800; cursor:pointer;}
+    border-radius:10px; padding:10px 0; flex:1; min-width:52px; font-size:13px; font-weight:800; cursor:pointer;}
   .tab.on{color:#10131a;}
   .tab.tA.on{background:var(--tA);} .tab.tB.on{background:var(--tB);}
   .tab.tC.on{background:var(--tC);} .tab.tD.on{background:var(--tD);}
+  .tab.tE.on{background:var(--tE);} .tab.tF.on{background:var(--tF);}
+  .tab.tG.on{background:var(--tG);} .tab.tH.on{background:var(--tH);}
   .tab.mix.on{background:var(--text);}
   .tab.plus{flex:.5;}
   .bar{background:var(--surface); border:1px solid var(--line); border-radius:12px;
@@ -79,6 +82,10 @@
   .mwin.tB{background:rgba(62,201,176,.22); border-color:var(--tB);} .mwin.tB .wl{color:var(--tB);}
   .mwin.tC{background:rgba(141,123,245,.22); border-color:var(--tC);} .mwin.tC .wl{color:var(--tC);}
   .mwin.tD{background:rgba(239,99,81,.22); border-color:var(--tD);} .mwin.tD .wl{color:var(--tD);}
+  .mwin.tE{background:rgba(123,201,111,.22); border-color:var(--tE);} .mwin.tE .wl{color:var(--tE);}
+  .mwin.tF{background:rgba(232,123,177,.22); border-color:var(--tF);} .mwin.tF .wl{color:var(--tF);}
+  .mwin.tG{background:rgba(90,167,232,.22); border-color:var(--tG);} .mwin.tG .wl{color:var(--tG);}
+  .mwin.tH{background:rgba(232,193,77,.22); border-color:var(--tH);} .mwin.tH .wl{color:var(--tH);}
   .mixrow{display:flex; gap:6px; flex-wrap:wrap;}
   .mixrow button{border:none; border-radius:8px; padding:10px 12px; font-size:12px; font-weight:700;
     background:#2a2635; color:var(--text); cursor:pointer;}
@@ -87,8 +94,10 @@
     border-radius:10px; padding:12px; font-size:13px; cursor:pointer;}
   /* orch view */
   .lA{color:var(--tA);} .lB{color:var(--tB);} .lC{color:var(--tC);} .lD{color:var(--tD);}
+  .lE{color:var(--tE);} .lF{color:var(--tF);} .lG{color:var(--tG);} .lH{color:var(--tH);}
   .la{color:var(--tA);} .lb{color:var(--tB);} .lc{color:var(--tC);} .ld{color:var(--tD);}
-  .la,.lb,.lc,.ld{text-decoration:underline; font-style:italic;}
+  .le{color:var(--tE);} .lf{color:var(--tF);} .lg{color:var(--tG);} .lh{color:var(--tH);}
+  .la,.lb,.lc,.ld,.le,.lf,.lg,.lh{text-decoration:underline; font-style:italic;}
   #oreal .gp{margin-right:12px; display:inline-block;}
   .lchip{border:none; border-radius:8px; width:42px; height:42px; font-size:13px; font-weight:800;
     color:#10131a; cursor:pointer;}
@@ -180,7 +189,8 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
 <script>
 const PULSE=0.25;
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V']];
-const TABN=['A','B','C','D'];
+const TABN=['A','B','C','D','E','F','G','H'];
+const UPS=TABN.join(''), LOS=UPS.toLowerCase();
 const KEY='hnote_stack_v5';
 const CHAINMAX=6;
 /* PURE-STATE-BEGIN */
@@ -194,7 +204,7 @@ function migrateFrom(v5,v4,v3,v2,v1){
     v5.orch=(v5.orch&&v5.orch.motif&&v5.orch.motif.length&&v5.orch.chains&&v5.orch.chains.length)
       ?v5.orch:{motif:[1],chains:[['A']]};
     v5.orch.chains=v5.orch.chains.slice(0,CHAINMAX)
-      .map(c=>(c&&c.length?c:['A']).slice(0,32).map(L=>'ABCDabcd'.includes(L)?L:'A'));
+      .map(c=>(c&&c.length?c:['A']).slice(0,32).map(L=>(UPS+LOS).includes(L)?L:'A'));
     v5.orch.motif=v5.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v5.orch.chains.length));
     v5.view=['stack','mix','orch'].includes(v5.view)?v5.view:'stack';
     if(v5.stacks.length<2&&v5.view!=='stack') v5.view='stack';
@@ -204,7 +214,7 @@ function migrateFrom(v5,v4,v3,v2,v1){
   if(v4&&v4.v===4&&v4.stacks&&v4.stacks.length){
     const mb=Math.min(Math.max(0,v4.mixBase|0), v4.stacks.length-1);
     const wb=v4.stacks.map(()=>[]); wb[mb]=v4.wins??[];
-    const low='abcd'[mb];                     // old single mix -> that base's mix letter
+    const low=LOS[mb];                        // old single mix -> that base's mix letter
     const chains=((v4.orch&&v4.orch.chains)||[['A']]).map(c=>c.map(L=>L==='M'?low:L));
     return migrateFrom({v:5, stacks:v4.stacks, cur:v4.cur??0, view:v4.view??'stack',
       winsBy:wb, mixBase:mb,
@@ -213,7 +223,7 @@ function migrateFrom(v5,v4,v3,v2,v1){
   if(v3&&v3.v===3&&v3.setups&&v3.setups.length){
     const su=v3.setups[Math.min(v3.curSetup??0, v3.setups.length-1)];
     const chains=v3.setups.map(s=>[(s.deck==='MIX'&&s.stacks.length>1)?'M'
-      :('ABCD'.includes(s.deck)?s.deck:'A')]);
+      :(UPS.includes(s.deck)?s.deck:'A')]);
     const motif=((v3.orch&&v3.orch.motif&&v3.orch.motif.length)?v3.orch.motif:[1])
       .map(m=>Math.min(Math.max(1,m|0)||1, chains.length));
     return migrateFrom(null, {v:4, stacks:su.stacks, cur:su.cur??0, view:'stack',
@@ -293,13 +303,13 @@ function realizeMixHits(ss=stacks,ws=wins,base=mixBase){
 }
 // --- orch letters: A-D = plain uberloop bar, a-d = that base's MIX bar ---
 function letterBase(L){
-  const lo='abcd'.indexOf(L);
-  const i=lo>=0?lo:'ABCD'.indexOf(L);
+  const lo=LOS.indexOf(L);
+  const i=lo>=0?lo:UPS.indexOf(L);
   return Math.max(0,Math.min(i, stacks.length-1));
 }
 function letterHits(L){
   const i=letterBase(L);
-  if('abcd'.includes(L)) return realizeMixHits(stacks,(winsBy[i]||[]),i);
+  if(LOS.includes(L)) return realizeMixHits(stacks,(winsBy[i]||[]),i);
   return realizeHitsFor(stacks[i]);
 }
 function letterLen(L){ return topPeriod(stacks[letterBase(L)])*PULSE; }
@@ -331,7 +341,7 @@ function drawTabs(){
     b.onclick=()=>{ view='stack'; cur=i; sel=null; changed(); };
     tb.appendChild(b);
   });
-  if(stacks.length<4){
+  if(stacks.length<TABN.length){
     const p=document.createElement('button'); p.className='tab plus'; p.textContent='+';
     p.onclick=()=>{
       stacks.push(JSON.parse(JSON.stringify(S())));
@@ -564,7 +574,7 @@ function drawOrch(){
     c.forEach((L,j)=>{
       const b=document.createElement('button'); b.className='lchip';
       b.style.background=`var(--t${L.toUpperCase()})`;
-      if('abcd'.includes(L)){ b.style.textDecoration='underline'; b.style.fontStyle='italic'; }
+      if(LOS.includes(L)){ b.style.textDecoration='underline'; b.style.fontStyle='italic'; }
       b.textContent=L;
       b.onclick=()=>{ const k=avail.indexOf(L);
         c[j]=avail[(k<0?0:(k+1)%avail.length)]; changed(); };
@@ -684,7 +694,7 @@ function playHit(at,p,v){
 }
 function refreshOrch(){
   const by={};
-  for(const L of ['A','B','C','D','a','b','c','d']) by[L]={hits:letterHits(L), len:letterLen(L)};
+  for(const L of UPS+LOS) by[L]={hits:letterHits(L), len:letterLen(L)};
   orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
   if(wi>=orchCache.seq.length) wi=0;
   if(playing&&playTarget&&playTarget.view==='orch'){

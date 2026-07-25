@@ -24,7 +24,7 @@ let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
 const EPILOGUE = `
 __api.buildCache = () => {
   const by={};
-  for(const L of ['A','B','C','D','a','b','c','d']) by[L]={hits:letterHits(L), len:letterLen(L)};
+  for(const L of UPS+LOS) by[L]={hits:letterHits(L), len:letterLen(L)};
   orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
   if(wi>=orchCache.seq.length) wi=0;
   curHits=orchCache.by[curLetter].hits; curLen=orchCache.by[curLetter].len;
@@ -33,7 +33,7 @@ __api.init = (o) => { stacks=o.stacks; winsBy=o.winsBy||[[],[],[],[]]; orch=o.or
   mixBase=o.mixBase||0; wins=winsBy[mixBase]||[];
   schedUntil=t0; wi=0; inj=null; oQueue=null;
   const by={};
-  for(const L of ['A','B','C','D','a','b','c','d']) by[L]={hits:letterHits(L), len:letterLen(L)};
+  for(const L of UPS+LOS) by[L]={hits:letterHits(L), len:letterLen(L)};
   orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
   advance(t0); };
 __api.tap = (i) => { oQueue=i; };
@@ -50,7 +50,8 @@ function makeEngine() {
   const played = [], events = [];
   const sandbox = {
     PULSE: 0.25, SOUNDS: [[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V']],
-    TABN: ['A','B','C','D'], CHAINMAX: 6, Math, JSON,
+    TABN: ['A','B','C','D','E','F','G','H'], UPS: 'ABCDEFGH', LOS: 'abcdefgh',
+    CHAINMAX: 6, Math, JSON,
     playHit: (at, p, v) => played.push([at, p, v]),
     onSwitch: () => {},
     __api: {},
@@ -78,7 +79,7 @@ function oracle(cfg, steps) {
   const hits = [], events = [];
   function build() {
     const by = {};
-    for (const L of ['A','B','C','D','a','b','c','d']) by[L] = { hits: cfg.letterHits(L), len: cfg.letterLen(L) };
+    for (const L of 'ABCDEFGH' + 'abcdefgh') by[L] = { hits: cfg.letterHits(L), len: cfg.letterLen(L) };
     return { by, seq: cfg.flatLetters(), chains: cfg.orch.chains.map(c => c.slice()) };
   }
   function adv(B) {
@@ -222,6 +223,11 @@ console.log('V1 written-sequence fidelity (variable-length letters incl M)');
   run('V1c', { ...w3, orch: { motif: [2,2,1], chains: [['a'],['B','C','B','A']] }, dur: 120, seed: 13 });
   const w4 = ws();                                  // all three mixes as letters in one arrangement
   run('V1d', { ...w4, orch: { motif: [1,2], chains: [['b','A','c'],['a','b']] }, dur: 120, seed: 19 });
+  const w5 = ws();                                  // 5 tabs: E/e in play
+  w5.stacks.push(stack([2,3], [6]));                // E: 1.50s
+  w5.stacks.push(stack([1,4,2], [12]));             // E is idx 3... push twice -> idx 3,4
+  w5.winsBy = [[],[],[],[{tab:0,a:0.25,b:1.0}],[{tab:3,a:0.5,b:2.0}]];
+  run('V1e', { ...w5, orch: { motif: [1,2], chains: [['E','e','A'],['d','E']] }, dur: 100, seed: 29 });
 }
 
 console.log('V2 inject-then-resume (q=bar)');
