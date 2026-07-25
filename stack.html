@@ -91,6 +91,7 @@
   #oreal .gp{margin-right:12px; display:inline-block;}
   .lchip{border:none; border-radius:8px; width:42px; height:42px; font-size:13px; font-weight:800;
     color:#10131a; cursor:pointer;}
+  .lchip.on{box-shadow:0 0 0 3px var(--text) inset;}
   .sucard{display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;}
   .subig{border:none; border-radius:10px; width:54px; height:54px; font-size:18px; font-weight:800;
     color:#10131a; cursor:pointer;}
@@ -488,6 +489,18 @@ function drawMix(){
     lay.appendChild(d);
   });
   const mc=document.getElementById('mixctl'); mc.innerHTML='';
+  const gl=document.createElement('span');
+  gl.style.cssText='font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);align-self:center;';
+  gl.textContent='ground';
+  mc.appendChild(gl);
+  stacks.forEach((s,i)=>{
+    const g=document.createElement('button');
+    g.className='lchip'+(mixBase===i?' on':'');
+    g.style.background=`var(--t${TABN[i]})`;
+    g.textContent=TABN[i];
+    g.onclick=()=>{ mixBase=i; changed(); };
+    mc.appendChild(g);
+  });
   const addw=document.createElement('button'); addw.textContent='+ window';
   addw.onclick=()=>{
     const bl2=mixBarlen();
