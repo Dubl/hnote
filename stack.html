@@ -194,7 +194,7 @@ function migrateFrom(v5,v4,v3,v2,v1){
     v5.orch=(v5.orch&&v5.orch.motif&&v5.orch.motif.length&&v5.orch.chains&&v5.orch.chains.length)
       ?v5.orch:{motif:[1],chains:[['A']]};
     v5.orch.chains=v5.orch.chains.slice(0,CHAINMAX)
-      .map(c=>(c&&c.length?c:['A']).slice(0,8).map(L=>'ABCDabcd'.includes(L)?L:'A'));
+      .map(c=>(c&&c.length?c:['A']).slice(0,32).map(L=>'ABCDabcd'.includes(L)?L:'A'));
     v5.orch.motif=v5.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v5.orch.chains.length));
     v5.view=['stack','mix','orch'].includes(v5.view)?v5.view:'stack';
     if(v5.stacks.length<2&&v5.view!=='stack') v5.view='stack';
@@ -571,7 +571,7 @@ function drawOrch(){
       row.appendChild(b);
     });
     const a=document.createElement('button'); a.className='dchip'; a.textContent='+';
-    a.onclick=()=>{ if(c.length<8){ c.push('A'); changed(); } };
+    a.onclick=()=>{ if(c.length<32){ c.push('A'); changed(); } };
     const r=document.createElement('button'); r.className='dchip'; r.textContent='−';
     r.onclick=()=>{ if(c.length>1){ c.pop(); changed(); } };
     row.append(a,r);
