@@ -93,7 +93,20 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   as [drop_unit tail, trim_unit head]). Per-child **sub-motif phase** `p`
   (index offset `m[(j+p)%|m|]`; cell accent stays positional; blob
   `childN=[S=…,m=[…],p=…]`; when |m|>S, p selects which slice of m sounds).
-  Tabs go up to 8 (A–H; chain alphabet A–H + a–h).
+  Tabs go up to 8 (A–H; chain alphabet A–H + a–h). **The vertical axis**
+  (state v6): a tab = chord of stacks — primary + up to 3 `lanes`, each a
+  full {motif,periods,children,phase}; lane 1 is the ruler, others tile and
+  are CUT at its bar (realizeTabHits). Signed symbols: negative = ghost
+  (vel 52), 0 = rest at motif level too; motif cap 32. Global `pulse`
+  (BPM stepper; 15/bpm = pulse-as-16th). Kit + SOUNDS grew: 49 crash 'C',
+  40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
+  apply_stack compiles lanes to a sidebyside root (the canonical beat
+  shape) and now compiles the ACCENT RULE into the tree (116 bar-start
+  patched pre-rotation, 102 mi=0, 88 else; verification includes
+  velocities — flat-96 divergence found and fixed 2026-07-25).
+  `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
+  phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
+  transcription table; amen_kit.mp3 on the index.
   **Per-base mixes** (`winsBy`, state v5): EVERY tab has its own mix (own
   window layout, ground = that tab). MIX view's ground chips pick which mix
   you're editing (`wins` is bound to `winsBy[mixBase]`). Chain letters:

@@ -4,12 +4,19 @@
 # trim + proportional-share primitive. Element children (restart phase) are
 # sub-loops inside one pulse cell, cut at the slot's tick count.
 #
+# v2 additions: LANES (a tab = chord of stacks, lane 1 = the ruler; other
+# lanes tile and are CUT at lane 1's bar -> sidebyside root, the canonical
+# HNote beat shape), signed symbols (negative = ghost, vel 52), top-level
+# rests (symbol 0), per-lane phase, variable pulse.
+#
 # Usage: python apply_stack.py "<blob>" [--name stack1]
-# Blob:  hnote stack v1 pulse=0.25 periods=[16,8] motif=[1,2,3] child2=[S=2,m=[4,5]]
+# Blobs: hnote stack v1 pulse=0.25 periods=[16,8] motif=[1,2,3] child2=[S=2,m=[4,5]]
+#        hnote stack v2 pulse=0.11 lane1={periods=[16] motif=[3,0]} lane2={...}
 
 import json, re, struct, subprocess, sys
 
-SOUNDS = [36, 38, 42, 46, 75]   # K S H O(open hat) V
+SOUNDS = [36, 38, 42, 46, 75, 49, 40]   # K S H O V C(crash) N(snare)
+GHOST_VEL = 52
 
 def leaf(m, v, t=1.0):
     return {"midi_number": m, "velocity": v, "timing": t, "channel": 9, "children": None}
@@ -36,53 +43,101 @@ def realize(pulse, periods, motif, children, phase=0):
                 sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
                 if not sym:
                     continue                     # 0 = rest
-                hits.append((base + j * sub, SOUNDS[sym - 1], accent if j == 0 else max(52, accent - 26)))
+                vel = GHOST_VEL if sym < 0 else (accent if j == 0 else max(52, accent - 26))
+                hits.append((base + j * sub, SOUNDS[abs(sym) - 1], vel))
         else:
-            hits.append((base, SOUNDS[motif[mi] - 1], accent))
+            sym = motif[mi]
+            if not sym:
+                continue                         # 0 = rest at the top level too
+            hits.append((base, SOUNDS[abs(sym) - 1], GHOST_VEL if sym < 0 else accent))
     return hits, top
 
-def build_measure(name, pulse, periods, motif, children, phase=0):
-    """Nested tree: motif node -> wrap in each period (inside-out), trimming."""
+def realize_tab(pulse, lanes):
+    """lanes: [(periods, motif, children, phase), ...]; lane 0 is the ruler."""
+    hits0, top0 = realize(pulse, *lanes[0])
+    out = list(hits0)
+    bar = top0 * pulse
+    for ln in lanes[1:]:
+        h, t = realize(pulse, *ln)
+        lb = t * pulse
+        b = 0.0
+        while b < bar - 1e-9:                    # tile, cut at the ruler's bar
+            for (tt, p, v) in h:
+                if b + tt < bar - 1e-9:
+                    out.append((b + tt, p, v))
+            b += lb
+    return out, top0
+
+def build_lane(pulse, periods, motif, children, phase=0):
+    """Nested tree for one lane: motif node -> wrap in each period (inside-out)."""
     def motif_cell(mi, vel):
         ch = children.get(mi)
         if not ch:
-            return leaf(SOUNDS[motif[mi] - 1], vel, 1.0)
+            sym = motif[mi]
+            if not sym:
+                return leaf(0, 0, 1.0)           # explicit rest cell
+            return leaf(SOUNDS[abs(sym) - 1], GHOST_VEL if sym < 0 else vel, 1.0)
         kids = []
         for j in range(ch["S"]):
             sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
-            kids.append(leaf(SOUNDS[sym - 1], vel if j == 0 else max(52, vel - 26), 1.0)
-                        if sym else leaf(0, 0, 1.0))   # 0 = explicit rest cell
+            if sym:
+                v = GHOST_VEL if sym < 0 else (vel if j == 0 else max(52, vel - 26))
+                kids.append(leaf(SOUNDS[abs(sym) - 1], v, 1.0))
+            else:
+                kids.append(leaf(0, 0, 1.0))     # 0 = explicit rest cell
         return cont(kids, 1.0)
 
-    def make_unit(pulses_list):
-        """A sequence of motif indices -> node with share = pulse count."""
-        return cont([motif_cell(mi, 96) for mi in pulses_list], float(len(pulses_list)))
+    def replace_first_cell(n, cell):
+        kids = n["children"]
+        k = kids[0]
+        if k.get("children") is None or k["timing"] == 1.0:
+            kids[0] = cell
+        else:
+            replace_first_cell(k, cell)
 
-    # innermost unit = motif
-    unit_seq = list(range(len(motif)))               # motif indices per pulse
-    node = make_unit(unit_seq)
+    unit_seq = list(range(len(motif)))
+    node = cont([motif_cell(mi, 102 if mi == 0 else 88) for mi in unit_seq],
+                float(len(unit_seq)))
     span = len(unit_seq)
-    for P in reversed(periods):                       # wrap inside-out
+    for P in reversed(periods):                   # wrap inside-out
         reps, rem = divmod(P, span)
         kids = [json.loads(json.dumps(node)) for _ in range(reps)]
         if rem:
-            cut_seq = [fold(t, [], span) for t in range(rem)]   # t mod span within unit
-            # trim: realize the unit's first `rem` pulses by refolding through
-            # the unit's own structure (the unit spans `span` pulses of known
-            # motif indices - recompute them)
             kids.append(trim_unit(node, rem))
         node = cont(kids, float(P))
         span = P
+    # bar-start accent: t=0 is always motif index 0; patch before rotation so
+    # the accent travels with the content (matches the page's realization)
+    replace_first_cell(node, motif_cell(0, 116))
     ph = phase % span
     if ph:  # rotate: start on pulse ph -> [tail (span-ph pulses), head (ph pulses)]
         node = cont([drop_unit(node, ph), trim_unit(node, ph)], float(span))
-    node["name"] = name
-    root = {"midi_number": 0, "velocity": 0, "timing": float(span * pulse), "channel": 9,
-            "child_direction": "sidebyside", "children": [node],
+    return node, span
+
+def fit_to(node, own_span, span_target):
+    """Tile/cut a lane node so it spans exactly span_target pulses."""
+    if own_span == span_target:
+        return json.loads(json.dumps(node))
+    reps, rem = divmod(span_target, own_span)
+    kids = [json.loads(json.dumps(node)) for _ in range(reps)]
+    if rem:
+        kids.append(trim_unit(node, rem))
+    return cont(kids, float(span_target))
+
+def build_measure(name, pulse, lanes):
+    """lanes -> sidebyside root with one sequential lane node each (the
+    canonical HNote beat shape). Lane 0 is the ruler."""
+    built = [build_lane(pulse, *ln) for ln in lanes]
+    span0 = built[0][1]
+    kids = []
+    for node, span in built:
+        fitted = fit_to(node, span, span0)
+        fitted["timing"] = 1.0
+        kids.append(fitted)
+    root = {"midi_number": 0, "velocity": 0, "timing": float(span0 * pulse), "channel": 9,
+            "child_direction": "sidebyside", "children": kids,
             "start_time": 0.0, "end_time": 0.0, "name": name}
-    # the lane holding everything must be a plain child list under sidebyside root
-    node["timing"] = 1.0
-    return root, span
+    return root, span0
 
 def drop_unit(node, pulses):
     """Deep-copy node with its first `pulses` pulses removed (integer shares)."""
@@ -147,26 +202,36 @@ def parse_mid(path):
             else: st = run
             if st & 0xF0 in (0x80, 0x90, 0xA0, 0xB0, 0xE0):
                 d1, d2 = d[i], d[i+1]; i += 2
-                if st & 0xF0 == 0x90 and d2 > 0: on.append((t*tempo/ppq/1e6, d1))
+                if st & 0xF0 == 0x90 and d2 > 0: on.append((t*tempo/ppq/1e6, d1, d2))
             else: i += 1
     return on
+
+def parse_lane(body):
+    periods = [int(x) for x in re.search(r"periods=\[([\d,]*)\]", body).group(1).split(",") if x]
+    motif = [int(x) for x in re.search(r"motif=\[([-\d,]+)\]", body).group(1).split(",")]
+    children = {}
+    for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([-\d,]+)\](?:,p=(\d+))?\]", body):
+        children[int(m.group(1)) - 1] = {"S": int(m.group(2)),
+                                         "m": [int(x) for x in m.group(3).split(",")],
+                                         "p": int(m.group(4) or 0)}
+    phm = re.search(r"phase=(\d+)", body)
+    return (periods, motif, children, int(phm.group(1)) if phm else 0)
+
+def parse_blob(blob):
+    pulse = float(re.search(r"pulse=([\d.]+)", blob).group(1))
+    lane_bodies = re.findall(r"lane\d+=\{([^{}]*)\}", blob)
+    lanes = [parse_lane(b) for b in lane_bodies] if lane_bodies else [parse_lane(blob)]
+    return pulse, lanes
 
 def main():
     blob = sys.argv[1]
     name = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv else "stack1"
-    pulse = float(re.search(r"pulse=([\d.]+)", blob).group(1))
-    periods = [int(x) for x in re.search(r"periods=\[([\d,]*)\]", blob).group(1).split(",") if x]
-    motif = [int(x) for x in re.search(r"motif=\[([\d,]+)\]", blob).group(1).split(",")]
-    children = {}
-    for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([\d,]+)\](?:,p=(\d+))?\]", blob):
-        children[int(m.group(1)) - 1] = {"S": int(m.group(2)),
-                                         "m": [int(x) for x in m.group(3).split(",")],
-                                         "p": int(m.group(4) or 0)}
-    phm = re.search(r"phase=(\d+)", blob)
-    phase = int(phm.group(1)) if phm else 0
-    print(f"{name}: periods {periods}, motif {motif}, children {children}, phase {phase}")
+    pulse, lanes = parse_blob(blob)
+    print(f"{name}: pulse {pulse}, {len(lanes)} lane(s)")
+    for i, (periods, motif, children, phase) in enumerate(lanes):
+        print(f"  lane{i+1}: periods {periods}, motif {motif}, children {children}, phase {phase}")
 
-    measure, top = build_measure(name, pulse, periods, motif, children, phase)
+    measure, top = build_measure(name, pulse, lanes)
     calls = [{"target": name, "function": "once"}] * 4
     json.dump([measure], open(f"measures.{name}.json", "w", encoding="utf-8"), indent=1)
     json.dump(calls, open(f"calllist.{name}.jsonc", "w", encoding="utf-8"), indent=1)
@@ -177,22 +242,23 @@ def main():
     if r.returncode != 0: raise SystemExit(r.stdout[-600:] + r.stderr[-600:])
     print(r.stdout.strip().splitlines()[-1])
 
-    pred, _ = realize(pulse, periods, motif, children, phase)
+    pred, _ = realize_tab(pulse, lanes)
     on = parse_mid(f"{name}.mid")
     barlen = top * pulse
     ok = 0
     for bar in range(4):
-        got = sorted((t - bar*barlen, p) for t, p in on
+        got = sorted((t - bar*barlen, p, v) for t, p, v in on
                      if bar*barlen - 0.003 <= t < (bar+1)*barlen - 0.003)
-        want = sorted((t, p) for t, p, v in pred)
+        want = sorted(pred)
         pool = list(got); good = len(got) == len(want)
         if good:
-            for tt, pp in want:
-                m = [j for j, (t2, p2) in enumerate(pool) if p2 == pp and abs(t2-tt) <= 0.0025]
+            for tt, pp, vv in want:
+                m = [j for j, (t2, p2, v2) in enumerate(pool)
+                     if p2 == pp and v2 == vv and abs(t2-tt) <= 0.0025]
                 if not m: good = False; break
                 pool.pop(m[0])
         ok += good
-    print(f"verification: {ok}/4 bars match the realized stack exactly")
+    print(f"verification: {ok}/4 bars match the realized tab exactly (times+pitches+velocities)")
     if ok < 4: raise SystemExit(1)
 
 if __name__ == "__main__":

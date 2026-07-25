@@ -72,6 +72,29 @@ def openhat():
         raw.append((0.6 * m + 0.7 * (random.random() * 2 - 1)) * env(t, 0.13))
     return hp1(hp1(raw, 6500), 6500)
 
+def crash():
+    # bright washy crash: dense metallic squares + noise, long decay
+    freqs = [2417, 3221, 4109, 5561, 6733, 7919, 9241]
+    n = int(2.0 * SR); raw = []
+    for i in range(n):
+        t = i / SR
+        m = sum((1 if math.sin(2 * math.pi * f * t) > 0 else -1) for f in freqs) / len(freqs)
+        raw.append((0.5 * m + 0.9 * (random.random() * 2 - 1)) * (env(t, 0.35) + 0.4 * env(t, 0.9)))
+    return hp1(raw, 4200)
+
+def snare():
+    # acoustic-style snare: 190+330Hz shell burst + bright buzz, sharp snap
+    n = int(0.30 * SR); noise = [(random.random() * 2 - 1) for _ in range(n)]
+    buzz = biquad_bp(noise, 1900, 0.8)
+    out = []
+    for i in range(n):
+        t = i / SR
+        shell = 0.6 * math.sin(2 * math.pi * 190 * t) * env(t, 0.035) \
+              + 0.35 * math.sin(2 * math.pi * 330 * t) * env(t, 0.025)
+        snap = 0.5 * noise[i] * env(t, 0.004)
+        out.append(math.tanh(2.4 * (shell + snap + 1.5 * buzz[i] * env(t, 0.11))))
+    return out
+
 def rim():
     # 808 rimshot: bright ping + woody knock, very short
     n = int(0.10 * SR); out = []
@@ -83,7 +106,7 @@ def rim():
         out.append(math.tanh(2.0 * x))
     return out
 
-VOICES = {36: kick, 38: clap, 42: hat, 46: openhat, 75: rim}
+VOICES = {36: kick, 38: clap, 42: hat, 46: openhat, 75: rim, 49: crash, 40: snare}
 os.makedirs("stack_samples", exist_ok=True)
 for p, fn in VOICES.items():
     x = fn()

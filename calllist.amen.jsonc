@@ -1,0 +1,18 @@
+[
+ {
+  "target": "amenA",
+  "function": "once"
+ },
+ {
+  "target": "amenA",
+  "function": "once"
+ },
+ {
+  "target": "amenB",
+  "function": "once"
+ },
+ {
+  "target": "amenC",
+  "function": "once"
+ }
+]
