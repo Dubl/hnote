@@ -98,7 +98,11 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   full {motif,periods,children,phase}; lane 1 is the ruler, others tile and
   are CUT at its bar (realizeTabHits). Signed symbols: negative = ghost
   (vel 52), 0 = rest at motif level too; motif cap 32. Global `pulse`
-  (BPM stepper; 15/bpm = pulse-as-16th). Kit + SOUNDS grew: 49 crash 'C',
+  (BPM stepper; 15/bpm = pulse-as-16th). Per-stack **window** `win:[a,b)`
+  (pulses): the loop BECOMES that slice of the (rotated) realization — bar
+  shrinks to b−a everywhere; applies after phase; per-lane windows too;
+  blob `win=a-b`, compiled trim_unit(drop_unit(node,a),b−a).
+  Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat
   shape) and now compiles the ACCENT RULE into the tree (116 bar-start
