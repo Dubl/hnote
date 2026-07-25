@@ -16,7 +16,7 @@ const pure      = slice('// --- realization ---', '// --- tabs ---');
 const core      = slice('/* ORCH-CORE-BEGIN */', '/* ORCH-CORE-END */');
 
 const PREAMBLE = `
-let stacks=[], wins=[], dirty=true, hits=[], looplen=0;
+let stacks=[], wins=[], winsBy=[[],[],[],[]], dirty=true, hits=[], looplen=0;
 let t0=0, schedUntil=0, segStart=0, oQueue=null, q='bar', mixBase=0;
 let orch=null, orchCache=null;
 let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
@@ -24,15 +24,16 @@ let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
 const EPILOGUE = `
 __api.buildCache = () => {
   const by={};
-  for(const L of ['A','B','C','D','M']) by[L]={hits:letterHits(L), len:letterLen(L)};
+  for(const L of ['A','B','C','D','a','b','c','d']) by[L]={hits:letterHits(L), len:letterLen(L)};
   orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
   if(wi>=orchCache.seq.length) wi=0;
   curHits=orchCache.by[curLetter].hits; curLen=orchCache.by[curLetter].len;
 };
-__api.init = (o) => { stacks=o.stacks; wins=o.wins||[]; orch=o.orch; q=o.q; t0=o.t0; mixBase=o.mixBase||0;
+__api.init = (o) => { stacks=o.stacks; winsBy=o.winsBy||[[],[],[],[]]; orch=o.orch; q=o.q; t0=o.t0;
+  mixBase=o.mixBase||0; wins=winsBy[mixBase]||[];
   schedUntil=t0; wi=0; inj=null; oQueue=null;
   const by={};
-  for(const L of ['A','B','C','D','M']) by[L]={hits:letterHits(L), len:letterLen(L)};
+  for(const L of ['A','B','C','D','a','b','c','d']) by[L]={hits:letterHits(L), len:letterLen(L)};
   orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
   advance(t0); };
 __api.tap = (i) => { oQueue=i; };
@@ -42,7 +43,7 @@ __api.call = (now, until) => scheduleOrch(now, until);
 __api.letterHits = (L) => letterHits(L);
 __api.letterLen = (L) => letterLen(L);
 __api.flatLetters = () => flatLetters();
-__api.migrate = (a, b, c, d) => migrateFrom(a, b, c, d);
+__api.migrate = (a, b, c, d, e) => migrateFrom(a, b, c, d, e);
 `;
 
 function makeEngine() {
@@ -77,7 +78,7 @@ function oracle(cfg, steps) {
   const hits = [], events = [];
   function build() {
     const by = {};
-    for (const L of ['A','B','C','D','M']) by[L] = { hits: cfg.letterHits(L), len: cfg.letterLen(L) };
+    for (const L of ['A','B','C','D','a','b','c','d']) by[L] = { hits: cfg.letterHits(L), len: cfg.letterLen(L) };
     return { by, seq: cfg.flatLetters(), chains: cfg.orch.chains.map(c => c.slice()) };
   }
   function adv(B) {
@@ -148,13 +149,13 @@ function stack(motif, periods, children) { return { motif, periods, children: ch
 function run(name, cfg0, opts) {
   const eng = makeEngine();
   const cfg = {
-    stacks: cfg0.stacks, wins: cfg0.wins || [], orch: cfg0.orch,
+    stacks: cfg0.stacks, winsBy: cfg0.winsBy || [[],[],[],[]], orch: cfg0.orch,
     q: cfg0.q || 'bar', t0: cfg0.t0 ?? 100.12,
     letterHits: eng.api.letterHits, letterLen: eng.api.letterLen, flatLetters: eng.api.flatLetters,
   };
-  eng.api.init({ stacks: cfg.stacks, wins: cfg.wins, orch: cfg.orch, q: cfg.q, t0: cfg.t0,
+  eng.api.init({ stacks: cfg.stacks, winsBy: cfg.winsBy, orch: cfg.orch, q: cfg.q, t0: cfg.t0,
     mixBase: cfg0.mixBase || 0 });
-  const snap = JSON.stringify({ stacks: cfg.stacks, wins: cfg.wins, orch: cfg.orch });
+  const snap = JSON.stringify({ stacks: cfg.stacks, winsBy: cfg.winsBy, orch: cfg.orch });
   const launchEv = eng.events.splice(0);          // advance(t0) fires one event pre-steps
   const r = rng(cfg0.seed ?? 42);
   const dur = cfg0.dur ?? 60;
@@ -180,7 +181,7 @@ function run(name, cfg0, opts) {
   { // restore initial state in place (objects shared with the engine sandbox)
     const s0 = JSON.parse(snap);
     cfg.stacks.forEach((s, i) => { for (const k of Object.keys(s)) delete s[k]; Object.assign(s, s0.stacks[i]); });
-    cfg.wins.length = 0; s0.wins.forEach(w => cfg.wins.push(w));
+    cfg.winsBy.forEach((arr, i) => { arr.length = 0; (s0.winsBy[i] || []).forEach(w => arr.push(w)); });
     for (const k of Object.keys(cfg.orch)) delete cfg.orch[k]; Object.assign(cfg.orch, s0.orch);
   }
   const oc = oracle(cfg, steps);
@@ -202,7 +203,12 @@ function ws() {
       { ...stack([2,1], [9], {0:{S:3,m:[1,0,4],p:1}}), phase: 2 },  // B: 2.25s, phased + child phase
       stack([3,1,2,1], [10, 7]),                      // C: 2.50s
     ],
-    wins: [{tab:1, a:0.5, b:1.5}, {tab:2, a:2.0, b:3.0}],   // used by M
+    winsBy: [
+      [{tab:1, a:0.5, b:1.5}, {tab:2, a:2.0, b:3.0}],   // mix a: A ground
+      [{tab:0, a:0.25, b:1.0}, {tab:1, a:1.25, b:2.0}], // mix b: B ground (tab-1 window inert)
+      [{tab:0, a:0.5, b:1.5}],                          // mix c: C ground revealing A
+      [],
+    ],
   };
 }
 
@@ -211,12 +217,11 @@ console.log('V1 written-sequence fidelity (variable-length letters incl M)');
   const w = ws();
   run('V1a', { ...w, orch: { motif: [1,2], chains: [['A'],['B','A']] }, dur: 90, seed: 7 });
   const w2 = ws();
-  run('V1b', { ...w2, orch: { motif: [1,2,3,2], chains: [['A','B','A'],['M','B'],['C']] }, dur: 120, seed: 11 });
+  run('V1b', { ...w2, orch: { motif: [1,2,3,2], chains: [['A','B','A'],['a','B'],['C']] }, dur: 120, seed: 11 });
   const w3 = ws();
-  run('V1c', { ...w3, orch: { motif: [2,2,1], chains: [['M'],['B','C','B','A']] }, dur: 120, seed: 13 });
-  const w4 = ws();                                  // M grounded on B (2.25s bar, tab-1 window inert)
-  w4.wins = [{tab:0, a:0.25, b:1.0}, {tab:1, a:1.25, b:2.0}];
-  run('V1d', { ...w4, mixBase: 1, orch: { motif: [1,2], chains: [['M','A'],['M']] }, dur: 90, seed: 19 });
+  run('V1c', { ...w3, orch: { motif: [2,2,1], chains: [['a'],['B','C','B','A']] }, dur: 120, seed: 13 });
+  const w4 = ws();                                  // all three mixes as letters in one arrangement
+  run('V1d', { ...w4, orch: { motif: [1,2], chains: [['b','A','c'],['a','b']] }, dur: 120, seed: 19 });
 }
 
 console.log('V2 inject-then-resume (q=bar)');
@@ -262,14 +267,21 @@ console.log('V5 mid-play edits (chains, motif, tab periods)');
 console.log('V6 long run, exact grid (dyadic bar lengths, no drift)');
 {
   const w = ws();
-  run('V6', { ...w, orch: { motif: [1,2,3,2,1], chains: [['A','B'],['C'],['M','B','C']] },
+  run('V6', { ...w, orch: { motif: [1,2,3,2,1], chains: [['A','B'],['c'],['a','B','b']] },
     dur: 1800, t0: 1000000.12, coarse: true, seed: 31 });
 }
 
-console.log('V7 migration (v3 decks->chains, v2 wrap, v4 clamp)');
+console.log('V7 migration (v4 wins+M->winsBy+lowercase, v3 chain, v5 clamp)');
 {
   const eng = makeEngine();
   const s1 = stack([1,2], [12]), s2 = stack([3], [8]);
+  const v4 = { v: 4, stacks: [s1, s2], cur: 0, view: 'mix', mixBase: 1,
+    wins: [{tab:0,a:1,b:2}], orch: { motif: [1,2], chains: [['M','A'],['B']] }, q: 'pulse' };
+  const m4 = eng.api.migrate(null, v4, null, null, null);
+  check('V7:v4', m4.v === 5 && m4.winsBy.length === 2
+    && m4.winsBy[1].length === 1 && m4.winsBy[0].length === 0
+    && m4.orch.chains[0].join('') === 'bA' && m4.orch.chains[1].join('') === 'B'
+    && m4.q === 'pulse' && m4.mixBase === 1, JSON.stringify(m4.orch) + JSON.stringify(m4.winsBy));
   const v3 = { v: 3,
     setups: [
       { stacks: [s1, s2], cur: 0, view: 'stack', wins: [{tab:1,a:1,b:2}], deck: 'A' },
@@ -277,19 +289,23 @@ console.log('V7 migration (v3 decks->chains, v2 wrap, v4 clamp)');
       { stacks: [s1, s2], cur: 1, view: 'mix', wins: [], deck: 'MIX' },
     ],
     curSetup: 0, oview: 'orch', orch: { periods: [4], motif: [1, 3, 2] }, opulse: 8, q: 'tick' };
-  const m3 = eng.api.migrate(null, v3, null, null);
-  check('V7:v3', m3.v === 4 && m3.orch.chains.length === 3
-    && m3.orch.chains[0].join('') === 'A' && m3.orch.chains[1].join('') === 'B' && m3.orch.chains[2].join('') === 'M'
+  const m3 = eng.api.migrate(null, null, v3, null, null);
+  check('V7:v3', m3.v === 5 && m3.orch.chains.length === 3
+    && m3.orch.chains[0].join('') === 'A' && m3.orch.chains[1].join('') === 'B'
+    && m3.orch.chains[2].join('') === 'a'          // M -> mix of base 0
     && m3.orch.motif.join() === '1,3,2' && m3.q === 'bar' && m3.stacks.length === 2,
     JSON.stringify(m3.orch));
   const v2 = { stacks: [s1], cur: 0, view: 'stack', wins: [] };
-  const m2 = eng.api.migrate(null, null, v2, null);
-  check('V7:v2', m2.v === 4 && m2.orch.chains.length === 1 && m2.orch.motif.join() === '1');
-  const v4bad = { v: 4, stacks: [s1, s2], cur: 9, view: 'orch',
-    orch: { motif: [1, 9, 2], chains: [['A','Z'],['B']] }, q: 'weird' };
-  const m4 = eng.api.migrate(v4bad, null, null, null);
-  check('V7:v4clamp', m4.cur === 1 && m4.orch.chains[0].join('') === 'AA'
-    && m4.orch.motif.join() === '1,2,2' && m4.q === 'bar' && m4.view === 'orch');
+  const m2 = eng.api.migrate(null, null, null, v2, null);
+  check('V7:v2', m2.v === 5 && m2.orch.chains.length === 1 && m2.orch.motif.join() === '1'
+    && m2.winsBy.length === 1);
+  const v5bad = { v: 5, stacks: [s1, s2], cur: 9, view: 'orch', mixBase: 7,
+    winsBy: [[{tab:1,a:0,b:1}]],
+    orch: { motif: [1, 9, 2], chains: [['A','Z','b'],['B']] }, q: 'weird' };
+  const m5 = eng.api.migrate(v5bad, null, null, null, null);
+  check('V7:v5clamp', m5.cur === 1 && m5.mixBase === 1 && m5.winsBy.length === 2
+    && m5.orch.chains[0].join('') === 'AAb'
+    && m5.orch.motif.join() === '1,2,2' && m5.q === 'bar' && m5.view === 'orch');
 }
 
 console.log(failures === 0 ? '\nALL GREEN' : `\n${failures} FAILURES`);

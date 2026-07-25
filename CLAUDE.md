@@ -93,9 +93,12 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   as [drop_unit tail, trim_unit head]). Per-child **sub-motif phase** `p`
   (index offset `m[(j+p)%|m|]`; cell accent stays positional; blob
   `childN=[S=…,m=[…],p=…]`; when |m|>S, p selects which slice of m sounds).
-  **MIX ground is selectable** (`mixBase`): the tab you're on when you tap
-  MIX becomes the ground; windows aimed at the ground are inert; ORCH's M
-  letter follows the configured base; blob tokens `base=X`/`mixbase=X`. Engine verified by `orch_sim.js` (slices the
+  **Per-base mixes** (`winsBy`, state v5): EVERY tab has its own mix (own
+  window layout, ground = that tab). MIX view's ground chips pick which mix
+  you're editing (`wins` is bound to `winsBy[mixBase]`). Chain letters:
+  A–D = plain uberloop bar, **a–d = that base's MIX bar** (M is gone;
+  migrated to lowercase of the old base). Windows aimed at their own ground
+  are inert. Orch blob v3 carries `winsA=[…] winsB=[…]` per non-empty base. Engine verified by `orch_sim.js` (slices the
   shipped PURE-STATE/realization/ORCH-CORE regions out of stack.html — run it
   after ANY stack.html engine change). Orch blob `hnote orch v2 …`
   (apply_orch.py compiler = follow-up). Drum kit = synthesized 808/909

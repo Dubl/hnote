@@ -87,7 +87,8 @@
     border-radius:10px; padding:12px; font-size:13px; cursor:pointer;}
   /* orch view */
   .lA{color:var(--tA);} .lB{color:var(--tB);} .lC{color:var(--tC);} .lD{color:var(--tD);}
-  .lM{color:var(--text);}
+  .la{color:var(--tA);} .lb{color:var(--tB);} .lc{color:var(--tC);} .ld{color:var(--tD);}
+  .la,.lb,.lc,.ld{text-decoration:underline; font-style:italic;}
   #oreal .gp{margin-right:12px; display:inline-block;}
   .lchip{border:none; border-radius:8px; width:42px; height:42px; font-size:13px; font-weight:800;
     color:#10131a; cursor:pointer;}
@@ -180,25 +181,34 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
 const PULSE=0.25;
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V']];
 const TABN=['A','B','C','D'];
-const KEY='hnote_stack_v4';
+const KEY='hnote_stack_v5';
 const CHAINMAX=6;
 /* PURE-STATE-BEGIN */
-function migrateFrom(v4,v3,v2,v1){
+function migrateFrom(v5,v4,v3,v2,v1){
   // old keys are never written back - migration only reads
-  if(v4&&v4.v===4){
-    if(!v4.stacks||!v4.stacks.length) v4.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
-    v4.cur=Math.min(v4.cur??0, v4.stacks.length-1);
-    v4.wins=v4.wins??[];
-    v4.orch=(v4.orch&&v4.orch.motif&&v4.orch.motif.length&&v4.orch.chains&&v4.orch.chains.length)
-      ?v4.orch:{motif:[1],chains:[['A']]};
-    v4.orch.chains=v4.orch.chains.slice(0,CHAINMAX)
-      .map(c=>(c&&c.length?c:['A']).slice(0,8).map(L=>'ABCDM'.includes(L)?L:'A'));
-    v4.orch.motif=v4.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v4.orch.chains.length));
-    v4.view=['stack','mix','orch'].includes(v4.view)?v4.view:'stack';
-    if(v4.stacks.length<2&&v4.view!=='stack') v4.view='stack';
-    v4.q=v4.q==='pulse'?'pulse':'bar';
-    v4.mixBase=Math.min(Math.max(0,v4.mixBase|0), v4.stacks.length-1);
-    return v4;
+  if(v5&&v5.v===5){
+    if(!v5.stacks||!v5.stacks.length) v5.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
+    v5.cur=Math.min(v5.cur??0, v5.stacks.length-1);
+    v5.winsBy=Array.from({length:v5.stacks.length},(_,i)=>(v5.winsBy&&v5.winsBy[i])||[]);
+    v5.mixBase=Math.min(Math.max(0,v5.mixBase|0), v5.stacks.length-1);
+    v5.orch=(v5.orch&&v5.orch.motif&&v5.orch.motif.length&&v5.orch.chains&&v5.orch.chains.length)
+      ?v5.orch:{motif:[1],chains:[['A']]};
+    v5.orch.chains=v5.orch.chains.slice(0,CHAINMAX)
+      .map(c=>(c&&c.length?c:['A']).slice(0,8).map(L=>'ABCDabcd'.includes(L)?L:'A'));
+    v5.orch.motif=v5.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v5.orch.chains.length));
+    v5.view=['stack','mix','orch'].includes(v5.view)?v5.view:'stack';
+    if(v5.stacks.length<2&&v5.view!=='stack') v5.view='stack';
+    v5.q=v5.q==='pulse'?'pulse':'bar';
+    return v5;
+  }
+  if(v4&&v4.v===4&&v4.stacks&&v4.stacks.length){
+    const mb=Math.min(Math.max(0,v4.mixBase|0), v4.stacks.length-1);
+    const wb=v4.stacks.map(()=>[]); wb[mb]=v4.wins??[];
+    const low='abcd'[mb];                     // old single mix -> that base's mix letter
+    const chains=((v4.orch&&v4.orch.chains)||[['A']]).map(c=>c.map(L=>L==='M'?low:L));
+    return migrateFrom({v:5, stacks:v4.stacks, cur:v4.cur??0, view:v4.view??'stack',
+      winsBy:wb, mixBase:mb,
+      orch:{motif:(v4.orch&&v4.orch.motif)||[1], chains}, q:v4.q}, null, null, null, null);
   }
   if(v3&&v3.v===3&&v3.setups&&v3.setups.length){
     const su=v3.setups[Math.min(v3.curSetup??0, v3.setups.length-1)];
@@ -206,27 +216,30 @@ function migrateFrom(v4,v3,v2,v1){
       :('ABCD'.includes(s.deck)?s.deck:'A')]);
     const motif=((v3.orch&&v3.orch.motif&&v3.orch.motif.length)?v3.orch.motif:[1])
       .map(m=>Math.min(Math.max(1,m|0)||1, chains.length));
-    return migrateFrom({v:4, stacks:su.stacks, cur:su.cur??0, view:'stack', wins:su.wins??[],
+    return migrateFrom(null, {v:4, stacks:su.stacks, cur:su.cur??0, view:'stack',
+            wins:su.wins??[], mixBase:0,
             orch:{motif, chains}, q:v3.q==='pulse'?'pulse':'bar'}, null, null, null);
   }
   if(!v2){
     v2={stacks:[{motif:(v1&&v1.motif)||[1,2,3], periods:(v1&&v1.periods)||[16,8],
                  children:(v1&&v1.children)||{}}], cur:0, view:'stack', wins:[]};
   }
-  return {v:4, stacks:v2.stacks, cur:Math.min(v2.cur??0, v2.stacks.length-1),
-          view:v2.view==='mix'?'mix':'stack', wins:v2.wins??[],
-          orch:{motif:[1],chains:[['A']]}, q:'bar'};
+  return migrateFrom(null, {v:4, stacks:v2.stacks, cur:v2.cur??0,
+          view:v2.view==='mix'?'mix':'stack', wins:v2.wins??[], mixBase:0,
+          orch:{motif:[1],chains:[['A']]}, q:'bar'}, null, null, null);
 }
 /* PURE-STATE-END */
 let st=migrateFrom(
   JSON.parse(localStorage.getItem(KEY)||'null'),
+  JSON.parse(localStorage.getItem('hnote_stack_v4')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v3')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v2')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v1')||'null'));
-let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack', wins=st.wins??[],
-    orch=st.orch, q=st.q, mixBase=st.mixBase??0;
+let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack',
+    winsBy=st.winsBy, mixBase=st.mixBase??0, orch=st.orch, q=st.q;
+let wins=winsBy[mixBase];        // bound to the selected mix's window list
 let sel=null, osel=null;
-function persist(){ localStorage.setItem(KEY,JSON.stringify({v:4,stacks,cur,view,wins,orch,q,mixBase})); }
+function persist(){ localStorage.setItem(KEY,JSON.stringify({v:5,stacks,cur,view,winsBy,orch,q,mixBase})); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
@@ -278,17 +291,18 @@ function realizeMixHits(ss=stacks,ws=wins,base=mixBase){
   });
   return out.sort((a,b)=>a[0]-b[0]);
 }
-// --- orch letters (a letter = one full bar of that uberloop; M = the mix) ---
+// --- orch letters: A-D = plain uberloop bar, a-d = that base's MIX bar ---
+function letterBase(L){
+  const lo='abcd'.indexOf(L);
+  const i=lo>=0?lo:'ABCD'.indexOf(L);
+  return Math.max(0,Math.min(i, stacks.length-1));
+}
 function letterHits(L){
-  if(L==='M'&&stacks.length>1) return realizeMixHits();
-  const i=Math.max(0,Math.min('ABCD'.indexOf(L), stacks.length-1));
+  const i=letterBase(L);
+  if('abcd'.includes(L)) return realizeMixHits(stacks,(winsBy[i]||[]),i);
   return realizeHitsFor(stacks[i]);
 }
-function letterLen(L){
-  if(L==='M'&&stacks.length>1) return mixBarlen();
-  const i=Math.max(0,Math.min('ABCD'.indexOf(L), stacks.length-1));
-  return topPeriod(stacks[i])*PULSE;
-}
+function letterLen(L){ return topPeriod(stacks[letterBase(L)])*PULSE; }
 function flatLetters(){                 // motif -> [letter, chainNo] sequence
   const out=[];
   orch.motif.forEach(sym=>{
@@ -321,6 +335,7 @@ function drawTabs(){
     const p=document.createElement('button'); p.className='tab plus'; p.textContent='+';
     p.onclick=()=>{
       stacks.push(JSON.parse(JSON.stringify(S())));
+      winsBy.push([]);
       view='stack'; cur=stacks.length-1; changed();
       show('duplicated '+TABN[cur-0]);
     };
@@ -329,7 +344,8 @@ function drawTabs(){
   if(stacks.length>1){
     const m=document.createElement('button');
     m.className='tab mix'+(view==='mix'?' on':''); m.textContent='MIX';
-    m.onclick=()=>{ if(view!=='mix') mixBase=cur; view='mix'; sel=null; changed(); };
+    m.onclick=()=>{ if(view!=='mix'){ mixBase=cur; wins=winsBy[mixBase]; }
+      view='mix'; sel=null; changed(); };
     tb.appendChild(m);
     const o=document.createElement('button');
     o.className='tab mix'+(view==='orch'?' on':''); o.textContent='ORCH';
@@ -498,7 +514,7 @@ function drawMix(){
     g.className='lchip'+(mixBase===i?' on':'');
     g.style.background=`var(--t${TABN[i]})`;
     g.textContent=TABN[i];
-    g.onclick=()=>{ mixBase=i; changed(); };
+    g.onclick=()=>{ mixBase=i; wins=winsBy[i]; changed(); };
     mc.appendChild(g);
   });
   const addw=document.createElement('button'); addw.textContent='+ window';
@@ -535,7 +551,8 @@ function drawMix(){
 // --- orch view (chains of uberloop bars) ---
 function drawOrch(){
   const cs=document.getElementById('chains'); cs.innerHTML='';
-  const avail=TABN.slice(0,stacks.length); if(stacks.length>1) avail.push('M');
+  const avail=[...TABN.slice(0,stacks.length),
+               ...TABN.slice(0,stacks.length).map(t=>t.toLowerCase())];
   orch.chains.forEach((c,i)=>{
     const row=document.createElement('div'); row.className='sucard';
     const big=document.createElement('button'); big.className='subig'; big.dataset.ch=i;
@@ -546,9 +563,11 @@ function drawOrch(){
     row.appendChild(big);
     c.forEach((L,j)=>{
       const b=document.createElement('button'); b.className='lchip';
-      b.style.background=L==='M'?'var(--text)':`var(--t${L})`;
+      b.style.background=`var(--t${L.toUpperCase()})`;
+      if('abcd'.includes(L)){ b.style.textDecoration='underline'; b.style.fontStyle='italic'; }
       b.textContent=L;
-      b.onclick=()=>{ const k=avail.indexOf(L); c[j]=avail[(k+1)%avail.length]; changed(); };
+      b.onclick=()=>{ const k=avail.indexOf(L);
+        c[j]=avail[(k<0?0:(k+1)%avail.length)]; changed(); };
       row.appendChild(b);
     });
     const a=document.createElement('button'); a.className='dchip'; a.textContent='+';
@@ -665,7 +684,7 @@ function playHit(at,p,v){
 }
 function refreshOrch(){
   const by={};
-  for(const L of ['A','B','C','D','M']) by[L]={hits:letterHits(L), len:letterLen(L)};
+  for(const L of ['A','B','C','D','a','b','c','d']) by[L]={hits:letterHits(L), len:letterLen(L)};
   orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
   if(wi>=orchCache.seq.length) wi=0;
   if(playing&&playTarget&&playTarget.view==='orch'){
@@ -776,8 +795,9 @@ document.getElementById('copy').onclick=async()=>{
   if(view==='orch'){
     const ch=orch.chains.map((c,i)=>`chain${i+1}=${c.join('')}`).join(' ');
     const tabs=stacks.map((s,j)=>`${TABN[j]}={${stackBlob(s)}}`).join(' ');
-    const ws=wins.length?` wins=[${wins.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',')}]`:'';
-    text=`hnote orch v2 pulse=${PULSE}${mixBase?` mixbase=${TABN[mixBase]}`:''} motif=[${orch.motif.join(',')}] ${ch} q=${q} ${tabs}${ws}`;
+    const wsTok=winsBy.map((ws,i)=>ws&&ws.length
+      ?` wins${TABN[i]}=[${ws.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',')}]`:'').join('');
+    text=`hnote orch v3 pulse=${PULSE} motif=[${orch.motif.join(',')}] ${ch} q=${q} ${tabs}${wsTok}`;
   }else if(view==='mix'){
     const tabs=stacks.map((s,i)=>`${TABN[i]}={${stackBlob(s)}}`).join(' ');
     const ws=wins.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',');
