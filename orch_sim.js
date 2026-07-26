@@ -203,7 +203,7 @@ function ws() {
   return {
     stacks: [
       { ...stack([1,2,3], [16]),                     // A: 16-pulse ruler + 2 lanes
-        lanes: [ { ...stack([4,0], [10]), offs: [3] },      // offset lane: reads from 3
+        lanes: [ { ...stack([4,0], [10]), offs: [3], steps: [2] },  // stepping: 5-bar cycle
                  stack([5,0,0,-2], [24]) ] },        //   24-pulse lane: cut at 16 (ghost incl)
       { ...stack([2,1], [9], {0:{S:3,m:[1,0,4],p:1}}), phase: 2 },  // B: 2.25s-ish, phased + child phase
       { ...stack([3,0,-2,1,2,3,1,0], [4, 8]), offs: [5, 0] },  // C: 4-window sliding over 8 (wraps)

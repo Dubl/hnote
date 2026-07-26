@@ -25,6 +25,7 @@ A **stack** is:
 
     stack = ( periods  = [P₁ … Pₙ]      Pᵢ ≥ 2, outermost first (n ≥ 0)
             , offs     = [o₁ … oₙ]      oᵢ ≥ 0 (absent ⇒ 0)
+            , steps    = [Δ₁ … Δₙ]      Δᵢ ≥ 0 (absent ⇒ 0): per-bar offset step
             , motif    = [m₁ … m_k]     k ≥ 1, mᵢ ∈ {−V … V} (0 = rest,
                                         negative = ghost of |mᵢ|, V = voice count)
             , children = { i ↦ (S, m, p) }   for motif indices i (0-based):
@@ -38,7 +39,10 @@ stack⁰ is the **ruler**.
 ## 3. Realization of one stack — realize(stack) = (top, E)
 
     top    = P₁ if n ≥ 1 else k
-    fold(t) = ((…((t mod P₁ + o₁) mod P₂ + o₂)… mod Pₙ + oₙ)) mod k
+    fold(t, b) = ((…((t mod P₁ + o₁ + b·Δ₁) mod P₂ + o₂ + b·Δ₂)…
+                  mod Pₙ + oₙ + b·Δₙ)) mod k          -- b = bar index
+    cycle(stack) = lcm over levels of spanₖ / gcd(Δₖ mod spanₖ, spanₖ)
+                   where spanₖ = Pₖ₊₁ (or k for the innermost level)
     pos(t)  = (t − φ) mod top                      -- phase rotates OUTPUT position
     accent(t, mi) = 116 if t = 0 ; 102 if mi = 0 ; 88 otherwise   (profile §7)
 
@@ -59,14 +63,16 @@ sliding window over the level below (periods [4@5,16] plays elements
 content. Children restart on every visit (the tail of m beyond S is
 silent unless sub-phase p slides it into reach).
 
-## 4. Tabs (lanes) — realizeTab(tab) = (top⁰, E)
+## 4. Tabs (lanes) — realizeTab(tab)
 
-Let (top⁰, E⁰) = realize(stack⁰). For each lane i ≥ 1 with
-(topⁱ, Eⁱ) = realize(stackⁱ): tile Eⁱ at b = 0, topⁱ, 2·topⁱ, …
-emitting (b + τ, s, w) for every event while b + τ < top⁰ (strictly;
-half-open). The tab's loop is E⁰ ∪ all tiled lane events, length top⁰.
-Lanes longer than the ruler are cut; shorter lanes repeat and are cut
-mid-tile — the cut-off principle applied vertically.
+Let top⁰ = the ruler's top and C = lcm of cycle(stackⁱ) over all lanes
+(1 when no steps). The tab's loop has length C·top⁰. For each bar
+b ∈ [0, C): realize every lane at bar index b; the ruler's events land
+at b·top⁰ + τ; each other lane's bar tiles at b·top⁰ + 0, topⁱ, 2·topⁱ …
+with events kept strictly below the next bar line (half-open). Lanes
+longer than the ruler are cut; shorter lanes repeat and are cut mid-tile
+— the cut-off principle applied vertically. With no steps this reduces
+to the single-bar tab of spec v1.
 
 ## 5. Mixes — realizeMix(tabs, wins, g)
 
@@ -105,7 +111,7 @@ implementation, not this document.
     stack-blob  = "hnote stack" ("v1"|"v2") "pulse=" num body
     body(v1)    = lane-body                       -- single lane
     body(v2)    = "lane1={" lane-body "}" ["lane2={" lane-body "}" …]
-    lane-body   = "periods=[" P("@"o)? ("," P("@"o)?)* "]"
+    lane-body   = "periods=[" per ("," per)* "]"   where per = P("@"o)?("+"Δ)?
                   "motif=[" int ("," int)* "]"
                   ("child" i "=[S=" S ",m=[" ints "]" (",p=" p)? "]")*
                   ("phase=" φ)? 
@@ -134,3 +140,6 @@ independently recomputed by the JS reference; only agreement is recorded.
      representable (chains have ≥ 1 letter).
   7. A mix with no active windows ≡ its ground tab.
   8. Rest symbols and cut/tiling commute: silence needs no special case.
+  9. A step Δ over span S cycles with period S/gcd(Δ mod S, S) bars;
+     Δ ≡ 0 (mod S) is the stepless stack. Distinct levels' cycles
+     combine by lcm.

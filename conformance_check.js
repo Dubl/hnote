@@ -32,8 +32,8 @@ const key = h => h.join('|');
 const doc = JSON.parse(fs.readFileSync('conformance.json', 'utf8'));
 let bad = 0;
 for (const v of doc.vectors.filter(v => v.kind === 'tab')) {
-  const lanes = v.lanes.map(l => ({ periods: l.periods, offs: l.offs, motif: l.motif,
-    children: l.children, phase: l.phase }));
+  const lanes = v.lanes.map(l => ({ periods: l.periods, offs: l.offs, steps: l.steps,
+    motif: l.motif, children: l.children, phase: l.phase }));
   const got = sandbox.__x.tab(lanes).map(([t, p, w]) => [x840(t, v.name), p, w])
     .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]).map(key).sort();
   const want = v.hits.map(key).sort();

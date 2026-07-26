@@ -13,7 +13,7 @@
 # Blobs: hnote stack v1 pulse=0.25 periods=[16,8] motif=[1,2,3] child2=[S=2,m=[4,5]]
 #        hnote stack v2 pulse=0.11 lane1={periods=[16] motif=[3,0]} lane2={...}
 
-import json, re, struct, subprocess, sys
+import json, math, re, struct, subprocess, sys
 
 SOUNDS = [36, 38, 42, 46, 75, 49, 40]   # K S H O V C(crash) N(snare)
 GHOST_VEL = 52
@@ -24,18 +24,31 @@ def cont(children, t=1.0):
     return {"midi_number": 0, "velocity": 0, "timing": t, "channel": 9,
             "child_direction": "sequential", "children": children}
 
-def fold(t, periods, mlen, offs=None):
-    # each level may carry an offset INTO the level below: x = x%P + o
+def fold(t, periods, mlen, offs=None, steps=None, b=0):
+    # each level may carry an offset INTO the level below: x = x%P + o,
+    # and the offset may STEP per bar: o(b) = o + b*step
     for k, P in enumerate(periods):
-        t = t % P + ((offs[k] if offs and k < len(offs) else 0) or 0)
+        o = (offs[k] if offs and k < len(offs) else 0) or 0
+        d = (steps[k] if steps and k < len(steps) else 0) or 0
+        t = t % P + o + b * d
     return t % mlen
 
-def realize(pulse, periods, motif, children, phase=0, offs=None):
+def cycle_of(periods, mlen, steps):
+    """Bars until the stepping offsets return home."""
+    C = 1
+    for k in range(len(periods)):
+        span = periods[k + 1] if k + 1 < len(periods) else mlen
+        d = ((steps[k] if steps and k < len(steps) else 0) or 0) % span
+        if d:
+            C = C * (span // math.gcd(d, span)) // math.gcd(C, span // math.gcd(d, span))
+    return C
+
+def realize(pulse, periods, motif, children, phase=0, offs=None, steps=None, b=0):
     top = periods[0] if periods else len(motif)
     ph = phase % top
     hits = []
     for t in range(top):
-        mi = fold(t, periods, len(motif), offs)
+        mi = fold(t, periods, len(motif), offs, steps, b)
         ch = children.get(mi)
         base = ((t - ph) % top) * pulse          # phase = pulse the loop starts on
         accent = 116 if t == 0 else (102 if mi == 0 else 88)
@@ -54,21 +67,38 @@ def realize(pulse, periods, motif, children, phase=0, offs=None):
             hits.append((base, SOUNDS[abs(sym) - 1], GHOST_VEL if sym < 0 else accent))
     return hits, top
 
+def lane_cycle(ln):
+    periods, motif, children, phase, offs, steps = ln
+    return cycle_of(periods, len(motif), steps)
+
+def tab_cycle(lanes):
+    C = 1
+    for ln in lanes:
+        c = lane_cycle(ln)
+        C = C * c // math.gcd(C, c)
+    return C
+
 def realize_tab(pulse, lanes):
-    """lanes: [(periods, motif, children, phase), ...]; lane 0 is the ruler."""
-    hits0, top0 = realize(pulse, *lanes[0])
-    out = list(hits0)
+    """lanes: [(periods, motif, children, phase, offs, steps), ...];
+    lane 0 is the ruler. Stepping offsets -> the loop is the full cycle."""
+    top0 = lanes[0][0][0] if lanes[0][0] else len(lanes[0][1])
+    C = tab_cycle(lanes)
     bar = top0 * pulse
-    for ln in lanes[1:]:
-        h, t = realize(pulse, *ln)
-        lb = t * pulse
-        b = 0.0
-        while b < bar - 1e-9:                    # tile, cut at the ruler's bar
-            for (tt, p, v) in h:
-                if b + tt < bar - 1e-9:
-                    out.append((b + tt, p, v))
-            b += lb
-    return out, top0
+    out = []
+    for b in range(C):
+        base = b * bar
+        h0, _ = realize(pulse, *lanes[0], b=b)
+        out += [(base + t, p, v) for t, p, v in h0]
+        for ln in lanes[1:]:
+            h, t = realize(pulse, *ln, b=b)
+            lb = t * pulse
+            bb = 0.0
+            while bb < bar - 1e-9:               # tile, cut at the ruler's bar
+                for (tt, p, v) in h:
+                    if bb + tt < bar - 1e-9:
+                        out.append((base + bb + tt, p, v))
+                bb += lb
+    return out, top0 * C
 
 def build_lane(pulse, periods, motif, children, phase=0, offs=None):
     """Nested tree for one lane: motif node -> wrap in each period (inside-out)."""
@@ -130,18 +160,27 @@ def fit_to(node, own_span, span_target):
 
 def build_measure(name, pulse, lanes):
     """lanes -> sidebyside root with one sequential lane node each (the
-    canonical HNote beat shape). Lane 0 is the ruler."""
-    built = [build_lane(pulse, *ln) for ln in lanes]
-    span0 = built[0][1]
+    canonical HNote beat shape). Lane 0 is the ruler. Stepping offsets
+    unroll: C bar-trees per lane, each built with that bar's offsets."""
+    top0 = lanes[0][0][0] if lanes[0][0] else len(lanes[0][1])
+    C = tab_cycle(lanes)
     kids = []
-    for node, span in built:
-        fitted = fit_to(node, span, span0)
-        fitted["timing"] = 1.0
-        kids.append(fitted)
-    root = {"midi_number": 0, "velocity": 0, "timing": float(span0 * pulse), "channel": 9,
+    for ln in lanes:
+        periods, motif, children, phase, offs, steps = ln
+        bars = []
+        for b in range(C):
+            offs_b = [((offs[k] if offs and k < len(offs) else 0) or 0)
+                      + b * ((steps[k] if steps and k < len(steps) else 0) or 0)
+                      for k in range(len(periods))]
+            node, span = build_lane(pulse, periods, motif, children, phase, offs_b)
+            bars.append(fit_to(node, span, top0))
+        lane_node = bars[0] if C == 1 else cont(bars, float(C * top0))
+        lane_node["timing"] = 1.0
+        kids.append(lane_node)
+    root = {"midi_number": 0, "velocity": 0, "timing": float(C * top0 * pulse), "channel": 9,
             "child_direction": "sidebyside", "children": kids,
             "start_time": 0.0, "end_time": 0.0, "name": name}
-    return root, span0
+    return root, C * top0
 
 def drop_unit(node, pulses):
     """Deep-copy node with its first `pulses` pulses removed (integer shares)."""
@@ -211,11 +250,12 @@ def parse_mid(path):
     return on
 
 def parse_lane(body):
-    periods, offs = [], []
-    for tok in re.search(r"periods=\[([\d@,]*)\]", body).group(1).split(","):
+    periods, offs, steps = [], [], []
+    for tok in re.search(r"periods=\[([\d@+,]*)\]", body).group(1).split(","):
         if not tok: continue
-        m = re.match(r"(\d+)(?:@(\d+))?$", tok)
+        m = re.match(r"(\d+)(?:@(\d+))?(?:\+(\d+))?$", tok)
         periods.append(int(m.group(1))); offs.append(int(m.group(2) or 0))
+        steps.append(int(m.group(3) or 0))
     motif = [int(x) for x in re.search(r"motif=\[([-\d,]+)\]", body).group(1).split(",")]
     children = {}
     for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([-\d,]+)\](?:,p=(\d+))?\]", body):
@@ -223,7 +263,7 @@ def parse_lane(body):
                                          "m": [int(x) for x in m.group(3).split(",")],
                                          "p": int(m.group(4) or 0)}
     phm = re.search(r"phase=(\d+)", body)
-    return (periods, motif, children, int(phm.group(1)) if phm else 0, offs)
+    return (periods, motif, children, int(phm.group(1)) if phm else 0, offs, steps)
 
 def parse_blob(blob):
     pulse = float(re.search(r"pulse=([\d.]+)", blob).group(1))
@@ -236,8 +276,9 @@ def main():
     name = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv else "stack1"
     pulse, lanes = parse_blob(blob)
     print(f"{name}: pulse {pulse}, {len(lanes)} lane(s)")
-    for i, (periods, motif, children, phase, offs) in enumerate(lanes):
-        print(f"  lane{i+1}: periods {periods}, offs {offs}, motif {motif}, children {children}, phase {phase}")
+    for i, (periods, motif, children, phase, offs, steps) in enumerate(lanes):
+        print(f"  lane{i+1}: periods {periods}, offs {offs}, steps {steps}, "
+              f"motif {motif}, children {children}, phase {phase}")
 
     measure, top = build_measure(name, pulse, lanes)
     calls = [{"target": name, "function": "once"}] * 4

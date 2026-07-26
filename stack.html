@@ -213,7 +213,9 @@ function migrateFrom(v6,v5,v4,v3,v2,v1){
     v6.cur=Math.min(v6.cur??0, v6.stacks.length-1);
     v6.stacks.forEach(s=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
       [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
-        if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0)); }); });
+        if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0));
+        if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
+        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0)); }); });
     v6.winsBy=Array.from({length:v6.stacks.length},(_,i)=>(v6.winsBy&&v6.winsBy[i])||[]);
     v6.mixBase=Math.min(Math.max(0,v6.mixBase|0), v6.stacks.length-1);
     v6.orch=(v6.orch&&v6.orch.motif&&v6.orch.motif.length&&v6.orch.chains&&v6.orch.chains.length)
@@ -274,22 +276,37 @@ function persist(){ localStorage.setItem(KEY,JSON.stringify({v:6,stacks,cur,view
 function S(){ return stacks[cur]; }
 
 // --- realization ---
-function fold(t,stack){
+function fold(t,stack,b=0){
   // each level may carry an offset INTO the level below: x = x%P + o
-  // (a small period on top + its offset = a sliding window over the beat;
-  //  wrap happens naturally at the next level's modulo)
+  // (wrap happens naturally at the next level's modulo). Offsets may STEP
+  // per bar: o(b) = o + b*step - the loop cycles through the level below.
   let x=t;
-  stack.periods.forEach((P,k)=>{ x=x%P+((stack.offs&&stack.offs[k])||0); });
+  stack.periods.forEach((P,k)=>{
+    x=x%P+((stack.offs&&stack.offs[k])||0)+b*((stack.steps&&stack.steps[k])||0);
+  });
   return x%stack.motif.length;
 }
 function topPeriod(stack){ return stack.periods.length?stack.periods[0]:stack.motif.length; }
+function gcd(a,b){ while(b){ const r=a%b; a=b; b=r; } return a; }
+function lcm(a,b){ return a/gcd(a,b)*b; }
+function cycleOf(stack){                 // bars until the stepping offsets return home
+  let C=1;
+  stack.periods.forEach((P,k)=>{
+    const span=stack.periods[k+1]??stack.motif.length;
+    const d=(((stack.steps&&stack.steps[k])||0)%span+span)%span;
+    if(d) C=lcm(C, span/gcd(d,span));
+  });
+  return C;
+}
+function tabCycle(tab){ let C=1; [tab,...(tab.lanes||[])].forEach(ln=>{ C=lcm(C,cycleOf(ln)); }); return C; }
+function tabLen(tab){ return topPeriod(tab)*tabCycle(tab)*PULSE; }
 function phaseOf(stack){ const top=topPeriod(stack); return (((stack.phase||0)%top)+top)%top; }
 function srcPulse(stack,p){ const top=topPeriod(stack); return (p+phaseOf(stack))%top; }
-function realizeHitsFor(stack){
+function realizeHitsFor(stack,b=0){
   const out=[];
   const top=topPeriod(stack), ph=phaseOf(stack);
   for(let t=0;t<top;t++){
-    const mi=fold(t,stack);
+    const mi=fold(t,stack,b);
     const ch=stack.children[mi];
     const base=((t-ph+top)%top)*PULSE;              // phase = which pulse the loop starts on
     const accent=(t===0)?116:(mi===0?102:88);
@@ -312,17 +329,23 @@ function realizeHitsFor(stack){
   return out.sort((a,b)=>a[0]-b[0]);
 }
 function realizeTabHits(tab){
-  // a tab = a chord of stacks: primary (the ruler) + lanes, cut at the primary's bar
-  const bar=topPeriod(tab)*PULSE;
-  const out=realizeHitsFor(tab).slice();
-  (tab.lanes||[]).forEach(ln=>{
-    const lh=realizeHitsFor(ln), lb=topPeriod(ln)*PULSE;
-    for(let b=0;b<bar-1e-9;b+=lb)
-      for(const [t,p,v] of lh){ const at=b+t; if(at<bar-1e-9) out.push([at,p,v]); }
-  });
+  // a tab = a chord of stacks: primary (the ruler) + lanes, cut at the
+  // primary's bar. Stepping offsets make the tab's loop its full CYCLE:
+  // C bars, each realized with that bar's offsets, concatenated.
+  const bar=topPeriod(tab)*PULSE, C=tabCycle(tab);
+  const out=[];
+  for(let b=0;b<C;b++){
+    const base=b*bar;
+    realizeHitsFor(tab,b).forEach(([t,p,v])=>out.push([base+t,p,v]));
+    (tab.lanes||[]).forEach(ln=>{
+      const lh=realizeHitsFor(ln,b), lb=topPeriod(ln)*PULSE;
+      for(let bb=0;bb<bar-1e-9;bb+=lb)
+        for(const [t,p,v] of lh){ const at=bb+t; if(at<bar-1e-9) out.push([base+at,p,v]); }
+    });
+  }
   return out.sort((a,b)=>a[0]-b[0]);
 }
-function mixBarlen(ss=stacks,base=mixBase){ return topPeriod(ss[base]||ss[0])*PULSE; }
+function mixBarlen(ss=stacks,base=mixBase){ return tabLen(ss[base]||ss[0]); }
 function winAt(t,ws=wins){ return ws.find(w=>t>=w.a-1e-9&&t<w.b-1e-9)||null; }
 function realizeMixHits(ss=stacks,ws=wins,base=mixBase){
   if(!ss[base]) base=0;
@@ -331,7 +354,7 @@ function realizeMixHits(ss=stacks,ws=wins,base=mixBase){
   realizeTabHits(ss[base]).forEach(h=>{ if(!winAt(h[0],wsA)) out.push(h); });
   wsA.forEach(w=>{
     const tgt=ss[w.tab];
-    const hits=realizeTabHits(tgt), tbl=topPeriod(tgt)*PULSE;
+    const hits=realizeTabHits(tgt), tbl=tabLen(tgt);
     hits.forEach(([tt,p,v])=>{
       for(let b=0;b+tt<w.b-1e-9;b+=tbl){
         const at=b+tt;
@@ -352,7 +375,7 @@ function letterHits(L){
   if(LOS.includes(L)) return realizeMixHits(stacks,(winsBy[i]||[]),i);
   return realizeTabHits(stacks[i]);
 }
-function letterLen(L){ return topPeriod(stacks[letterBase(L)])*PULSE; }
+function letterLen(L){ return tabLen(stacks[letterBase(L)]); }
 function flatLetters(){                 // motif -> [letter, chainNo] sequence
   const out=[];
   orch.motif.forEach(sym=>{
@@ -368,7 +391,7 @@ function targetHits(){
 }
 function targetLen(){
   if(!playTarget) return 1;
-  return playTarget.view==='mix' ? mixBarlen() : topPeriod(stacks[playTarget.cur])*PULSE;
+  return playTarget.view==='mix' ? mixBarlen() : tabLen(stacks[playTarget.cur]);
 }
 
 // --- tabs ---
@@ -445,6 +468,7 @@ function drawStack(){
     plus.onclick=()=>{ stk.periods[i]++; changed(); };
     const below=stk.periods[i+1]??stk.motif.length;   // this level reads INTO the one below
     const o=((stk.offs&&stk.offs[i])||0)%below;
+    const d=((stk.steps&&stk.steps[i])||0)%below;
     const om=document.createElement('button'); om.textContent='‹';
     om.style.cssText='padding:8px 10px;font-size:12px;';
     om.onclick=()=>{ stk.offs=stk.offs||[]; stk.offs[i]=((o-1)%below+below)%below; changed(); };
@@ -454,11 +478,15 @@ function drawStack(){
     const op=document.createElement('button'); op.textContent='›';
     op.style.cssText='padding:8px 10px;font-size:12px;';
     op.onclick=()=>{ stk.offs=stk.offs||[]; stk.offs[i]=(o+1)%below; changed(); };
+    const sb=document.createElement('button'); sb.textContent='+'+d;
+    sb.style.cssText='padding:8px 9px;font-size:11px;'+(d?'color:var(--accent);':'color:var(--muted);');
+    sb.onclick=()=>{ stk.steps=stk.steps||[]; stk.steps[i]=(d+1)%below; changed(); };  // step/bar
     const secs=document.createElement('div'); secs.className='secs';
-    secs.textContent=(P*PULSE).toFixed(2)+'s'+(o?` · reads from ${o}`:'');
+    secs.textContent=(P*PULSE).toFixed(2)+'s'+(o?` · from ${o}`:'')+(d?` · +${d}/bar`:'');
     const x=document.createElement('button'); x.className='x'; x.textContent='✕';
-    x.onclick=()=>{ stk.periods.splice(i,1); if(stk.offs) stk.offs.splice(i,1); changed(); };
-    row.append(minus,num,plus,om,onum,op,secs,x); lv.appendChild(row);
+    x.onclick=()=>{ stk.periods.splice(i,1);
+      if(stk.offs) stk.offs.splice(i,1); if(stk.steps) stk.steps.splice(i,1); changed(); };
+    row.append(minus,num,plus,om,onum,op,sb,secs,x); lv.appendChild(row);
   });
   const inner=document.createElement('div'); inner.className='lvl';
   inner.innerHTML=`<div class="num" style="color:var(--muted)">${stk.motif.length}</div>
@@ -476,23 +504,29 @@ function drawStack(){
   document.getElementById('addlvl').onclick=()=>{
     stk.periods.unshift(Math.max(2,topPeriod(stk)*2));
     if(stk.offs) stk.offs.unshift(0);
+    if(stk.steps) stk.steps.unshift(0);
     changed();
   };
 
-  // drum-tab realized display: every lane as an aligned row, cut at the tab's bar
-  const tab=S(), tabTop=topPeriod(tab);
+  // drum-tab realized display: every lane as an aligned row, cut at the
+  // tab's bar; stepping offsets show the full cycle (capped at 96 cells)
+  const tab=S(), tabTop=topPeriod(tab), C=tabCycle(tab);
+  const shown=Math.min(C*tabTop, 96);
   let rows='';
   [tab, ...(tab.lanes||[])].forEach((ln,li)=>{
     const lt=topPeriod(ln);
     let r='';
-    for(let p=0;p<tabTop;p++){
-      const t=srcPulse(ln,p%lt), mi=fold(t,ln), sym=ln.motif[mi], hasCh=!!ln.children[mi];
+    for(let p=0;p<shown;p++){
+      const b=Math.floor(p/tabTop), u=p%tabTop;
+      const t=srcPulse(ln,u%lt), mi=fold(t,ln,b), sym=ln.motif[mi], hasCh=!!ln.children[mi];
       if(!sym&&!hasCh){ r+='<b class="mut">·</b>'; continue; }
       r+=`<b class="sym${Math.abs(sym)||1}${sym<0?' gh':''}">${mi+1}${hasCh?'*':''}</b>`;
     }
+    if(shown<C*tabTop) r+='<b class="mut">…</b>';
     rows+=`<span class="lrow${li===curLane?'':' dim'}">${r}</span>`;
   });
-  document.getElementById('real').innerHTML=rows;
+  document.getElementById('real').innerHTML=rows+
+    (C>1?`<span class="lrow dim" style="font-family:inherit;letter-spacing:0;">cycle = ${C} bars</span>`:'');
 
   const mr=document.getElementById('mrow'); mr.innerHTML='';
   stk.motif.forEach((sym,i)=>{
@@ -576,7 +610,7 @@ function drawMix(){
     `Mix — tab ${TABN[mixBase]} is the ground; windows reveal the other running uberloops`;
   const bl=mixBarlen();
   const lay=document.getElementById('mixlay'); lay.innerHTML='';
-  const np=topPeriod(stacks[mixBase]);
+  const np=Math.min(topPeriod(stacks[mixBase])*tabCycle(stacks[mixBase]), 64);
   for(let k=1;k<np;k++){
     const g=document.createElement('div'); g.className='g'; g.style.left=(k/np*100)+'%';
     lay.appendChild(g);
@@ -652,11 +686,13 @@ function drawMix(){
   // realized mix string: per pulse, sourcing tab's digit
   const wsA=wins.filter(w=>w.tab!==mixBase&&stacks[w.tab]);
   let s='';
-  for(let t=0;t<topPeriod(stacks[mixBase]);t++){
+  const gtot=Math.min(topPeriod(stacks[mixBase])*tabCycle(stacks[mixBase]), 96);
+  for(let t=0;t<gtot;t++){
     const w=winAt(t*PULSE+1e-6,wsA);
     const src=w?stacks[w.tab]:stacks[mixBase];
-    const tt=w? (t*PULSE)% (topPeriod(src)*PULSE) : t*PULSE;
-    const mi=fold(srcPulse(src,Math.round(tt/PULSE)),src);
+    const q=w? Math.round(((t*PULSE)%tabLen(src))/PULSE) : t;
+    const stp=topPeriod(src), sb=Math.floor(q/stp);
+    const mi=fold(srcPulse(src,q%stp),src,sb);
     const sym=src.motif[mi], cls=`sym${Math.abs(sym)||1}${sym<0?' gh':''}${w?' w':''}`;
     s+=sym||src.children[mi]?`<b class="${cls}">${mi+1}</b>`:`<b class="mut${w?' w':''}">·</b>`;
   }
@@ -904,8 +940,8 @@ function stackBlob(stk){
     `child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]${c.p?`,p=${c.p%c.m.length}`:''}]`).join(' ');
   const ph=phaseOf(stk);
   const pers=stk.periods.map((P,k)=>{
-    const o=(stk.offs&&stk.offs[k])||0;
-    return o?`${P}@${o}`:`${P}`;
+    const o=(stk.offs&&stk.offs[k])||0, d=(stk.steps&&stk.steps[k])||0;
+    return (o||d)?`${P}@${o}${d?`+${d}`:''}`:`${P}`;
   }).join(',');
   return `periods=[${pers}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}${ph?` phase=${ph}`:''}`;
 }

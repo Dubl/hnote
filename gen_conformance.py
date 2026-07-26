@@ -32,6 +32,11 @@ CASES = [
                             f"lane1={{periods=[16] motif=[3,0,3,0,3,0,3,0,6,0,3,0,3,0,3,0]}} "
                             f"lane2={{periods=[16] {AMEN_KICK} phase=14}} "
                             f"lane3={{periods=[16] {AMEN_SN} phase=14}}"),
+    ("step-motif-cycle", "hnote stack v2 pulse=1 lane1={periods=[8] motif=[0,0,7,0]} "
+                         "lane2={periods=[5@0+5] "
+                         "motif=[1,0,0,0,0,1,0,0,-1,0,1,0,-1,0,0,1,-1,0,-1,0]}"),
+    ("step-coprime", "hnote stack v1 pulse=1 periods=[4@0+3,16] "
+                     "motif=[1,0,7,0,3,1,-7,3,1,0,7,7,3,-7,0,1]"),
 ]
 
 def x840(t, name):
@@ -44,9 +49,9 @@ for name, blob in CASES:
     pulse, lanes = parse_blob(blob)
     assert pulse == 1.0
     hits, top = realize_tab(1.0, lanes)
-    structures = [{"periods": p, "offs": o, "motif": m,
+    structures = [{"periods": p, "offs": o, "steps": st, "motif": m,
                    "children": {str(k): v for k, v in c.items()}, "phase": ph}
-                  for (p, m, c, ph, o) in lanes]
+                  for (p, m, c, ph, o, st) in lanes]
     vectors.append({
         "name": name, "kind": "tab", "blob": blob, "pulse": 1,
         "lanes": structures, "bar840": top * 840,

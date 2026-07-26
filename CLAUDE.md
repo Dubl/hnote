@@ -105,7 +105,12 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   beat (4@5 over 16 = elements 5–8), Jon's window concept done natively
   (the bolt-on `win` operator was built then REVERTED in favor of this).
   Blob: `periods=[4@5,16]`; compiled as per-level unit rotation
-  (drop+trim before reps). Kit + SOUNDS grew: 49 crash 'C',
+  (drop+trim before reps). **Stepping offsets** (`steps[k]`, blob `P@o+Δ`,
+  the +Δ button per period row): o(b)=o+b·Δ per bar — the loop cycles
+  through the level below; tab loop = full cycle (C = lcm of
+  span/gcd(Δ,span) per level), letter/mix lengths follow. Jon's
+  "cycle the motifs over four uberloops" without duplication: variants
+  side by side in one motif, `5@0+5` selects the next window each bar. Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat
   shape) and now compiles the ACCENT RULE into the tree (116 bar-start
