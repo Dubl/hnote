@@ -24,16 +24,18 @@ def cont(children, t=1.0):
     return {"midi_number": 0, "velocity": 0, "timing": t, "channel": 9,
             "child_direction": "sequential", "children": children}
 
-def fold(t, periods, mlen):
-    for P in periods: t %= P
+def fold(t, periods, mlen, offs=None):
+    # each level may carry an offset INTO the level below: x = x%P + o
+    for k, P in enumerate(periods):
+        t = t % P + ((offs[k] if offs and k < len(offs) else 0) or 0)
     return t % mlen
 
-def realize(pulse, periods, motif, children, phase=0):
+def realize(pulse, periods, motif, children, phase=0, offs=None):
     top = periods[0] if periods else len(motif)
     ph = phase % top
     hits = []
     for t in range(top):
-        mi = fold(t, periods, len(motif))
+        mi = fold(t, periods, len(motif), offs)
         ch = children.get(mi)
         base = ((t - ph) % top) * pulse          # phase = pulse the loop starts on
         accent = 116 if t == 0 else (102 if mi == 0 else 88)
@@ -68,7 +70,7 @@ def realize_tab(pulse, lanes):
             b += lb
     return out, top0
 
-def build_lane(pulse, periods, motif, children, phase=0):
+def build_lane(pulse, periods, motif, children, phase=0, offs=None):
     """Nested tree for one lane: motif node -> wrap in each period (inside-out)."""
     def motif_cell(mi, vel):
         ch = children.get(mi)
@@ -99,16 +101,18 @@ def build_lane(pulse, periods, motif, children, phase=0):
     node = cont([motif_cell(mi, 102 if mi == 0 else 88) for mi in unit_seq],
                 float(len(unit_seq)))
     span = len(unit_seq)
-    for P in reversed(periods):                   # wrap inside-out
+    for k in range(len(periods) - 1, -1, -1):     # wrap inside-out
+        P = periods[k]
+        o = ((offs[k] if offs and k < len(offs) else 0) or 0) % span
+        base = node if not o else cont([drop_unit(node, o), trim_unit(node, o)], float(span))
         reps, rem = divmod(P, span)
-        kids = [json.loads(json.dumps(node)) for _ in range(reps)]
+        kids = [json.loads(json.dumps(base)) for _ in range(reps)]
         if rem:
-            kids.append(trim_unit(node, rem))
+            kids.append(trim_unit(base, rem))
         node = cont(kids, float(P))
         span = P
-    # bar-start accent: t=0 is always motif index 0; patch before rotation so
-    # the accent travels with the content (matches the page's realization)
-    replace_first_cell(node, motif_cell(0, 116))
+    # bar-start accent: patch the t=0 cell (its motif index depends on offsets)
+    replace_first_cell(node, motif_cell(fold(0, periods, len(motif), offs), 116))
     ph = phase % span
     if ph:  # rotate: start on pulse ph -> [tail (span-ph pulses), head (ph pulses)]
         node = cont([drop_unit(node, ph), trim_unit(node, ph)], float(span))
@@ -207,7 +211,11 @@ def parse_mid(path):
     return on
 
 def parse_lane(body):
-    periods = [int(x) for x in re.search(r"periods=\[([\d,]*)\]", body).group(1).split(",") if x]
+    periods, offs = [], []
+    for tok in re.search(r"periods=\[([\d@,]*)\]", body).group(1).split(","):
+        if not tok: continue
+        m = re.match(r"(\d+)(?:@(\d+))?$", tok)
+        periods.append(int(m.group(1))); offs.append(int(m.group(2) or 0))
     motif = [int(x) for x in re.search(r"motif=\[([-\d,]+)\]", body).group(1).split(",")]
     children = {}
     for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([-\d,]+)\](?:,p=(\d+))?\]", body):
@@ -215,7 +223,7 @@ def parse_lane(body):
                                          "m": [int(x) for x in m.group(3).split(",")],
                                          "p": int(m.group(4) or 0)}
     phm = re.search(r"phase=(\d+)", body)
-    return (periods, motif, children, int(phm.group(1)) if phm else 0)
+    return (periods, motif, children, int(phm.group(1)) if phm else 0, offs)
 
 def parse_blob(blob):
     pulse = float(re.search(r"pulse=([\d.]+)", blob).group(1))
@@ -228,8 +236,8 @@ def main():
     name = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv else "stack1"
     pulse, lanes = parse_blob(blob)
     print(f"{name}: pulse {pulse}, {len(lanes)} lane(s)")
-    for i, (periods, motif, children, phase) in enumerate(lanes):
-        print(f"  lane{i+1}: periods {periods}, motif {motif}, children {children}, phase {phase}")
+    for i, (periods, motif, children, phase, offs) in enumerate(lanes):
+        print(f"  lane{i+1}: periods {periods}, offs {offs}, motif {motif}, children {children}, phase {phase}")
 
     measure, top = build_measure(name, pulse, lanes)
     calls = [{"target": name, "function": "once"}] * 4

@@ -203,10 +203,10 @@ function ws() {
   return {
     stacks: [
       { ...stack([1,2,3], [16]),                     // A: 16-pulse ruler + 2 lanes
-        lanes: [ stack([4,0], [10]),                 //   10-pulse lane: tiles 10 + cut 6
+        lanes: [ { ...stack([4,0], [10]), offs: [3] },      // offset lane: reads from 3
                  stack([5,0,0,-2], [24]) ] },        //   24-pulse lane: cut at 16 (ghost incl)
       { ...stack([2,1], [9], {0:{S:3,m:[1,0,4],p:1}}), phase: 2 },  // B: 2.25s-ish, phased + child phase
-      stack([3,0,-2,1], [10, 7]),                     // C: signed + rest in motif
+      { ...stack([3,0,-2,1,2,3,1,0], [4, 8]), offs: [5, 0] },  // C: 4-window sliding over 8 (wraps)
     ],
     winsBy: [
       [{tab:1, a:0.5, b:1.5}, {tab:2, a:2.0, b:3.0}],   // mix a: A ground

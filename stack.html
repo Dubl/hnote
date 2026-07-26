@@ -210,7 +210,9 @@ function migrateFrom(v6,v5,v4,v3,v2,v1){
   if(v6&&v6.v===6){
     if(!v6.stacks||!v6.stacks.length) v6.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
     v6.cur=Math.min(v6.cur??0, v6.stacks.length-1);
-    v6.stacks.forEach(s=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3); });
+    v6.stacks.forEach(s=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
+      [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
+        if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0)); }); });
     v6.winsBy=Array.from({length:v6.stacks.length},(_,i)=>(v6.winsBy&&v6.winsBy[i])||[]);
     v6.mixBase=Math.min(Math.max(0,v6.mixBase|0), v6.stacks.length-1);
     v6.orch=(v6.orch&&v6.orch.motif&&v6.orch.motif.length&&v6.orch.chains&&v6.orch.chains.length)
@@ -272,8 +274,11 @@ function S(){ return stacks[cur]; }
 
 // --- realization ---
 function fold(t,stack){
+  // each level may carry an offset INTO the level below: x = x%P + o
+  // (a small period on top + its offset = a sliding window over the beat;
+  //  wrap happens naturally at the next level's modulo)
   let x=t;
-  for(const P of stack.periods) x=x%P;
+  stack.periods.forEach((P,k)=>{ x=x%P+((stack.offs&&stack.offs[k])||0); });
   return x%stack.motif.length;
 }
 function topPeriod(stack){ return stack.periods.length?stack.periods[0]:stack.motif.length; }
@@ -437,11 +442,22 @@ function drawStack(){
     const num=document.createElement('div'); num.className='num'; num.textContent=P;
     const plus=document.createElement('button'); plus.textContent='+';
     plus.onclick=()=>{ stk.periods[i]++; changed(); };
+    const below=stk.periods[i+1]??stk.motif.length;   // this level reads INTO the one below
+    const o=((stk.offs&&stk.offs[i])||0)%below;
+    const om=document.createElement('button'); om.textContent='‹';
+    om.style.cssText='padding:8px 10px;font-size:12px;';
+    om.onclick=()=>{ stk.offs=stk.offs||[]; stk.offs[i]=((o-1)%below+below)%below; changed(); };
+    const onum=document.createElement('div'); onum.className='num';
+    onum.style.cssText='font-size:14px;width:30px;color:'+(o?'var(--text)':'var(--muted)');
+    onum.textContent=o;
+    const op=document.createElement('button'); op.textContent='›';
+    op.style.cssText='padding:8px 10px;font-size:12px;';
+    op.onclick=()=>{ stk.offs=stk.offs||[]; stk.offs[i]=(o+1)%below; changed(); };
     const secs=document.createElement('div'); secs.className='secs';
-    secs.textContent=(P*PULSE).toFixed(2)+'s';
+    secs.textContent=(P*PULSE).toFixed(2)+'s'+(o?` · reads from ${o}`:'');
     const x=document.createElement('button'); x.className='x'; x.textContent='✕';
-    x.onclick=()=>{ stk.periods.splice(i,1); changed(); };
-    row.append(minus,num,plus,secs,x); lv.appendChild(row);
+    x.onclick=()=>{ stk.periods.splice(i,1); if(stk.offs) stk.offs.splice(i,1); changed(); };
+    row.append(minus,num,plus,om,onum,op,secs,x); lv.appendChild(row);
   });
   const inner=document.createElement('div'); inner.className='lvl';
   inner.innerHTML=`<div class="num" style="color:var(--muted)">${stk.motif.length}</div>
@@ -457,7 +473,9 @@ function drawStack(){
   ps.textContent='phase — the pulse the loop starts on';
   phrow.append(pm,pn,pp,ps); lv.appendChild(phrow);
   document.getElementById('addlvl').onclick=()=>{
-    stk.periods.unshift(Math.max(2,topPeriod(stk)*2)); changed();
+    stk.periods.unshift(Math.max(2,topPeriod(stk)*2));
+    if(stk.offs) stk.offs.unshift(0);
+    changed();
   };
 
   // drum-tab realized display: every lane as an aligned row, cut at the tab's bar
@@ -884,7 +902,11 @@ function stackBlob(stk){
   const chs=Object.entries(stk.children).map(([i,c])=>
     `child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]${c.p?`,p=${c.p%c.m.length}`:''}]`).join(' ');
   const ph=phaseOf(stk);
-  return `periods=[${stk.periods.join(',')}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}${ph?` phase=${ph}`:''}`;
+  const pers=stk.periods.map((P,k)=>{
+    const o=(stk.offs&&stk.offs[k])||0;
+    return o?`${P}@${o}`:`${P}`;
+  }).join(',');
+  return `periods=[${pers}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}${ph?` phase=${ph}`:''}`;
 }
 function tabBlob(s){
   if(!(s.lanes&&s.lanes.length)) return stackBlob(s);

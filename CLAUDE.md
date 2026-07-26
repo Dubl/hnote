@@ -98,7 +98,14 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   full {motif,periods,children,phase}; lane 1 is the ruler, others tile and
   are CUT at its bar (realizeTabHits). Signed symbols: negative = ghost
   (vel 52), 0 = rest at motif level too; motif cap 32. Global `pulse`
-  (BPM stepper; 15/bpm = pulse-as-16th). Kit + SOUNDS grew: 49 crash 'C',
+  (BPM stepper; 15/bpm = pulse-as-16th). **Per-level offsets** (`offs[k]`
+  per period, ‹ › steppers): each level reads INTO the level below at
+  offset o — fold becomes `x = x%P + o` per level, wrap at the next
+  modulo. A small period on top + its offset = a sliding window over the
+  beat (4@5 over 16 = elements 5–8), Jon's window concept done natively
+  (the bolt-on `win` operator was built then REVERTED in favor of this).
+  Blob: `periods=[4@5,16]`; compiled as per-level unit rotation
+  (drop+trim before reps). Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat
   shape) and now compiles the ACCENT RULE into the tree (116 bar-start
