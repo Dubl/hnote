@@ -111,6 +111,12 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   shape) and now compiles the ACCENT RULE into the tree (116 bar-start
   patched pre-rotation, 102 mi=0, 88 else; verification includes
   velocities — flat-96 divergence found and fixed 2026-07-25).
+  **STACK-ALGEBRA.md** = the distilled spec (objects, realize equations,
+  blob grammar, laws, default profile); `conformance.json` = 16 vectors,
+  times as exact ×840 integers at pulse=1, DUAL-generated
+  (gen_conformance.py = Python reference, conformance_check.js recomputes
+  via sliced page JS + adds mix vectors; only agreement ships). Any new
+  implementation of the algebra must reproduce the vectors exactly.
   `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
   phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
   transcription table; amen_kit.mp3 on the index.
