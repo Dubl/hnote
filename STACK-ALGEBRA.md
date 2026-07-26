@@ -34,7 +34,8 @@ A **stack** is:
             , phase    = φ ≥ 0 )
 
 A **tab** is a non-empty list of stacks [stack⁰ … stackᴸ] (L ≤ 3);
-stack⁰ is the **ruler**.
+stack⁰ is the **ruler**. Each non-ruler stack carries a **mode**:
+`add` (default), `over`, or `mask` (§4).
 
 ## 3. Realization of one stack — realize(stack) = (top, E)
 
@@ -74,6 +75,18 @@ longer than the ruler are cut; shorter lanes repeat and are cut mid-tile
 — the cut-off principle applied vertically. With no steps this reduces
 to the single-bar tab of spec v1.
 
+**Modes.** Per bar, add-lanes (always including the ruler) union first;
+then each over/mask lane acts in lane order on the accumulated set. A
+lane's *action pulses* are the bar-local pulse indices ⌊τ⌋ of its own
+realized (tiled, cut) events for that bar.
+
+  * `over`: events in action pulses are removed; the lane's own events
+    are added (its rests are transparent).
+  * `mask`: the lane emits nothing; each of its events is a verb on the
+    intersection — an event with sound s at pulse u REMOVES accumulated
+    events of sound s in pulse u; a ghost event (weight = ghost, i.e. a
+    negative symbol) instead sets their weight to the ghost value.
+
 ## 5. Mixes — realizeMix(tabs, wins, g)
 
 Ground g is a tab index; wins an ORDERED list of windows (tab, a, b),
@@ -111,7 +124,8 @@ implementation, not this document.
     stack-blob  = "hnote stack" ("v1"|"v2") "pulse=" num body
     body(v1)    = lane-body                       -- single lane
     body(v2)    = "lane1={" lane-body "}" ["lane2={" lane-body "}" …]
-    lane-body   = "periods=[" per ("," per)* "]"   where per = P("@"o)?("+"Δ)?
+    lane-body   = ("mode=" ("add"|"over"|"mask"))?
+                  "periods=[" per ("," per)* "]"   where per = P("@"o)?("+"Δ)?
                   "motif=[" int ("," int)* "]"
                   ("child" i "=[S=" S ",m=[" ints "]" (",p=" p)? "]")*
                   ("phase=" φ)? 
@@ -143,3 +157,7 @@ independently recomputed by the JS reference; only agreement is recorded.
   9. A step Δ over span S cycles with period S/gcd(Δ mod S, S) bars;
      Δ ≡ 0 (mod S) is the stepless stack. Distinct levels' cycles
      combine by lcm.
+ 10. An all-rest over/mask lane is the identity; an over lane in a tab
+     with no add-events under its action pulses ≡ an add lane.
+ 11. Mask actions targeting distinct (pulse, sound) pairs commute;
+     erase absorbs ghost on the same target.

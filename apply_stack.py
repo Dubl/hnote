@@ -68,7 +68,8 @@ def realize(pulse, periods, motif, children, phase=0, offs=None, steps=None, b=0
     return hits, top
 
 def lane_cycle(ln):
-    periods, motif, children, phase, offs, steps = ln
+    periods, motif = ln[0], ln[1]
+    steps = ln[5]
     return cycle_of(periods, len(motif), steps)
 
 def tab_cycle(lanes):
@@ -78,26 +79,58 @@ def tab_cycle(lanes):
         C = C * c // math.gcd(C, c)
     return C
 
+def bar_hits(pulse, top0, ln, b, is_ruler):
+    """One bar of one lane, tiled/cut at the ruler's bar."""
+    h, t = realize(pulse, *ln[:6], b=b)
+    if is_ruler:
+        return list(h)
+    bar = top0 * pulse
+    lb = t * pulse
+    out = []
+    bb = 0.0
+    while bb < bar - 1e-9:
+        for (tt, p, v) in h:
+            if bb + tt < bar - 1e-9:
+                out.append((bb + tt, p, v))
+        bb += lb
+    return out
+
+def lane_mode(ln, i):
+    return 'add' if i == 0 else ((ln[6] if len(ln) > 6 else 'add') or 'add')
+
 def realize_tab(pulse, lanes):
-    """lanes: [(periods, motif, children, phase, offs, steps), ...];
-    lane 0 is the ruler. Stepping offsets -> the loop is the full cycle."""
+    """lanes: [(periods, motif, children, phase, offs, steps, mode), ...];
+    lane 0 is the ruler. Modes: add = union; over = claim my non-rest
+    pulses; mask = symbol s erases voice s at that pulse, ghost -s softens
+    it to GHOST_VEL. Add-lanes union first, then over/mask in lane order."""
     top0 = lanes[0][0][0] if lanes[0][0] else len(lanes[0][1])
     C = tab_cycle(lanes)
     bar = top0 * pulse
+    pu = lambda t: int(t / pulse + 1e-6)
     out = []
     for b in range(C):
-        base = b * bar
-        h0, _ = realize(pulse, *lanes[0], b=b)
-        out += [(base + t, p, v) for t, p, v in h0]
-        for ln in lanes[1:]:
-            h, t = realize(pulse, *ln, b=b)
-            lb = t * pulse
-            bb = 0.0
-            while bb < bar - 1e-9:               # tile, cut at the ruler's bar
-                for (tt, p, v) in h:
-                    if bb + tt < bar - 1e-9:
-                        out.append((base + bb + tt, p, v))
-                bb += lb
+        per = [bar_hits(pulse, top0, ln, b, i == 0) for i, ln in enumerate(lanes)]
+        acc = []
+        for i, ln in enumerate(lanes):
+            if lane_mode(ln, i) == 'add':
+                acc += per[i]
+        for i, ln in enumerate(lanes):
+            mode = lane_mode(ln, i)
+            if mode in ('add',):
+                continue
+            hits = per[i]
+            if mode == 'over':
+                U = {pu(t) for t, _, _ in hits}
+                acc = [h for h in acc if pu(h[0]) not in U] + hits
+            elif mode == 'mask':
+                for t, p, v in hits:
+                    u = pu(t)
+                    if v == GHOST_VEL:
+                        acc = [(h[0], h[1], GHOST_VEL) if pu(h[0]) == u and h[1] == p else h
+                               for h in acc]
+                    else:
+                        acc = [h for h in acc if not (pu(h[0]) == u and h[1] == p)]
+        out += [(b * bar + t, p, v) for t, p, v in acc]
     return out, top0 * C
 
 def build_lane(pulse, periods, motif, children, phase=0, offs=None):
@@ -158,22 +191,77 @@ def fit_to(node, own_span, span_target):
         kids.append(trim_unit(node, rem))
     return cont(kids, float(span_target))
 
+def transform_cell_at(node, u, fn):
+    """Apply fn to the cell at pulse index u inside a lane bar node."""
+    kids = node["children"]
+    pos = 0
+    for idx, k in enumerate(kids):
+        kspan = 1
+        if k.get("children") and k["timing"] != 1.0:
+            kspan = int(round(k["timing"]))
+        if u < pos + kspan:
+            if k.get("children") is None or k["timing"] == 1.0:
+                kids[idx] = fn(k)
+            else:
+                transform_cell_at(k, u - pos, fn)
+            return
+        pos += kspan
+
+def masked_cell(cell, sound, ghost):
+    cell = json.loads(json.dumps(cell))
+    def hit(l):
+        if l.get("children") is None and l["midi_number"] == sound and l["velocity"] > 0:
+            if ghost: l["velocity"] = GHOST_VEL
+            else: l["midi_number"] = 0; l["velocity"] = 0
+    if cell.get("children"):
+        for l in cell["children"]: hit(l)
+    else:
+        hit(cell)
+    return cell
+
 def build_measure(name, pulse, lanes):
     """lanes -> sidebyside root with one sequential lane node each (the
-    canonical HNote beat shape). Lane 0 is the ruler. Stepping offsets
-    unroll: C bar-trees per lane, each built with that bar's offsets."""
+    canonical HNote beat shape). Lane 0 is the ruler. Step cycles unroll;
+    over/mask lanes become explicit cell substitutions in the add-lanes
+    (rests/ghosts in the tree - the result stays structural)."""
     top0 = lanes[0][0][0] if lanes[0][0] else len(lanes[0][1])
     C = tab_cycle(lanes)
-    kids = []
-    for ln in lanes:
-        periods, motif, children, phase, offs, steps = ln
+    pu = lambda t: int(t / pulse + 1e-6)
+    per_lane_bars = []
+    for i, ln in enumerate(lanes):
+        periods, motif, children, phase, offs, steps = ln[:6]
+        mode = lane_mode(ln, i)
         bars = []
         for b in range(C):
+            if mode == 'mask':
+                bars.append(cont([leaf(0, 0, 1.0) for _ in range(top0)], float(top0)))
+                continue
             offs_b = [((offs[k] if offs and k < len(offs) else 0) or 0)
                       + b * ((steps[k] if steps and k < len(steps) else 0) or 0)
                       for k in range(len(periods))]
             node, span = build_lane(pulse, periods, motif, children, phase, offs_b)
             bars.append(fit_to(node, span, top0))
+        per_lane_bars.append(bars)
+    # apply over/mask effects to the add-lanes' bar trees
+    for b in range(C):
+        for i, ln in enumerate(lanes):
+            mode = lane_mode(ln, i)
+            if mode == 'add':
+                continue
+            hits = bar_hits(pulse, top0, ln, b, False)
+            victims = [j for j, l2 in enumerate(lanes) if lane_mode(l2, j) == 'add']
+            if mode == 'over':
+                for u in {pu(t) for t, _, _ in hits}:
+                    for j in victims:
+                        transform_cell_at(per_lane_bars[j][b], u, lambda c: leaf(0, 0, 1.0))
+            elif mode == 'mask':
+                for t, p, v in hits:
+                    u = pu(t)
+                    for j in victims:
+                        transform_cell_at(per_lane_bars[j][b], u,
+                                          lambda c: masked_cell(c, p, v == GHOST_VEL))
+    kids = []
+    for bars in per_lane_bars:
         lane_node = bars[0] if C == 1 else cont(bars, float(C * top0))
         lane_node["timing"] = 1.0
         kids.append(lane_node)
@@ -263,7 +351,9 @@ def parse_lane(body):
                                          "m": [int(x) for x in m.group(3).split(",")],
                                          "p": int(m.group(4) or 0)}
     phm = re.search(r"phase=(\d+)", body)
-    return (periods, motif, children, int(phm.group(1)) if phm else 0, offs, steps)
+    mm = re.search(r"mode=(\w+)", body)
+    return (periods, motif, children, int(phm.group(1)) if phm else 0, offs, steps,
+            mm.group(1) if mm else 'add')
 
 def parse_blob(blob):
     pulse = float(re.search(r"pulse=([\d.]+)", blob).group(1))
@@ -276,9 +366,9 @@ def main():
     name = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv else "stack1"
     pulse, lanes = parse_blob(blob)
     print(f"{name}: pulse {pulse}, {len(lanes)} lane(s)")
-    for i, (periods, motif, children, phase, offs, steps) in enumerate(lanes):
-        print(f"  lane{i+1}: periods {periods}, offs {offs}, steps {steps}, "
-              f"motif {motif}, children {children}, phase {phase}")
+    for i, (periods, motif, children, phase, offs, steps, mode) in enumerate(lanes):
+        print(f"  lane{i+1}: mode {lane_mode(lanes[i], i)}, periods {periods}, offs {offs}, "
+              f"steps {steps}, motif {motif}, children {children}, phase {phase}")
 
     measure, top = build_measure(name, pulse, lanes)
     calls = [{"target": name, "function": "once"}] * 4
