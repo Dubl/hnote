@@ -210,8 +210,7 @@ function migrateFrom(v6,v5,v4,v3,v2,v1){
   if(v6&&v6.v===6){
     if(!v6.stacks||!v6.stacks.length) v6.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
     v6.cur=Math.min(v6.cur??0, v6.stacks.length-1);
-    v6.stacks.forEach(s=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
-      [s,...(s.lanes||[])].forEach(l=>{ if(l.win&&!(Array.isArray(l.win)&&l.win.length===2)) delete l.win; }); });
+    v6.stacks.forEach(s=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3); });
     v6.winsBy=Array.from({length:v6.stacks.length},(_,i)=>(v6.winsBy&&v6.winsBy[i])||[]);
     v6.mixBase=Math.min(Math.max(0,v6.mixBase|0), v6.stacks.length-1);
     v6.orch=(v6.orch&&v6.orch.motif&&v6.orch.motif.length&&v6.orch.chains&&v6.orch.chains.length)
@@ -280,15 +279,6 @@ function fold(t,stack){
 function topPeriod(stack){ return stack.periods.length?stack.periods[0]:stack.motif.length; }
 function phaseOf(stack){ const top=topPeriod(stack); return (((stack.phase||0)%top)+top)%top; }
 function srcPulse(stack,p){ const top=topPeriod(stack); return (p+phaseOf(stack))%top; }
-function winOf(stack){                      // window = crop [a,b) of the (rotated) loop
-  const t=topPeriod(stack), w=stack.win;
-  if(!w||!w.length) return null;
-  const a=Math.max(0,Math.min(w[0]|0,t-1)), b=Math.max(a+1,Math.min(w[1]|0,t));
-  return (a===0&&b===t)?null:[a,b];
-}
-function effTop(stack){ const w=winOf(stack); return w?w[1]-w[0]:topPeriod(stack); }
-function effPulse(stack,p){ const w=winOf(stack);
-  return srcPulse(stack, ((w?w[0]:0)+(p%effTop(stack)))%topPeriod(stack)); }
 function realizeHitsFor(stack){
   const out=[];
   const top=topPeriod(stack), ph=phaseOf(stack);
@@ -313,26 +303,20 @@ function realizeHitsFor(stack){
       out.push([base, sd[0], sym<0?52:accent]);             // negative = ghost
     }
   }
-  const w=winOf(stack);
-  if(w){                                     // the loop IS the window's slice
-    const a=w[0]*PULSE, b=w[1]*PULSE;
-    return out.filter(h=>h[0]>=a-1e-9&&h[0]<b-1e-9)
-              .map(([t,p,v])=>[t-a,p,v]).sort((x,y)=>x[0]-y[0]);
-  }
   return out.sort((a,b)=>a[0]-b[0]);
 }
 function realizeTabHits(tab){
   // a tab = a chord of stacks: primary (the ruler) + lanes, cut at the primary's bar
-  const bar=effTop(tab)*PULSE;
+  const bar=topPeriod(tab)*PULSE;
   const out=realizeHitsFor(tab).slice();
   (tab.lanes||[]).forEach(ln=>{
-    const lh=realizeHitsFor(ln), lb=effTop(ln)*PULSE;
+    const lh=realizeHitsFor(ln), lb=topPeriod(ln)*PULSE;
     for(let b=0;b<bar-1e-9;b+=lb)
       for(const [t,p,v] of lh){ const at=b+t; if(at<bar-1e-9) out.push([at,p,v]); }
   });
   return out.sort((a,b)=>a[0]-b[0]);
 }
-function mixBarlen(ss=stacks,base=mixBase){ return effTop(ss[base]||ss[0])*PULSE; }
+function mixBarlen(ss=stacks,base=mixBase){ return topPeriod(ss[base]||ss[0])*PULSE; }
 function winAt(t,ws=wins){ return ws.find(w=>t>=w.a-1e-9&&t<w.b-1e-9)||null; }
 function realizeMixHits(ss=stacks,ws=wins,base=mixBase){
   if(!ss[base]) base=0;
@@ -341,7 +325,7 @@ function realizeMixHits(ss=stacks,ws=wins,base=mixBase){
   realizeTabHits(ss[base]).forEach(h=>{ if(!winAt(h[0],wsA)) out.push(h); });
   wsA.forEach(w=>{
     const tgt=ss[w.tab];
-    const hits=realizeTabHits(tgt), tbl=effTop(tgt)*PULSE;
+    const hits=realizeTabHits(tgt), tbl=topPeriod(tgt)*PULSE;
     hits.forEach(([tt,p,v])=>{
       for(let b=0;b+tt<w.b-1e-9;b+=tbl){
         const at=b+tt;
@@ -362,7 +346,7 @@ function letterHits(L){
   if(LOS.includes(L)) return realizeMixHits(stacks,(winsBy[i]||[]),i);
   return realizeTabHits(stacks[i]);
 }
-function letterLen(L){ return effTop(stacks[letterBase(L)])*PULSE; }
+function letterLen(L){ return topPeriod(stacks[letterBase(L)])*PULSE; }
 function flatLetters(){                 // motif -> [letter, chainNo] sequence
   const out=[];
   orch.motif.forEach(sym=>{
@@ -472,42 +456,18 @@ function drawStack(){
   const ps=document.createElement('div'); ps.className='secs';
   ps.textContent='phase — the pulse the loop starts on';
   phrow.append(pm,pn,pp,ps); lv.appendChild(phrow);
-  const wrow=document.createElement('div'); wrow.className='lvl';
-  const wcur=winOf(stk), wtop=topPeriod(stk);
-  if(!wcur){
-    const aw=document.createElement('button'); aw.textContent='◱';
-    aw.onclick=()=>{ stk.win=[0,Math.max(1,Math.ceil(wtop/2))]; changed(); };
-    const ws2=document.createElement('div'); ws2.className='secs';
-    ws2.textContent='window — crop the loop to a slice';
-    wrow.append(aw,ws2);
-  }else{
-    const [wa,wb]=wcur;
-    const mk=(txt,fn)=>{ const b=document.createElement('button'); b.textContent=txt; b.onclick=fn; return b; };
-    const an=document.createElement('div'); an.className='num'; an.textContent=wa;
-    const bn=document.createElement('div'); bn.className='num'; bn.textContent=wb;
-    const ws2=document.createElement('div'); ws2.className='secs';
-    ws2.textContent=`window ${wa}–${wb} of ${wtop} · loop = ${(effTop(stk)*PULSE).toFixed(2)}s`;
-    const x=document.createElement('button'); x.className='x'; x.textContent='✕';
-    x.onclick=()=>{ delete stk.win; changed(); };
-    wrow.append(
-      mk('−',()=>{ if(wa>0){ stk.win=[wa-1,wb]; changed(); } }), an,
-      mk('+',()=>{ if(wa<wb-1){ stk.win=[wa+1,wb]; changed(); } }),
-      mk('−',()=>{ if(wb>wa+1){ stk.win=[wa,wb-1]; changed(); } }), bn,
-      mk('+',()=>{ if(wb<wtop){ stk.win=[wa,wb+1]; changed(); } }),
-      ws2, x);
-  }
-  lv.appendChild(wrow);
   document.getElementById('addlvl').onclick=()=>{
     stk.periods.unshift(Math.max(2,topPeriod(stk)*2)); changed();
   };
 
-  // drum-tab realized display: every lane as an aligned row (windowed, tiled, cut)
-  const tab=S(), tabTop=effTop(tab);
+  // drum-tab realized display: every lane as an aligned row, cut at the tab's bar
+  const tab=S(), tabTop=topPeriod(tab);
   let rows='';
   [tab, ...(tab.lanes||[])].forEach((ln,li)=>{
+    const lt=topPeriod(ln);
     let r='';
     for(let p=0;p<tabTop;p++){
-      const t=effPulse(ln,p), mi=fold(t,ln), sym=ln.motif[mi], hasCh=!!ln.children[mi];
+      const t=srcPulse(ln,p%lt), mi=fold(t,ln), sym=ln.motif[mi], hasCh=!!ln.children[mi];
       if(!sym&&!hasCh){ r+='<b class="mut">·</b>'; continue; }
       r+=`<b class="sym${Math.abs(sym)||1}${sym<0?' gh':''}">${mi+1}${hasCh?'*':''}</b>`;
     }
@@ -597,7 +557,7 @@ function drawMix(){
     `Mix — tab ${TABN[mixBase]} is the ground; windows reveal the other running uberloops`;
   const bl=mixBarlen();
   const lay=document.getElementById('mixlay'); lay.innerHTML='';
-  const np=effTop(stacks[mixBase]);
+  const np=topPeriod(stacks[mixBase]);
   for(let k=1;k<np;k++){
     const g=document.createElement('div'); g.className='g'; g.style.left=(k/np*100)+'%';
     lay.appendChild(g);
@@ -673,11 +633,11 @@ function drawMix(){
   // realized mix string: per pulse, sourcing tab's digit
   const wsA=wins.filter(w=>w.tab!==mixBase&&stacks[w.tab]);
   let s='';
-  for(let t=0;t<effTop(stacks[mixBase]);t++){
+  for(let t=0;t<topPeriod(stacks[mixBase]);t++){
     const w=winAt(t*PULSE+1e-6,wsA);
     const src=w?stacks[w.tab]:stacks[mixBase];
-    const tt=w? (t*PULSE)% (effTop(src)*PULSE) : t*PULSE;
-    const mi=fold(effPulse(src,Math.round(tt/PULSE)),src);
+    const tt=w? (t*PULSE)% (topPeriod(src)*PULSE) : t*PULSE;
+    const mi=fold(srcPulse(src,Math.round(tt/PULSE)),src);
     const sym=src.motif[mi], cls=`sym${Math.abs(sym)||1}${sym<0?' gh':''}${w?' w':''}`;
     s+=sym||src.children[mi]?`<b class="${cls}">${mi+1}</b>`:`<b class="mut${w?' w':''}">·</b>`;
   }
@@ -923,9 +883,8 @@ function updateRec(){
 function stackBlob(stk){
   const chs=Object.entries(stk.children).map(([i,c])=>
     `child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]${c.p?`,p=${c.p%c.m.length}`:''}]`).join(' ');
-  const ph=phaseOf(stk), w=winOf(stk);
-  return `periods=[${stk.periods.join(',')}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}`+
-         `${ph?` phase=${ph}`:''}${w?` win=${w[0]}-${w[1]}`:''}`;
+  const ph=phaseOf(stk);
+  return `periods=[${stk.periods.join(',')}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}${ph?` phase=${ph}`:''}`;
 }
 function tabBlob(s){
   if(!(s.lanes&&s.lanes.length)) return stackBlob(s);

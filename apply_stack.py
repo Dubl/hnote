@@ -28,7 +28,7 @@ def fold(t, periods, mlen):
     for P in periods: t %= P
     return t % mlen
 
-def realize(pulse, periods, motif, children, phase=0, win=None):
+def realize(pulse, periods, motif, children, phase=0):
     top = periods[0] if periods else len(motif)
     ph = phase % top
     hits = []
@@ -50,11 +50,6 @@ def realize(pulse, periods, motif, children, phase=0, win=None):
             if not sym:
                 continue                         # 0 = rest at the top level too
             hits.append((base, SOUNDS[abs(sym) - 1], GHOST_VEL if sym < 0 else accent))
-    if win:                                      # the loop IS the window's slice
-        a, b = win
-        hits = sorted((t - a * pulse, p, v) for t, p, v in hits
-                      if a * pulse - 1e-9 <= t < b * pulse - 1e-9)
-        return hits, b - a
     return hits, top
 
 def realize_tab(pulse, lanes):
@@ -73,7 +68,7 @@ def realize_tab(pulse, lanes):
             b += lb
     return out, top0
 
-def build_lane(pulse, periods, motif, children, phase=0, win=None):
+def build_lane(pulse, periods, motif, children, phase=0):
     """Nested tree for one lane: motif node -> wrap in each period (inside-out)."""
     def motif_cell(mi, vel):
         ch = children.get(mi)
@@ -117,10 +112,6 @@ def build_lane(pulse, periods, motif, children, phase=0, win=None):
     ph = phase % span
     if ph:  # rotate: start on pulse ph -> [tail (span-ph pulses), head (ph pulses)]
         node = cont([drop_unit(node, ph), trim_unit(node, ph)], float(span))
-    if win:  # window = crop of the (rotated) loop: drop the head, trim to length
-        a, b = win
-        node = trim_unit(drop_unit(node, a), b - a) if a else trim_unit(node, b)
-        span = b - a
     return node, span
 
 def fit_to(node, own_span, span_target):
@@ -224,9 +215,7 @@ def parse_lane(body):
                                          "m": [int(x) for x in m.group(3).split(",")],
                                          "p": int(m.group(4) or 0)}
     phm = re.search(r"phase=(\d+)", body)
-    wm = re.search(r"win=(\d+)-(\d+)", body)
-    return (periods, motif, children, int(phm.group(1)) if phm else 0,
-            (int(wm.group(1)), int(wm.group(2))) if wm else None)
+    return (periods, motif, children, int(phm.group(1)) if phm else 0)
 
 def parse_blob(blob):
     pulse = float(re.search(r"pulse=([\d.]+)", blob).group(1))
@@ -239,8 +228,8 @@ def main():
     name = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv else "stack1"
     pulse, lanes = parse_blob(blob)
     print(f"{name}: pulse {pulse}, {len(lanes)} lane(s)")
-    for i, (periods, motif, children, phase, win) in enumerate(lanes):
-        print(f"  lane{i+1}: periods {periods}, motif {motif}, children {children}, phase {phase}, win {win}")
+    for i, (periods, motif, children, phase) in enumerate(lanes):
+        print(f"  lane{i+1}: periods {periods}, motif {motif}, children {children}, phase {phase}")
 
     measure, top = build_measure(name, pulse, lanes)
     calls = [{"target": name, "function": "once"}] * 4
