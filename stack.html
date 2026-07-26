@@ -9,6 +9,7 @@
     --bg:#17151d; --surface:#201d28; --line:#38334a; --text:#efeae2; --muted:#8d8798;
     --accent:#f5a524; --teal:#3ec9b0; --rec:#ef6351;
     --s1:#f5a524; --s2:#ef6351; --s3:#3ec9b0; --s4:#8d7bf5; --s5:#e8c14d; --s6:#5aa7e8; --s7:#7bc96f;
+    --s8:#e87bb1; --s9:#c9a06b; --s10:#7fd8e8; --s11:#b7d96f; --s12:#d98fd9;
     --tA:#f5a524; --tB:#3ec9b0; --tC:#8d7bf5; --tD:#ef6351;
     --tE:#7bc96f; --tF:#e87bb1; --tG:#5aa7e8; --tH:#e8c14d;
   }
@@ -203,7 +204,7 @@ const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N']];
 const TABN=['A','B','C','D','E','F','G','H'];
 const UPS=TABN.join(''), LOS=UPS.toLowerCase();
 const KEY='hnote_stack_v6';
-const CHAINMAX=6;
+const CHAINMAX=12;
 /* PURE-STATE-BEGIN */
 function migrateFrom(v6,v5,v4,v3,v2,v1){
   // old keys are never written back - migration only reads

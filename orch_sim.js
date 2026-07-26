@@ -52,7 +52,7 @@ function makeEngine() {
   const sandbox = {
     PULSE: 0.25, SOUNDS: [[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N']],
     TABN: ['A','B','C','D','E','F','G','H'], UPS: 'ABCDEFGH', LOS: 'abcdefgh',
-    CHAINMAX: 6, Math, JSON,
+    CHAINMAX: 12, Math, JSON,
     playHit: (at, p, v) => played.push([at, p, v]),
     onSwitch: () => {},
     __api: {},
