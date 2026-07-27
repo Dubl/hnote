@@ -23,28 +23,25 @@ let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
 `;
 const EPILOGUE = `
 __api.buildCache = () => {
-  const by={};
-  for(const L of UPS+LOS) by[L]={hits:letterHits(L), len:letterLen(L)};
-  orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
+  orchCache=buildOrchCache();
   if(wi>=orchCache.seq.length) wi=0;
-  curHits=orchCache.by[curLetter].hits; curLen=orchCache.by[curLetter].len;
+  const e=orchCache.seq[(wi-1+orchCache.seq.length)%orchCache.seq.length];
+  if(e&&e.L===curLetter){ curHits=e.hits; curLen=e.len; }
 };
 __api.init = (o) => { stacks=o.stacks; winsBy=o.winsBy||[[],[],[],[]]; orch=o.orch; q=o.q; t0=o.t0;
   PULSE=o.pulse||0.25;
   mixBase=o.mixBase||0; wins=winsBy[mixBase]||[];
   schedUntil=t0; wi=0; inj=null; oQueue=null;
-  const by={};
-  for(const L of UPS+LOS) by[L]={hits:letterHits(L), len:letterLen(L)};
-  orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
+  orchCache=buildOrchCache();
   advance(t0); };
 __api.tap = (i) => { oQueue=i; };
-__api.get = () => ({t0, schedUntil, segStart, wi, inj: inj?{idx:inj.idx,n:inj.list.length,chain:inj.chain}:null,
+__api.get = () => ({t0, schedUntil, segStart, wi, inj: inj?{idx:inj.idx,n:inj.list.length}:null,
   oQueue, curLetter, curLen, activeChain, q});
 __api.call = (now, until) => scheduleOrch(now, until);
 __api.letterHits = (L) => letterHits(L);
 __api.letterLen = (L) => letterLen(L);
-__api.flatLetters = () => flatLetters();
-__api.migrate = (a, b, c, d, e, f) => migrateFrom(a, b, c, d, e, f);
+__api.buildOrchCache = () => buildOrchCache();
+__api.migrate = (a, b, c, d, e, f, g) => migrateFrom(a, b, c, d, e, f, g);
 `;
 
 function makeEngine() {
@@ -52,7 +49,7 @@ function makeEngine() {
   const sandbox = {
     PULSE: 0.25, SOUNDS: [[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N']],
     TABN: ['A','B','C','D','E','F','G','H'], UPS: 'ABCDEFGH', LOS: 'abcdefgh',
-    CHAINMAX: 12, Math, JSON,
+    CHAINMAX: 12, PHRASEMAX: 4, Math, JSON,
     playHit: (at, p, v) => played.push([at, p, v]),
     onSwitch: () => {},
     __api: {},
@@ -78,28 +75,26 @@ function oracle(cfg, steps) {
   let su = t0, wiO = 0, injO = null, quO = null;
   let letter = null, chainNo = 0, seg = t0, len = 0, hs = [];
   const hits = [], events = [];
-  function build() {
-    const by = {};
-    for (const L of 'ABCDEFGH' + 'abcdefgh') by[L] = { hits: cfg.letterHits(L), len: cfg.letterLen(L) };
-    return { by, seq: cfg.flatLetters(), chains: cfg.orch.chains.map(c => c.slice()) };
-  }
+  function build() { return cfg.buildOrchCache(); }
   function adv(B) {
     if (injO && injO.idx >= injO.list.length) injO = null;
     if (quO != null) {
-      const c = cache.chains[quO];
-      injO = { list: (c && c.length) ? c : ['A'], idx: 0, chain: quO + 1 };
+      const list = cache.chainSeqs[quO];
+      injO = { list: (list && list.length) ? list : [cache.seq[0]], idx: 0 };
       quO = null;
     }
-    if (injO) { letter = injO.list[injO.idx++]; chainNo = injO.chain; }
-    else { const e = cache.seq[wiO]; letter = e[0]; chainNo = e[1]; wiO = (wiO + 1) % cache.seq.length; }
-    len = cache.by[letter].len; hs = cache.by[letter].hits; seg = B;
+    let e;
+    if (injO) { e = injO.list[injO.idx++]; }
+    else { e = cache.seq[wiO]; wiO = (wiO + 1) % cache.seq.length; }
+    letter = e.L; chainNo = e.chain; len = e.len; hs = e.hits; seg = B;
     events.push({ t: B, letter, chain: chainNo, segStart: seg });
   }
   adv(t0);
   for (const step of steps) {
     if (step.tap !== undefined) { quO = step.tap; continue; }
     if (step.edit) { step.edit(); cache = build(); if (wiO >= cache.seq.length) wiO = 0;
-      len = cache.by[letter].len; hs = cache.by[letter].hits; continue; }
+      const e2 = cache.seq[(wiO - 1 + cache.seq.length) % cache.seq.length];
+      if (e2 && e2.L === letter) { len = e2.len; hs = e2.hits; } continue; }
     const { now, until } = step;
     for (;;) {
       let b = seg + len;
@@ -149,12 +144,14 @@ function matchEvents(name, got, want) {
 
 // ---------- scenario driver ----------
 function stack(motif, periods, children) { return { motif, periods, children: children || {} }; }
+const CH = (...ls) => ({ seq: ls, orns: [] });
 function run(name, cfg0, opts) {
   const eng = makeEngine();
   const cfg = {
     stacks: cfg0.stacks, winsBy: cfg0.winsBy || [[],[],[],[]], orch: cfg0.orch,
     q: cfg0.q || 'bar', t0: cfg0.t0 ?? 100.12, pulse: cfg0.pulse || 0.25,
-    letterHits: eng.api.letterHits, letterLen: eng.api.letterLen, flatLetters: eng.api.flatLetters,
+    letterHits: eng.api.letterHits, letterLen: eng.api.letterLen,
+    buildOrchCache: eng.api.buildOrchCache,
   };
   eng.api.init({ stacks: cfg.stacks, winsBy: cfg.winsBy, orch: cfg.orch, q: cfg.q, t0: cfg.t0,
     mixBase: cfg0.mixBase || 0, pulse: cfg.pulse });
@@ -220,24 +217,24 @@ function ws() {
 console.log('V1 written-sequence fidelity (variable-length letters incl M)');
 {
   const w = ws();
-  run('V1a', { ...w, orch: { motif: [1,2], chains: [['A'],['B','A']] }, dur: 90, seed: 7 });
+  run('V1a', { ...w, orch: { motif: [1,2], chains: [CH('A'),CH('B','A')] }, dur: 90, seed: 7 });
   const w2 = ws();
-  run('V1b', { ...w2, orch: { motif: [1,2,3,2], chains: [['A','B','A'],['a','B'],['C']] }, dur: 120, seed: 11 });
+  run('V1b', { ...w2, orch: { motif: [1,2,3,2], chains: [CH('A','B','A'),CH('a','B'),CH('C')] }, dur: 120, seed: 11 });
   const w3 = ws();
-  run('V1c', { ...w3, orch: { motif: [2,2,1], chains: [['a'],['B','C','B','A']] }, dur: 120, seed: 13 });
+  run('V1c', { ...w3, orch: { motif: [2,2,1], chains: [CH('a'),CH('B','C','B','A')] }, dur: 120, seed: 13 });
   const w4 = ws();                                  // all three mixes as letters in one arrangement
-  run('V1d', { ...w4, orch: { motif: [1,2], chains: [['b','A','c'],['a','b']] }, dur: 120, seed: 19 });
+  run('V1d', { ...w4, orch: { motif: [1,2], chains: [CH('b','A','c'),CH('a','b')] }, dur: 120, seed: 19 });
   const w5 = ws();                                  // 5 tabs: E/e in play
   w5.stacks.push(stack([2,3], [6]));                // E: 1.50s
   w5.stacks.push(stack([1,4,2], [12]));             // E is idx 3... push twice -> idx 3,4
   w5.winsBy = [[],[],[],[{tab:0,a:0.25,b:1.0}],[{tab:3,a:0.5,b:2.0}]];
-  run('V1e', { ...w5, orch: { motif: [1,2], chains: [['E','e','A'],['d','E']] }, dur: 100, seed: 29 });
+  run('V1e', { ...w5, orch: { motif: [1,2], chains: [CH('E','e','A'),CH('d','E')] }, dur: 100, seed: 29 });
 }
 
 console.log('V2 inject-then-resume (q=bar)');
 {
   const w = ws();
-  const { eng } = run('V2', { ...w, orch: { motif: [1,1,2], chains: [['A'],['B','C','B']] }, dur: 60, seed: 9 },
+  const { eng } = run('V2', { ...w, orch: { motif: [1,1,2], chains: [CH('A'),CH('B','C','B')] }, dur: 60, seed: 9 },
     { actions: [{ at: 106.0, tap: 1 }, { at: 125.0, tap: 0 }] });
   check('V2:injected', eng.events.some(e => e.chain === 2), 'injection never played');
 }
@@ -245,7 +242,7 @@ console.log('V2 inject-then-resume (q=bar)');
 console.log('V3 pulse-quantized injection (cuts the bar mid-flight)');
 {
   const w = ws();
-  const { eng, cfg } = run('V3', { ...w, orch: { motif: [1], chains: [['A'],['B','B']] }, q: 'pulse', dur: 40, seed: 21 },
+  const { eng, cfg } = run('V3', { ...w, orch: { motif: [1], chains: [CH('A'),CH('B','B')] }, q: 'pulse', dur: 40, seed: 21 },
     { actions: [{ at: 101.3, tap: 1 }] });
   // the injection boundary must land mid-bar (A is 4s; tap at ~1.3s in)
   const cut = eng.events.find(e => e.chain === 2);
@@ -256,17 +253,17 @@ console.log('V3 pulse-quantized injection (cuts the bar mid-flight)');
 console.log('V4 pre-emption (tap during an injection)');
 {
   const w = ws();
-  run('V4', { ...w, orch: { motif: [1], chains: [['A'],['B','B','B','B'],['C','C']] }, dur: 50, seed: 23 },
+  run('V4', { ...w, orch: { motif: [1], chains: [CH('A'),CH('B','B','B','B'),CH('C','C')] }, dur: 50, seed: 23 },
     { actions: [{ at: 105.0, tap: 1 }, { at: 108.0, tap: 2 }] });
 }
 
 console.log('V5 mid-play edits (chains, motif, tab periods)');
 {
   const w = ws();
-  const orch5 = { motif: [1,2], chains: [['A'],['B','C']] };
+  const orch5 = { motif: [1,2], chains: [CH('A'),CH('B','C')] };
   run('V5', { ...w, orch: orch5, dur: 70, seed: 17 }, {
     actions: [
-      { at: 108.0, edit: () => { orch5.chains[1] = ['C','B','C']; } },
+      { at: 108.0, edit: () => { orch5.chains[1] = CH('C','B','C'); } },
       { at: 122.0, edit: () => { orch5.motif = [2,1,1]; } },
       { at: 137.0, edit: () => { w.stacks[1].periods = [11]; } },
       { at: 151.0, edit: () => { w.stacks[0].phase = 5; } },
@@ -277,33 +274,65 @@ console.log('V5 mid-play edits (chains, motif, tab periods)');
 console.log('V6 long run, exact grid (dyadic bar lengths, no drift)');
 {
   const w = ws();
-  run('V6', { ...w, orch: { motif: [1,2,3,2,1], chains: [['A','B'],['c'],['a','B','b']] },
+  run('V6', { ...w, orch: { motif: [1,2,3,2,1], chains: [CH('A','B'),CH('c'),CH('a','B','b')] },
     dur: 1800, t0: 1000000.12, coarse: true, seed: 31 });
 }
 
 console.log('V8 real tempo (136bpm pulse) with lanes + ghosts');
 {
   const w = ws();
-  run('V8', { ...w, orch: { motif: [1,2,3], chains: [['A'],['b','C'],['a']] },
+  run('V8', { ...w, orch: { motif: [1,2,3], chains: [CH('A'),CH('b','C'),CH('a')] },
     pulse: 15/136, dur: 90, seed: 37 });
 }
 
-console.log('V7 migration (v4 wins+M->winsBy+lowercase, v3 chain, v5 clamp)');
+console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injection)');
+{
+  const w = ws();
+  w.stacks[1] = { ...stack([2,1], [9]), steps: [1] };   // B: 2-bar cycle
+  const orch9 = { motif: [1,2], chains: [
+    { seq: ['A','B'], orns: [
+      { li: 0, bar: 0, u: 3, act: 'add',   sym: 6 },    // crash at phrase1 pulse 3
+      { li: 0, bar: 0, u: 0, act: 'mute',  sym: 1 },    // kill the downbeat kick
+      { li: 0, bar: 0, u: 5, act: 'add',   sym: -7 },   // ghost snare hit
+      { li: 1, bar: 1, u: 2, act: 'ghost', sym: 1 },    // soften B's bar-2 kick
+    ]},
+    { seq: ['B'], orns: [] },
+  ]};
+  const { eng } = run('V9', { ...w, orch: orch9, dur: 80, seed: 41 },
+    { actions: [{ at: 108, tap: 0 }] });                // inject the ornamented chain too
+  const cache = eng.api.buildOrchCache();
+  const e0 = cache.chainSeqs[0][0], e1 = cache.chainSeqs[0][1];
+  const inPulse = (h, u) => Math.floor(h[0] / 0.25 + 1e-6) === u;
+  check('V9:add', e0.hits.some(h => inPulse(h, 3) && h[1] === 49 && h[2] === 96), 'crash missing');
+  check('V9:ghostAdd', e0.hits.some(h => inPulse(h, 5) && h[1] === 40 && h[2] === 52), 'ghost snare missing');
+  check('V9:mute', !e0.hits.some(h => inPulse(h, 0) && h[1] === 36), 'downbeat kick survived mute');
+  const bp1 = 9;                                        // B's bar = 9 pulses; bar1 pulse2 -> global 11
+  check('V9:ghostAct', e1.hits.filter(h => inPulse(h, bp1 + 2) && h[1] === 36)
+    .every(h => h[2] === 52) && e1.hits.some(h => inPulse(h, bp1 + 2) && h[1] === 36),
+    'B bar-2 kick not ghosted');
+  const plain = eng.api.letterHits('A');
+  check('V9:pristine', plain.some(h => inPulse(h, 0) && h[1] === 36),
+    'ornament leaked into the pristine letter');
+}
+
+console.log('V7 migration (v6 wrap+trim, v4/v3/v2 chain, v7 clamp)');
 {
   const eng = makeEngine();
   const s1 = stack([1,2], [12]), s2 = stack([3], [8]);
-  const v5good = { v: 5, stacks: [s1, s2], cur: 0, view: 'mix', mixBase: 1,
-    winsBy: [[],[{tab:0,a:1,b:2}]], orch: { motif: [1,2], chains: [['b','A'],['B']] }, q: 'pulse' };
-  const m5g = eng.api.migrate(null, JSON.parse(JSON.stringify(v5good)), null, null, null, null);
-  check('V7:v5', m5g.v === 6 && m5g.pulse === 0.25 && m5g.winsBy[1].length === 1
-    && m5g.orch.chains[0].join('') === 'bA', JSON.stringify(m5g.orch));
+  const v6good = { v: 6, stacks: [s1, s2], cur: 0, view: 'orch', mixBase: 1, pulse: 0.2,
+    winsBy: [[],[{tab:0,a:1,b:2}]],
+    orch: { motif: [1,2], chains: [['b','A','B','a','A'],['B']] }, q: 'pulse' };
+  const m6 = eng.api.migrate(null, JSON.parse(JSON.stringify(v6good)), null, null, null, null, null);
+  check('V7:v6', m6.v === 7 && m6.pulse === 0.2
+    && m6.orch.chains[0].seq.join('') === 'bABa'        // trimmed to the 4-phrase convention
+    && m6.orch.chains[0].orns.length === 0 && m6.winsBy[1].length === 1,
+    JSON.stringify(m6.orch));
   const v4 = { v: 4, stacks: [s1, s2], cur: 0, view: 'mix', mixBase: 1,
     wins: [{tab:0,a:1,b:2}], orch: { motif: [1,2], chains: [['M','A'],['B']] }, q: 'pulse' };
-  const m4 = eng.api.migrate(null, null, v4, null, null, null);
-  check('V7:v4', m4.v === 6 && m4.pulse === 0.25 && m4.winsBy.length === 2
-    && m4.winsBy[1].length === 1 && m4.winsBy[0].length === 0
-    && m4.orch.chains[0].join('') === 'bA' && m4.orch.chains[1].join('') === 'B'
-    && m4.q === 'pulse' && m4.mixBase === 1, JSON.stringify(m4.orch) + JSON.stringify(m4.winsBy));
+  const m4 = eng.api.migrate(null, null, null, v4, null, null, null);
+  check('V7:v4', m4.v === 7 && m4.pulse === 0.25 && m4.winsBy.length === 2
+    && m4.orch.chains[0].seq.join('') === 'bA' && m4.orch.chains[1].seq.join('') === 'B'
+    && m4.q === 'pulse' && m4.mixBase === 1, JSON.stringify(m4.orch));
   const v3 = { v: 3,
     setups: [
       { stacks: [s1, s2], cur: 0, view: 'stack', wins: [{tab:1,a:1,b:2}], deck: 'A' },
@@ -311,25 +340,35 @@ console.log('V7 migration (v4 wins+M->winsBy+lowercase, v3 chain, v5 clamp)');
       { stacks: [s1, s2], cur: 1, view: 'mix', wins: [], deck: 'MIX' },
     ],
     curSetup: 0, oview: 'orch', orch: { periods: [4], motif: [1, 3, 2] }, opulse: 8, q: 'tick' };
-  const m3 = eng.api.migrate(null, null, null, v3, null, null);
-  check('V7:v3', m3.v === 6 && m3.orch.chains.length === 3
-    && m3.orch.chains[0].join('') === 'A' && m3.orch.chains[1].join('') === 'B'
-    && m3.orch.chains[2].join('') === 'a'          // M -> mix of base 0
-    && m3.orch.motif.join() === '1,3,2' && m3.q === 'bar' && m3.stacks.length === 2,
-    JSON.stringify(m3.orch));
+  const m3 = eng.api.migrate(null, null, null, null, v3, null, null);
+  check('V7:v3', m3.v === 7 && m3.orch.chains.length === 3
+    && m3.orch.chains[0].seq.join('') === 'A' && m3.orch.chains[2].seq.join('') === 'a'
+    && m3.orch.motif.join() === '1,3,2' && m3.q === 'bar', JSON.stringify(m3.orch));
   const v2 = { stacks: [s1], cur: 0, view: 'stack', wins: [] };
-  const m2 = eng.api.migrate(null, null, null, null, v2, null);
-  check('V7:v2', m2.v === 6 && m2.orch.chains.length === 1 && m2.orch.motif.join() === '1'
-    && m2.winsBy.length === 1);
-  const v6bad = { v: 6, stacks: [{...s1, lanes:[null, stack([2],[4]), {bogus:1}]}, s2],
+  const m2 = eng.api.migrate(null, null, null, null, null, v2, null);
+  check('V7:v2', m2.v === 7 && m2.orch.chains.length === 1
+    && m2.orch.chains[0].seq.join('') === 'A' && m2.winsBy.length === 1);
+  const v7bad = { v: 7, stacks: [{...s1, lanes:[null, stack([2],[4]), {bogus:1}]}, s2],
     cur: 9, view: 'orch', mixBase: 7, pulse: 9.9,
     winsBy: [[{tab:1,a:0,b:1}]],
-    orch: { motif: [1, 9, 2], chains: [['A','Z','b'],['B']] }, q: 'weird' };
-  const m6 = eng.api.migrate(v6bad, null, null, null, null, null);
-  check('V7:v6clamp', m6.cur === 1 && m6.mixBase === 1 && m6.winsBy.length === 2
-    && m6.pulse === 0.25 && m6.stacks[0].lanes.length === 1
-    && m6.orch.chains[0].join('') === 'AAb'
-    && m6.orch.motif.join() === '1,2,2' && m6.q === 'bar' && m6.view === 'orch');
+    orch: { motif: [1, 9, 2], chains: [
+      { seq: ['A','Z','b'], orns: [
+        { li: 0, bar: 0, u: 2, act: 'add', sym: 3 },     // valid
+        { li: 9, bar: 0, u: 2, act: 'add', sym: 3 },     // bad li
+        { li: 0, bar: 0, u: 2, act: 'zap', sym: 3 },     // bad act
+        { li: 0, bar: 0, u: 2, act: 'add', sym: 99 },    // bad sym
+        null,
+      ]},
+      { seq: ['B'] },
+    ] }, q: 'weird' };
+  const m7 = eng.api.migrate(v7bad, null, null, null, null, null, null);
+  check('V7:v7clamp', m7.cur === 1 && m7.mixBase === 1 && m7.winsBy.length === 2
+    && m7.pulse === 0.25 && m7.stacks[0].lanes.length === 1
+    && m7.orch.chains[0].seq.join('') === 'AAb'
+    && m7.orch.chains[0].orns.length === 1
+    && m7.orch.chains[1].orns.length === 0
+    && m7.orch.motif.join() === '1,2,2' && m7.q === 'bar' && m7.view === 'orch',
+    JSON.stringify(m7.orch));
 }
 
 console.log(failures === 0 ? '\nALL GREEN' : `\n${failures} FAILURES`);

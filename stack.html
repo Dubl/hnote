@@ -173,13 +173,18 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
 
 <div id="orchview" style="display:none">
   <div class="panel">
-    <h2>Chains — each symbol is a phrase of uberloop bars (tap a letter to cycle · while playing, tap the number to inject)</h2>
+    <h2>Chains — up to 4 letters each · tap the number: stopped = timeline, playing = inject</h2>
     <div id="chains"></div>
     <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
       <span style="font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)">switch quantize</span>
       <button class="dchip" id="qbar">bar</button>
       <button class="dchip" id="qpulse">pulse</button>
     </div>
+  </div>
+  <div class="panel" id="tlpanel" style="display:none">
+    <h2 id="tlhead">Timeline</h2>
+    <div id="tlgrid"></div>
+    <div id="tledit" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;"></div>
   </div>
   <div class="panel">
     <h2>Orch motif — the arrangement (tap to select, tap again to cycle)</h2>
@@ -203,11 +208,41 @@ let PULSE=0.25;                 // seconds per pulse (a 16th) - persisted, BPM-e
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N']];
 const TABN=['A','B','C','D','E','F','G','H'];
 const UPS=TABN.join(''), LOS=UPS.toLowerCase();
-const KEY='hnote_stack_v6';
+const KEY='hnote_stack_v7';
 const CHAINMAX=12;
+const PHRASEMAX=4;               // convention: a chain holds at most 4 letters (phrases)
 /* PURE-STATE-BEGIN */
-function migrateFrom(v6,v5,v4,v3,v2,v1){
+function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
   // old keys are never written back - migration only reads
+  if(v7&&v7.v===7){
+    if(!v7.stacks||!v7.stacks.length) v7.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
+    v7.cur=Math.min(v7.cur??0, v7.stacks.length-1);
+    v7.stacks.forEach(s=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
+      [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
+        if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0));
+        if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
+        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0)); }); });
+    v7.winsBy=Array.from({length:v7.stacks.length},(_,i)=>(v7.winsBy&&v7.winsBy[i])||[]);
+    v7.mixBase=Math.min(Math.max(0,v7.mixBase|0), v7.stacks.length-1);
+    v7.orch=(v7.orch&&v7.orch.motif&&v7.orch.motif.length&&v7.orch.chains&&v7.orch.chains.length)
+      ?v7.orch:{motif:[1],chains:[{seq:['A'],orns:[]}]};
+    v7.orch.chains=v7.orch.chains.slice(0,CHAINMAX).map(c=>{
+      const seq=((c&&c.seq&&c.seq.length)?c.seq:['A']).slice(0,PHRASEMAX)
+        .map(L=>(UPS+LOS).includes(L)?L:'A');
+      const orns=(c&&Array.isArray(c.orns)?c.orns:[]).filter(o=>o
+        &&Number.isInteger(o.li)&&o.li>=0&&o.li<seq.length
+        &&Number.isInteger(o.bar)&&o.bar>=0&&Number.isInteger(o.u)&&o.u>=0
+        &&['add','mute','ghost'].includes(o.act)
+        &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length);
+      return {seq, orns};
+    });
+    v7.orch.motif=v7.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v7.orch.chains.length));
+    v7.view=['stack','mix','orch'].includes(v7.view)?v7.view:'stack';
+    if(v7.stacks.length<2&&v7.view!=='stack') v7.view='stack';
+    v7.q=v7.q==='pulse'?'pulse':'bar';
+    v7.pulse=(typeof v7.pulse==='number'&&v7.pulse>=15/220&&v7.pulse<=15/40)?v7.pulse:0.25;
+    return v7;
+  }
   if(v6&&v6.v===6){
     if(!v6.stacks||!v6.stacks.length) v6.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
     v6.cur=Math.min(v6.cur??0, v6.stacks.length-1);
@@ -218,26 +253,23 @@ function migrateFrom(v6,v5,v4,v3,v2,v1){
         if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0)); }); });
     v6.winsBy=Array.from({length:v6.stacks.length},(_,i)=>(v6.winsBy&&v6.winsBy[i])||[]);
     v6.mixBase=Math.min(Math.max(0,v6.mixBase|0), v6.stacks.length-1);
-    v6.orch=(v6.orch&&v6.orch.motif&&v6.orch.motif.length&&v6.orch.chains&&v6.orch.chains.length)
-      ?v6.orch:{motif:[1],chains:[['A']]};
-    v6.orch.chains=v6.orch.chains.slice(0,CHAINMAX)
-      .map(c=>(c&&c.length?c:['A']).slice(0,32).map(L=>(UPS+LOS).includes(L)?L:'A'));
-    v6.orch.motif=v6.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v6.orch.chains.length));
-    v6.view=['stack','mix','orch'].includes(v6.view)?v6.view:'stack';
-    if(v6.stacks.length<2&&v6.view!=='stack') v6.view='stack';
-    v6.q=v6.q==='pulse'?'pulse':'bar';
-    v6.pulse=(typeof v6.pulse==='number'&&v6.pulse>=15/220&&v6.pulse<=15/40)?v6.pulse:0.25;
-    return v6;
+    // v6 chains were plain letter arrays; wrap them (trim to the 4-phrase convention)
+    const chains=((v6.orch&&v6.orch.chains)||[['A']])
+      .map(c=>({seq:(c&&c.length?c:['A']).slice(0,PHRASEMAX), orns:[]}));
+    return migrateFrom({v:7, stacks:v6.stacks, cur:v6.cur, view:v6.view,
+      winsBy:v6.winsBy, mixBase:v6.mixBase, pulse:v6.pulse, q:v6.q,
+      orch:{motif:(v6.orch&&v6.orch.motif)||[1], chains}},
+      null, null, null, null, null, null);
   }
   if(v5&&v5.v===5&&v5.stacks&&v5.stacks.length){
-    return migrateFrom(Object.assign({},v5,{v:6, pulse:0.25}), null, null, null, null, null);
+    return migrateFrom(null, Object.assign({},v5,{v:6, pulse:0.25}), null, null, null, null, null);
   }
   if(v4&&v4.v===4&&v4.stacks&&v4.stacks.length){
     const mb=Math.min(Math.max(0,v4.mixBase|0), v4.stacks.length-1);
     const wb=v4.stacks.map(()=>[]); wb[mb]=v4.wins??[];
     const low=LOS[mb];                        // old single mix -> that base's mix letter
     const chains=((v4.orch&&v4.orch.chains)||[['A']]).map(c=>c.map(L=>L==='M'?low:L));
-    return migrateFrom(null, {v:5, stacks:v4.stacks, cur:v4.cur??0, view:v4.view??'stack',
+    return migrateFrom(null, null, {v:5, stacks:v4.stacks, cur:v4.cur??0, view:v4.view??'stack',
       winsBy:wb, mixBase:mb,
       orch:{motif:(v4.orch&&v4.orch.motif)||[1], chains}, q:v4.q}, null, null, null, null);
   }
@@ -247,7 +279,7 @@ function migrateFrom(v6,v5,v4,v3,v2,v1){
       :(UPS.includes(s.deck)?s.deck:'A')]);
     const motif=((v3.orch&&v3.orch.motif&&v3.orch.motif.length)?v3.orch.motif:[1])
       .map(m=>Math.min(Math.max(1,m|0)||1, chains.length));
-    return migrateFrom(null, null, {v:4, stacks:su.stacks, cur:su.cur??0, view:'stack',
+    return migrateFrom(null, null, null, {v:4, stacks:su.stacks, cur:su.cur??0, view:'stack',
             wins:su.wins??[], mixBase:0,
             orch:{motif, chains}, q:v3.q==='pulse'?'pulse':'bar'}, null, null, null);
   }
@@ -255,13 +287,14 @@ function migrateFrom(v6,v5,v4,v3,v2,v1){
     v2={stacks:[{motif:(v1&&v1.motif)||[1,2,3], periods:(v1&&v1.periods)||[16,8],
                  children:(v1&&v1.children)||{}}], cur:0, view:'stack', wins:[]};
   }
-  return migrateFrom(null, null, {v:4, stacks:v2.stacks, cur:v2.cur??0,
+  return migrateFrom(null, null, null, {v:4, stacks:v2.stacks, cur:v2.cur??0,
           view:v2.view==='mix'?'mix':'stack', wins:v2.wins??[], mixBase:0,
           orch:{motif:[1],chains:[['A']]}, q:'bar'}, null, null, null);
 }
 /* PURE-STATE-END */
 let st=migrateFrom(
   JSON.parse(localStorage.getItem(KEY)||'null'),
+  JSON.parse(localStorage.getItem('hnote_stack_v6')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v5')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v4')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v3')||'null'),
@@ -271,8 +304,8 @@ let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack',
     winsBy=st.winsBy, mixBase=st.mixBase??0, orch=st.orch, q=st.q;
 PULSE=st.pulse??0.25;
 let wins=winsBy[mixBase];        // bound to the selected mix's window list
-let sel=null, osel=null, curLane=0;
-function persist(){ localStorage.setItem(KEY,JSON.stringify({v:6,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
+let sel=null, osel=null, curLane=0, selChain=null, tlSel=null;
+function persist(){ localStorage.setItem(KEY,JSON.stringify({v:7,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
@@ -376,13 +409,36 @@ function letterHits(L){
   return realizeTabHits(stacks[i]);
 }
 function letterLen(L){ return tabLen(stacks[letterBase(L)]); }
-function flatLetters(){                 // motif -> [letter, chainNo] sequence
-  const out=[];
-  orch.motif.forEach(sym=>{
-    const c=orch.chains[Math.min(sym,orch.chains.length)-1]||['A'];
-    c.forEach(L=>out.push([L,sym]));
+// --- ornaments: one-offs held BY the chain at structural addresses ---
+function letterGrid(L){ const tb=stacks[letterBase(L)];
+  return {bp:topPeriod(tb), bars:tabCycle(tb)}; }
+function applyOrns(hits,L,orns,li){
+  let out=hits.slice();
+  const bp=letterGrid(L).bp;
+  (orns||[]).forEach(o=>{
+    if(o.li!==li) return;
+    const t0=(o.bar*bp+o.u)*PULSE, t1=t0+PULSE;
+    const sd=SOUNDS[Math.abs(o.sym)-1]; if(!sd) return;
+    if(o.act==='add') out.push([t0, sd[0], o.sym<0?52:96]);
+    else if(o.act==='mute') out=out.filter(([t,p])=>!(t>=t0-1e-9&&t<t1-1e-9&&p===sd[0]));
+    else if(o.act==='ghost') out=out.map(([t,p,v])=>(t>=t0-1e-9&&t<t1-1e-9&&p===sd[0])?[t,p,52]:[t,p,v]);
   });
-  return out.length?out:[['A',1]];
+  return out.sort((a,b)=>a[0]-b[0]);
+}
+function chainEntries(ci){              // a chain's letters with its one-offs applied
+  const c=orch.chains[ci];
+  const seq=(c&&c.seq&&c.seq.length)?c.seq:['A'];
+  return seq.map((L,li)=>({L, chain:ci+1,
+    hits:applyOrns(letterHits(L),L,c&&c.orns,li), len:letterLen(L)}));
+}
+function buildOrchCache(){
+  const chainSeqs=orch.chains.map((c,ci)=>chainEntries(ci));
+  const seq=[];
+  orch.motif.forEach(sym=>{
+    (chainSeqs[Math.min(sym,orch.chains.length)-1]||[]).forEach(e=>seq.push(e));
+  });
+  if(!seq.length) seq.push({L:'A',chain:1,hits:letterHits('A'),len:letterLen('A')});
+  return {seq, chainSeqs};
 }
 let playTarget=null;      // locked at launch: {view:'mix'} or {view:'stack', cur:i}
 function targetHits(){
@@ -710,35 +766,45 @@ function drawOrch(){
     big.style.background=`var(--s${i+1})`; big.textContent=i+1;
     big.onclick=()=>{
       if(playing&&playTarget&&playTarget.view==='orch'){ oQueue=i; markChains(); }
+      else { selChain=(selChain===i)?null:i; tlSel=null; draw(); }   // stopped: toggle timeline
     };
     row.appendChild(big);
-    c.forEach((L,j)=>{
+    c.seq.forEach((L,j)=>{
       const b=document.createElement('button'); b.className='lchip';
       b.style.background=`var(--t${L.toUpperCase()})`;
       if(LOS.includes(L)){ b.style.textDecoration='underline'; b.style.fontStyle='italic'; }
       b.textContent=L;
       b.onclick=()=>{ const k=avail.indexOf(L);
-        c[j]=avail[(k<0?0:(k+1)%avail.length)]; changed(); };
+        c.seq[j]=avail[(k<0?0:(k+1)%avail.length)]; changed(); };
       row.appendChild(b);
     });
     const a=document.createElement('button'); a.className='dchip'; a.textContent='+';
-    a.onclick=()=>{ if(c.length<32){ c.push('A'); changed(); } };
+    a.onclick=()=>{ if(c.seq.length<PHRASEMAX){ c.seq.push('A'); changed(); } };
     const r=document.createElement('button'); r.className='dchip'; r.textContent='−';
-    r.onclick=()=>{ if(c.length>1){ c.pop(); changed(); } };
+    r.onclick=()=>{ if(c.seq.length>1){ c.seq.pop();
+      c.orns=(c.orns||[]).filter(o=>o.li<c.seq.length); changed(); } };
     row.append(a,r);
+    const cp=document.createElement('button'); cp.className='dchip'; cp.textContent='⧉';
+    cp.onclick=()=>{ if(orch.chains.length<CHAINMAX){
+      orch.chains.push(JSON.parse(JSON.stringify(c))); changed(); } };  // copy takes the one-offs
+    row.appendChild(cp);
     if(orch.chains.length>1){
       const x=document.createElement('button'); x.className='dchip'; x.textContent='✕';
       x.onclick=()=>{ orch.chains.splice(i,1);
-        orch.motif=orch.motif.map(m=>Math.min(m>i+1?m-1:m, orch.chains.length)); changed(); };
+        orch.motif=orch.motif.map(m=>Math.min(m>i+1?m-1:m, orch.chains.length));
+        if(selChain===i) selChain=null;
+        else if(selChain>i) selChain--;
+        changed(); };
       row.appendChild(x);
     }
     cs.appendChild(row);
   });
   if(orch.chains.length<CHAINMAX){
     const ac=document.createElement('button'); ac.className='addlvl'; ac.textContent='+ add chain';
-    ac.onclick=()=>{ orch.chains.push(['A']); changed(); };
+    ac.onclick=()=>{ orch.chains.push({seq:['A'],orns:[]}); changed(); };
     cs.appendChild(ac);
   }
+  drawTimeline();
 
   const mr=document.getElementById('omrow'); mr.innerHTML='';
   orch.motif.forEach((sym,i)=>{
@@ -762,8 +828,10 @@ function drawOrch(){
 
   let s='';
   orch.motif.forEach(sym=>{
-    const c=orch.chains[Math.min(sym,orch.chains.length)-1]||['A'];
-    s+='<span class="gp">'+c.map(L=>`<b class="l${L}">${L}</b>`).join('')+'</span>';
+    const c=orch.chains[Math.min(sym,orch.chains.length)-1];
+    const seq=(c&&c.seq)||['A'];
+    const star=(c&&c.orns&&c.orns.length)?'<b class="mut">°</b>':'';
+    s+='<span class="gp">'+seq.map(L=>`<b class="l${L}">${L}</b>`).join('')+star+'</span>';
   });
   document.getElementById('oreal').innerHTML=s;
 
@@ -772,6 +840,68 @@ function drawOrch(){
   qb.onclick=()=>{ q='bar'; changed(); };
   qp.onclick=()=>{ q='pulse'; changed(); };
   markChains();
+}
+function drawTimeline(){
+  const tp=document.getElementById('tlpanel');
+  if(selChain==null||!orch.chains[selChain]){ tp.style.display='none'; return; }
+  tp.style.display='';
+  const c=orch.chains[selChain];
+  document.getElementById('tlhead').textContent=
+    `Chain ${selChain+1} timeline — every address (phrase·bar·pulse) · tap to place a one-off`;
+  const g=document.getElementById('tlgrid'); g.innerHTML='';
+  c.seq.forEach((L,li)=>{
+    const {bp,bars}=letterGrid(L);
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:6px 0 4px;';
+    lbl.textContent=`phrase ${li+1} · ${L} · ${bars>1?bars+' bars × ':''}${bp} pulses`;
+    g.appendChild(lbl);
+    const base=new Set(letterHits(L).map(([t])=>Math.floor(t/PULSE+1e-6)));
+    for(let bar=0;bar<bars;bar++){
+      const rowEl=document.createElement('div');
+      rowEl.style.cssText='display:flex;flex-wrap:wrap;gap:2px;margin-bottom:3px;';
+      for(let u=0;u<bp;u++){
+        const cell=document.createElement('button');
+        const o=(c.orns||[]).find(o=>o.li===li&&o.bar===bar&&o.u===u);
+        const has=base.has(bar*bp+u);
+        let bg='#221f2b', txt=has?'·':'', col='var(--muted)';
+        if(o){
+          txt=o.act==='mute'?'✕':o.act==='ghost'?'~':SOUNDS[Math.abs(o.sym)-1][1];
+          bg=`var(--s${Math.abs(o.sym)})`; col='#10131a';
+        }
+        cell.textContent=txt;
+        cell.style.cssText=`width:24px;height:28px;border:none;border-radius:5px;`+
+          `font-size:11px;font-weight:800;cursor:pointer;background:${bg};color:${col};`+
+          (o&&o.sym<0?'opacity:.55;':'')+
+          (tlSel&&tlSel.li===li&&tlSel.bar===bar&&tlSel.u===u?'box-shadow:0 0 0 2px var(--text) inset;':'');
+        cell.onclick=()=>{ tlSel={li,bar,u}; draw(); };
+        rowEl.appendChild(cell);
+      }
+      g.appendChild(rowEl);
+    }
+  });
+  drawTlEdit(c);
+}
+function drawTlEdit(c){
+  const ed=document.getElementById('tledit'); ed.innerHTML='';
+  if(!tlSel) return;
+  const {li,bar,u}=tlSel;
+  const idx=(c.orns||[]).findIndex(o=>o.li===li&&o.bar===bar&&o.u===u);
+  const o=idx>=0?c.orns[idx]:null;
+  const lbl=document.createElement('span');
+  lbl.style.cssText='font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);align-self:center;';
+  lbl.textContent=`${li+1}·${bar}·${u}`;
+  ed.appendChild(lbl);
+  const mk=(txt,fn,on)=>{ const b=document.createElement('button'); b.className='dchip'+(on?' on':'');
+    b.textContent=txt; b.onclick=fn; ed.appendChild(b); };
+  if(!o){
+    mk('+ one-off',()=>{ c.orns=c.orns||[]; c.orns.push({li,bar,u,act:'add',sym:1}); changed(); });
+    return;
+  }
+  mk(SOUNDS[Math.abs(o.sym)-1][1],()=>{                     // cycle voice
+    const a=Math.abs(o.sym)%SOUNDS.length+1; o.sym=o.sym<0?-a:a; changed(); });
+  mk(o.sym<0?'♪ ghosted':'♪ ghost',()=>{ o.sym=-o.sym; changed(); }, o.sym<0);
+  ['add','mute','ghost'].forEach(a=>mk(a,()=>{ o.act=a; changed(); }, o.act===a));
+  mk('✕ remove',()=>{ c.orns.splice(idx,1); changed(); });
 }
 function markChains(){
   if(view!=='orch') return;
@@ -834,12 +964,11 @@ function playHit(at,p,v){
   take.push([at-takeStart,p,v]);
 }
 function refreshOrch(){
-  const by={};
-  for(const L of UPS+LOS) by[L]={hits:letterHits(L), len:letterLen(L)};
-  orchCache={by, seq:flatLetters(), chains:orch.chains.map(c=>c.slice())};
+  orchCache=buildOrchCache();
   if(wi>=orchCache.seq.length) wi=0;
   if(playing&&playTarget&&playTarget.view==='orch'){
-    curHits=orchCache.by[curLetter].hits; curLen=orchCache.by[curLetter].len;
+    const e=orchCache.seq[(wi-1+orchCache.seq.length)%orchCache.seq.length];
+    if(e&&e.L===curLetter){ curHits=e.hits; curLen=e.len; }
   }
 }
 function refresh(){
@@ -851,15 +980,15 @@ function refresh(){
 function advance(B){
   if(inj&&inj.idx>=inj.list.length) inj=null;      // injected phrase finished
   if(oQueue!=null){                                 // tap pre-empts (even mid-injection)
-    const c=orchCache.chains[oQueue];
-    inj={list:(c&&c.length)?c:['A'], idx:0, chain:oQueue+1};
+    const list=orchCache.chainSeqs[oQueue];
+    inj={list:(list&&list.length)?list:[orchCache.seq[0]], idx:0};
     oQueue=null;
   }
-  let L, chain;
-  if(inj){ L=inj.list[inj.idx++]; chain=inj.chain; }
-  else{ const e=orchCache.seq[wi]; L=e[0]; chain=e[1]; wi=(wi+1)%orchCache.seq.length; }
-  curLetter=L; activeChain=chain;
-  curHits=orchCache.by[L].hits; curLen=orchCache.by[L].len;
+  let e;
+  if(inj){ e=inj.list[inj.idx++]; }
+  else{ e=orchCache.seq[wi]; wi=(wi+1)%orchCache.seq.length; }
+  curLetter=e.L; activeChain=e.chain;
+  curHits=e.hits; curLen=e.len;
   segStart=B;
   onSwitch(B);
 }
@@ -952,11 +1081,15 @@ function tabBlob(s){
 document.getElementById('copy').onclick=async()=>{
   let text;
   if(view==='orch'){
-    const ch=orch.chains.map((c,i)=>`chain${i+1}=${c.join('')}`).join(' ');
+    const ch=orch.chains.map((c,i)=>`chain${i+1}=${c.seq.join('')}`).join(' ');
+    const orns=orch.chains.map((c,i)=>c.orns&&c.orns.length
+      ?` orn${i+1}=[${c.orns.map(o=>`${o.li}.${o.bar}.${o.u}:`+
+        (o.act==='mute'?'x':o.act==='ghost'?'~':'')+
+        (o.act==='add'?o.sym:Math.abs(o.sym))).join(',')}]`:'').join('');
     const tabs=stacks.map((s,j)=>`${TABN[j]}={${tabBlob(s)}}`).join(' ');
     const wsTok=winsBy.map((ws,i)=>ws&&ws.length
       ?` wins${TABN[i]}=[${ws.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',')}]`:'').join('');
-    text=`hnote orch v3 pulse=${PULSE} motif=[${orch.motif.join(',')}] ${ch} q=${q} ${tabs}${wsTok}`;
+    text=`hnote orch v4 pulse=${PULSE} motif=[${orch.motif.join(',')}] ${ch}${orns} q=${q} ${tabs}${wsTok}`;
   }else if(view==='mix'){
     const tabs=stacks.map((s,i)=>`${TABN[i]}={${tabBlob(s)}}`).join(' ');
     const ws=wins.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',');

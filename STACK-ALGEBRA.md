@@ -90,10 +90,22 @@ The mix's length is the ground tab's length.
 
 A **letter** denotes a loop: uppercase A… = a tab's loop; lowercase a… =
 the mix grounded on that tab (with that ground's window list). A
-**chain** is a word of letters = concatenation of their loops (each
-letter contributes one full bar at its own length). An **arrangement**
-is a sequence of chain references, concatenated likewise. Live
-performance semantics (quantized injection, pre-emption) are an
+**chain** is a word of AT MOST FOUR letters (phrases; convention) =
+concatenation of their loops. An **arrangement** is a sequence of chain
+references, concatenated likewise.
+
+**Ornaments (score layer).** A chain additionally carries a finite set of
+one-off events at STRUCTURAL addresses (li, bar, u): phrase index within
+the chain, bar within that letter's cycle, pulse within the bar. Each
+ornament has an action and a signed symbol: `add` = emit voice |s| at the
+address (weight 96, or ghost weight if s < 0); `mute` = remove that
+occurrence's events of voice |s| in that pulse; `ghost` = set their
+weight to the ghost value. Ornaments apply to the chain's OWN occurrence
+of the letter only — the underlying loops stay pristine — and copying a
+chain copies its ornaments. This layer is deliberately outside the loop
+algebra: loops state invariants; ornaments state exceptions.
+
+Live performance semantics (quantized injection, pre-emption) are an
 operational layer above this algebra and are specified by the reference
 implementation, not this document.
 
@@ -117,9 +129,12 @@ implementation, not this document.
                   ("phase=" φ)? 
     mix-blob    = "hnote stackmix v1 pulse=" num ("base=" letter)?
                   (letter "={" body "}")+ "wins=[" (letter":"a"-"b)* "]"
-    orch-blob   = "hnote orch v3 pulse=" num "motif=[" ints "]"
-                  ("chain" i "=" letters)+ "q=" ("bar"|"pulse")
+    orch-blob   = "hnote orch v4 pulse=" num "motif=[" ints "]"
+                  ("chain" i "=" letters)+
+                  ("orn" i "=[" (li"."bar"."u":("x"|"~")?sym) ("," …)* "]")*
+                  "q=" ("bar"|"pulse")
                   (letter "={" body "}")+ ("wins" letter "=[" … "]")*
+                  -- orn actions: plain sym = add (signed), x = mute, ~ = ghost
 
 `conformance.json` contains vectors {name, blob or structures, pulse: 1,
 bar840, hits: [[τ·840, sound, vel] …]} with all τ·840 exact integers.
