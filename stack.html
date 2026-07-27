@@ -233,7 +233,10 @@ function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
         &&Number.isInteger(o.li)&&o.li>=0&&o.li<seq.length
         &&Number.isInteger(o.bar)&&o.bar>=0&&Number.isInteger(o.u)&&o.u>=0
         &&['add','mute','ghost'].includes(o.act)
-        &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length);
+        &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length
+        &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
+          &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=6
+          &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length))));
       return {seq, orns};
     });
     v7.orch.motif=v7.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v7.orch.chains.length));
@@ -419,7 +422,16 @@ function applyOrns(hits,L,orns,li){
     if(o.li!==li) return;
     const t0=(o.bar*bp+o.u)*PULSE, t1=t0+PULSE;
     const sd=SOUNDS[Math.abs(o.sym)-1]; if(!sd) return;
-    if(o.act==='add') out.push([t0, sd[0], o.sym<0?52:96]);
+    if(o.act==='add'&&o.ch&&o.ch.S){                 // one-off sub-motif cell
+      const sub=PULSE/o.ch.S;
+      for(let j=0;j<o.ch.S;j++){
+        const s2=o.ch.m[(j+(o.ch.p||0))%o.ch.m.length];
+        if(!s2) continue;
+        const sd2=SOUNDS[Math.abs(s2)-1]; if(!sd2) continue;
+        out.push([t0+j*sub, sd2[0], s2<0?52:(j===0?96:70)]);
+      }
+    }
+    else if(o.act==='add') out.push([t0, sd[0], o.sym<0?52:96]);
     else if(o.act==='mute') out=out.filter(([t,p])=>!(t>=t0-1e-9&&t<t1-1e-9&&p===sd[0]));
     else if(o.act==='ghost') out=out.map(([t,p,v])=>(t>=t0-1e-9&&t<t1-1e-9&&p===sd[0])?[t,p,52]:[t,p,v]);
   });
@@ -865,7 +877,8 @@ function drawTimeline(){
         const has=base.has(bar*bp+u);
         let bg='#221f2b', txt=has?'·':'', col='var(--muted)';
         if(o){
-          txt=o.act==='mute'?'✕':o.act==='ghost'?'~':SOUNDS[Math.abs(o.sym)-1][1];
+          txt=o.act==='mute'?'✕':o.act==='ghost'?'~':
+            SOUNDS[Math.abs(o.sym)-1][1]+(o.ch?'*':'');
           bg=`var(--s${Math.abs(o.sym)})`; col='#10131a';
         }
         cell.textContent=txt;
@@ -901,6 +914,23 @@ function drawTlEdit(c){
     const a=Math.abs(o.sym)%SOUNDS.length+1; o.sym=o.sym<0?-a:a; changed(); });
   mk(o.sym<0?'♪ ghosted':'♪ ghost',()=>{ o.sym=-o.sym; changed(); }, o.sym<0);
   ['add','mute','ghost'].forEach(a=>mk(a,()=>{ o.act=a; changed(); }, o.act===a));
+  if(o.act==='add'){                                        // one-off sub-motif (a burst)
+    if(!o.ch){
+      mk('+ sub-motif',()=>{ o.ch={S:2,m:[Math.abs(o.sym)||1,1],p:0}; changed(); });
+    }else{
+      mk('S'+o.ch.S,()=>{ o.ch.S=o.ch.S%8+1; changed(); });
+      o.ch.m.forEach((s2,j)=>{
+        const lab=s2?SOUNDS[Math.abs(s2)-1][1]:'·';
+        mk(s2<0?lab.toLowerCase():lab,()=>{
+          const nx=(Math.abs(s2)+1)%(SOUNDS.length+1);
+          o.ch.m[j]=nx===0?0:(s2<0?-nx:nx); changed(); });
+      });
+      mk('+m',()=>{ if(o.ch.m.length<6){ o.ch.m.push(1); changed(); } });
+      mk('−m',()=>{ if(o.ch.m.length>1){ o.ch.m.pop(); changed(); } });
+      mk('p'+((o.ch.p||0)%o.ch.m.length),()=>{ o.ch.p=((o.ch.p||0)+1)%o.ch.m.length; changed(); });
+      mk('✕ sub',()=>{ delete o.ch; changed(); });
+    }
+  }
   mk('✕ remove',()=>{ c.orns.splice(idx,1); changed(); });
 }
 function markChains(){
@@ -1084,8 +1114,9 @@ document.getElementById('copy').onclick=async()=>{
     const ch=orch.chains.map((c,i)=>`chain${i+1}=${c.seq.join('')}`).join(' ');
     const orns=orch.chains.map((c,i)=>c.orns&&c.orns.length
       ?` orn${i+1}=[${c.orns.map(o=>`${o.li}.${o.bar}.${o.u}:`+
-        (o.act==='mute'?'x':o.act==='ghost'?'~':'')+
-        (o.act==='add'?o.sym:Math.abs(o.sym))).join(',')}]`:'').join('');
+        (o.act==='add'&&o.ch?`*${o.ch.S};${o.ch.m.join('.')};${o.ch.p||0}`
+         :(o.act==='mute'?'x':o.act==='ghost'?'~':'')+
+          (o.act==='add'?o.sym:Math.abs(o.sym)))).join(',')}]`:'').join('');
     const tabs=stacks.map((s,j)=>`${TABN[j]}={${tabBlob(s)}}`).join(' ');
     const wsTok=winsBy.map((ws,i)=>ws&&ws.length
       ?` wins${TABN[i]}=[${ws.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',')}]`:'').join('');

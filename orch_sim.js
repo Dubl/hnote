@@ -295,6 +295,8 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
       { li: 0, bar: 0, u: 0, act: 'mute',  sym: 1 },    // kill the downbeat kick
       { li: 0, bar: 0, u: 5, act: 'add',   sym: -7 },   // ghost snare hit
       { li: 1, bar: 1, u: 2, act: 'ghost', sym: 1 },    // soften B's bar-2 kick
+      { li: 0, bar: 0, u: 7, act: 'add', sym: 3,
+        ch: { S: 4, m: [3, 0, -3], p: 0 } },            // one-off sub-motif burst
     ]},
     { seq: ['B'], orns: [] },
   ]};
@@ -313,6 +315,11 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
   const plain = eng.api.letterHits('A');
   check('V9:pristine', plain.some(h => inPulse(h, 0) && h[1] === 36),
     'ornament leaked into the pristine letter');
+  // sub-motif burst at pulse 7: S=4, m=[3,0,-3] -> j0 42@96, j2 42@52, j3 42@70
+  const burst = e0.hits.filter(h => inPulse(h, 7) && h[1] === 42)
+    .map(h => [Math.round((h[0] - 7 * 0.25) / 0.0625), h[2]]).sort((a, b) => a[0] - b[0]);
+  check('V9:burst', JSON.stringify(burst) === JSON.stringify([[0, 96], [2, 52], [3, 70]]),
+    'sub-motif burst wrong: ' + JSON.stringify(burst));
 }
 
 console.log('V7 migration (v6 wrap+trim, v4/v3/v2 chain, v7 clamp)');

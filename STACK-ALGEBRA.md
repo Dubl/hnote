@@ -98,7 +98,9 @@ references, concatenated likewise.
 one-off events at STRUCTURAL addresses (li, bar, u): phrase index within
 the chain, bar within that letter's cycle, pulse within the bar. Each
 ornament has an action and a signed symbol: `add` = emit voice |s| at the
-address (weight 96, or ghost weight if s < 0); `mute` = remove that
+address (weight 96, or ghost weight if s < 0) — an add may instead carry
+a sub-motif cell (S, m, p) exactly as in §3, realized within that single
+pulse (first tick weight 96, later ticks 70, ghosts ghost); `mute` = remove that
 occurrence's events of voice |s| in that pulse; `ghost` = set their
 weight to the ghost value. Ornaments apply to the chain's OWN occurrence
 of the letter only — the underlying loops stay pristine — and copying a
