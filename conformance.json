@@ -32,7 +32,6 @@
       1,
       1
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -145,7 +144,6 @@
       3,
       2
      ],
-     "mode": "add",
      "children": {
       "1": {
        "S": 2,
@@ -268,7 +266,6 @@
       2,
       1
      ],
-     "mode": "add",
      "children": {
       "0": {
        "S": 3,
@@ -382,7 +379,6 @@
       1,
       2
      ],
-     "mode": "add",
      "children": {
       "1": {
        "S": 7,
@@ -545,7 +541,6 @@
       0,
       -2
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -614,7 +609,6 @@
       1,
       1
      ],
-     "mode": "add",
      "children": {},
      "phase": 7
     }
@@ -740,7 +734,6 @@
       0,
       1
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -806,7 +799,6 @@
       0,
       1
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -850,7 +842,6 @@
       3,
       4
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -942,7 +933,6 @@
       0,
       -7
      ],
-     "mode": "add",
      "children": {},
      "phase": 4
     }
@@ -987,7 +977,6 @@
       2,
       3
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     },
@@ -1005,7 +994,6 @@
       4,
       0
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     },
@@ -1025,7 +1013,6 @@
       0,
       -2
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -1215,7 +1202,6 @@
       0,
       2
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     },
@@ -1250,7 +1236,6 @@
       3,
       0
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     },
@@ -1269,7 +1254,6 @@
       7,
       -7
      ],
-     "mode": "add",
      "children": {},
      "phase": 2
     }
@@ -1408,7 +1392,6 @@
       3,
       0
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     },
@@ -1440,7 +1423,6 @@
       0,
       0
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     },
@@ -1472,7 +1454,6 @@
       0,
       -7
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -1600,7 +1581,6 @@
       3,
       0
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     },
@@ -1632,7 +1612,6 @@
       0,
       0
      ],
-     "mode": "add",
      "children": {},
      "phase": 14
     },
@@ -1664,7 +1643,6 @@
       0,
       -7
      ],
-     "mode": "add",
      "children": {},
      "phase": 14
     }
@@ -1780,7 +1758,6 @@
       7,
       0
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     },
@@ -1816,7 +1793,6 @@
       -1,
       0
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -1972,7 +1948,6 @@
       0,
       1
      ],
-     "mode": "add",
      "children": {},
      "phase": 0
     }
@@ -2217,277 +2192,6 @@
     [
      52920,
      36,
-     102
-    ]
-   ]
-  },
-  {
-   "name": "mode-over",
-   "kind": "tab",
-   "blob": "hnote stack v2 pulse=1 lane1={periods=[8] motif=[1,0,7,0]} lane2={periods=[8] motif=[3,0]} lane3={mode=over periods=[8@0+8] motif=[0,0,0,0,0,0,0,0,0,6,0,0,1,1,0,0]}",
-   "pulse": 1,
-   "lanes": [
-    {
-     "periods": [
-      8
-     ],
-     "offs": [
-      0
-     ],
-     "steps": [
-      0
-     ],
-     "motif": [
-      1,
-      0,
-      7,
-      0
-     ],
-     "mode": "add",
-     "children": {},
-     "phase": 0
-    },
-    {
-     "periods": [
-      8
-     ],
-     "offs": [
-      0
-     ],
-     "steps": [
-      0
-     ],
-     "motif": [
-      3,
-      0
-     ],
-     "mode": "add",
-     "children": {},
-     "phase": 0
-    },
-    {
-     "periods": [
-      8
-     ],
-     "offs": [
-      0
-     ],
-     "steps": [
-      8
-     ],
-     "motif": [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      6,
-      0,
-      0,
-      1,
-      1,
-      0,
-      0
-     ],
-     "mode": "over",
-     "children": {},
-     "phase": 0
-    }
-   ],
-   "bar840": 13440,
-   "hits": [
-    [
-     0,
-     36,
-     116
-    ],
-    [
-     0,
-     42,
-     116
-    ],
-    [
-     1680,
-     40,
-     88
-    ],
-    [
-     1680,
-     42,
-     102
-    ],
-    [
-     3360,
-     36,
-     102
-    ],
-    [
-     3360,
-     42,
-     102
-    ],
-    [
-     5040,
-     40,
-     88
-    ],
-    [
-     5040,
-     42,
-     102
-    ],
-    [
-     6720,
-     36,
-     116
-    ],
-    [
-     6720,
-     42,
-     116
-    ],
-    [
-     7560,
-     49,
-     88
-    ],
-    [
-     8400,
-     40,
-     88
-    ],
-    [
-     8400,
-     42,
-     102
-    ],
-    [
-     10080,
-     36,
-     88
-    ],
-    [
-     10920,
-     36,
-     88
-    ],
-    [
-     11760,
-     40,
-     88
-    ],
-    [
-     11760,
-     42,
-     102
-    ]
-   ]
-  },
-  {
-   "name": "mode-mask-ghost",
-   "kind": "tab",
-   "blob": "hnote stack v2 pulse=1 lane1={periods=[8] motif=[1,0,7,0]} lane2={periods=[8] motif=[3,0]} lane3={mode=mask periods=[5] motif=[-7,0,3,0,0]}",
-   "pulse": 1,
-   "lanes": [
-    {
-     "periods": [
-      8
-     ],
-     "offs": [
-      0
-     ],
-     "steps": [
-      0
-     ],
-     "motif": [
-      1,
-      0,
-      7,
-      0
-     ],
-     "mode": "add",
-     "children": {},
-     "phase": 0
-    },
-    {
-     "periods": [
-      8
-     ],
-     "offs": [
-      0
-     ],
-     "steps": [
-      0
-     ],
-     "motif": [
-      3,
-      0
-     ],
-     "mode": "add",
-     "children": {},
-     "phase": 0
-    },
-    {
-     "periods": [
-      5
-     ],
-     "offs": [
-      0
-     ],
-     "steps": [
-      0
-     ],
-     "motif": [
-      -7,
-      0,
-      3,
-      0,
-      0
-     ],
-     "mode": "mask",
-     "children": {},
-     "phase": 0
-    }
-   ],
-   "bar840": 6720,
-   "hits": [
-    [
-     0,
-     36,
-     116
-    ],
-    [
-     0,
-     42,
-     116
-    ],
-    [
-     1680,
-     40,
-     88
-    ],
-    [
-     3360,
-     36,
-     102
-    ],
-    [
-     3360,
-     42,
-     102
-    ],
-    [
-     5040,
-     40,
-     88
-    ],
-    [
-     5040,
-     42,
      102
     ]
    ]

@@ -110,14 +110,7 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   through the level below; tab loop = full cycle (C = lcm of
   span/gcd(Δ,span) per level), letter/mix lengths follow. Jon's
   "cycle the motifs over four uberloops" without duplication: variants
-  side by side in one motif, `5@0+5` selects the next window each bar.
-  **Lane modes** (blob `mode=over|mask`, chip in lane strip): add = union;
-  over = my non-rest pulses claim their pulse (others erased, I play);
-  mask = symbols are VERBS on the intersection — s erases voice s at that
-  pulse, ghost −s softens it to 52. Adds union first, then over/mask in
-  lane order. Mode lanes are full stacks (steps/offsets/phase compose —
-  stepping masks = per-bar actions). Rolls rediscovered at lane level;
-  compiled as explicit rest/ghost cell substitution (structural trees). Kit + SOUNDS grew: 49 crash 'C',
+  side by side in one motif, `5@0+5` selects the next window each bar. Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat
   shape) and now compiles the ACCENT RULE into the tree (116 bar-start

@@ -215,8 +215,7 @@ function migrateFrom(v6,v5,v4,v3,v2,v1){
       [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
         if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0));
         if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
-        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0));
-        if(l.mode&&!['add','over','mask'].includes(l.mode)) delete l.mode; }); });
+        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0)); }); });
     v6.winsBy=Array.from({length:v6.stacks.length},(_,i)=>(v6.winsBy&&v6.winsBy[i])||[]);
     v6.mixBase=Math.min(Math.max(0,v6.mixBase|0), v6.stacks.length-1);
     v6.orch=(v6.orch&&v6.orch.motif&&v6.orch.motif.length&&v6.orch.chains&&v6.orch.chains.length)
@@ -329,47 +328,20 @@ function realizeHitsFor(stack,b=0){
   }
   return out.sort((a,b)=>a[0]-b[0]);
 }
-function laneBarHits(tab,ln,b){        // one bar of one lane, tiled/cut at the ruler's bar
-  const bar=topPeriod(tab)*PULSE;
-  if(ln===tab) return realizeHitsFor(tab,b);
-  const lh=realizeHitsFor(ln,b), lb=topPeriod(ln)*PULSE, out=[];
-  for(let bb=0;bb<bar-1e-9;bb+=lb)
-    for(const [t,p,v] of lh){ const at=bb+t; if(at<bar-1e-9) out.push([at,p,v]); }
-  return out;
-}
 function realizeTabHits(tab){
-  // a tab = a chord of stacks cut at the ruler's bar, over the full step
-  // cycle. Lane modes: 'add' = union; 'over' = my non-rest pulses claim
-  // their pulse (others erased there, I play); 'mask' = my symbols are
-  // verbs on the intersection - symbol s erases voice s at that pulse,
-  // ghost -s softens it to 52. Add-lanes union first, then over/mask
-  // lanes act in lane order.
+  // a tab = a chord of stacks: primary (the ruler) + lanes, cut at the
+  // primary's bar. Stepping offsets make the tab's loop its full CYCLE:
+  // C bars, each realized with that bar's offsets, concatenated.
   const bar=topPeriod(tab)*PULSE, C=tabCycle(tab);
-  const lanes=[tab,...(tab.lanes||[])];
-  const pu=t=>Math.floor(t/PULSE+1e-6);
   const out=[];
   for(let b=0;b<C;b++){
-    let acc=[];
-    lanes.forEach((ln,li)=>{
-      if(li===0||(ln.mode||'add')==='add') acc=acc.concat(laneBarHits(tab,ln,b));
+    const base=b*bar;
+    realizeHitsFor(tab,b).forEach(([t,p,v])=>out.push([base+t,p,v]));
+    (tab.lanes||[]).forEach(ln=>{
+      const lh=realizeHitsFor(ln,b), lb=topPeriod(ln)*PULSE;
+      for(let bb=0;bb<bar-1e-9;bb+=lb)
+        for(const [t,p,v] of lh){ const at=bb+t; if(at<bar-1e-9) out.push([base+at,p,v]); }
     });
-    lanes.forEach((ln,li)=>{
-      if(li===0) return;
-      const mode=ln.mode||'add';
-      if(mode==='add') return;
-      const hits=laneBarHits(tab,ln,b);
-      if(mode==='over'){
-        const U=new Set(hits.map(([t])=>pu(t)));
-        acc=acc.filter(([t])=>!U.has(pu(t))).concat(hits);
-      }else if(mode==='mask'){
-        for(const [t,p,v] of hits){
-          const u=pu(t);
-          if(v===52) acc=acc.map(h=>(pu(h[0])===u&&h[1]===p)?[h[0],h[1],52]:h);
-          else acc=acc.filter(h=>!(pu(h[0])===u&&h[1]===p));
-        }
-      }
-    });
-    acc.forEach(([t,p,v])=>out.push([b*bar+t,p,v]));
   }
   return out.sort((a,b)=>a[0]-b[0]);
 }
@@ -478,12 +450,6 @@ function drawLaneStrip(){
     ls.appendChild(p);
   }
   if(curLane>0){
-    const ln=L(), mode=ln.mode||'add';
-    const mb=document.createElement('button');
-    mb.textContent=mode;
-    mb.style.cssText=mode==='over'?'color:var(--accent);':mode==='mask'?'color:var(--rec);':'';
-    mb.onclick=()=>{ ln.mode={add:'over',over:'mask',mask:'add'}[mode]; changed(); };
-    ls.appendChild(mb);
     const x=document.createElement('button'); x.textContent='✕ lane';
     x.onclick=()=>{ S().lanes.splice(curLane-1,1); curLane=0; sel=null; changed(); };
     ls.appendChild(x);
@@ -981,10 +947,7 @@ function stackBlob(stk){
 }
 function tabBlob(s){
   if(!(s.lanes&&s.lanes.length)) return stackBlob(s);
-  return [s,...s.lanes].map((ln,i)=>{
-    const m=(i>0&&ln.mode&&ln.mode!=='add')?`mode=${ln.mode} `:'';
-    return `lane${i+1}={${m}${stackBlob(ln)}}`;
-  }).join(' ');
+  return [s,...s.lanes].map((ln,i)=>`lane${i+1}={${stackBlob(ln)}}`).join(' ');
 }
 document.getElementById('copy').onclick=async()=>{
   let text;

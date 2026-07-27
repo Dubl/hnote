@@ -37,12 +37,6 @@ CASES = [
                          "motif=[1,0,0,0,0,1,0,0,-1,0,1,0,-1,0,0,1,-1,0,-1,0]}"),
     ("step-coprime", "hnote stack v1 pulse=1 periods=[4@0+3,16] "
                      "motif=[1,0,7,0,3,1,-7,3,1,0,7,7,3,-7,0,1]"),
-    ("mode-over", "hnote stack v2 pulse=1 lane1={periods=[8] motif=[1,0,7,0]} "
-                  "lane2={periods=[8] motif=[3,0]} "
-                  "lane3={mode=over periods=[8@0+8] motif=[0,0,0,0,0,0,0,0,0,6,0,0,1,1,0,0]}"),
-    ("mode-mask-ghost", "hnote stack v2 pulse=1 lane1={periods=[8] motif=[1,0,7,0]} "
-                        "lane2={periods=[8] motif=[3,0]} "
-                        "lane3={mode=mask periods=[5] motif=[-7,0,3,0,0]}"),
 ]
 
 def x840(t, name):
@@ -55,9 +49,9 @@ for name, blob in CASES:
     pulse, lanes = parse_blob(blob)
     assert pulse == 1.0
     hits, top = realize_tab(1.0, lanes)
-    structures = [{"periods": p, "offs": o, "steps": st, "motif": m, "mode": md,
+    structures = [{"periods": p, "offs": o, "steps": st, "motif": m,
                    "children": {str(k): v for k, v in c.items()}, "phase": ph}
-                  for (p, m, c, ph, o, st, md) in lanes]
+                  for (p, m, c, ph, o, st) in lanes]
     vectors.append({
         "name": name, "kind": "tab", "blob": blob, "pulse": 1,
         "lanes": structures, "bar840": top * 840,
