@@ -236,7 +236,8 @@ function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
         &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length
         &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
           &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=6
-          &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length))));
+          &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
+          &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S)))));
       return {seq, orns};
     });
     v7.orch.motif=v7.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v7.orch.chains.length));
@@ -347,13 +348,15 @@ function realizeHitsFor(stack,b=0){
     const base=((t-ph+top)%top)*PULSE;              // phase = which pulse the loop starts on
     const accent=(t===0)?116:(mi===0?102:88);
     if(ch){
-      const sub=PULSE/ch.S;
+      const sub=PULSE/ch.S, pre=ch.pre||0, barLen=top*PULSE;
       for(let j=0;j<ch.S;j++){
         const sym=ch.m[(j+(ch.p||0))%ch.m.length];         // p = sub-motif phase
         if(!sym) continue;                                  // 0 = rest
         const sd=SOUNDS[Math.abs(sym)-1]; if(!sd) continue;
-        out.push([base+j*sub, sd[0],
-                  sym<0?52:(j===0?accent:Math.max(52,accent-26))]);   // negative = ghost
+        let at=base+(j-pre)*sub;                            // prenotes lead INTO the anchor
+        if(at<-1e-9) at+=barLen;                            // pickups wrap to the bar's end
+        out.push([at, sd[0],
+                  sym<0?52:(j===pre?accent:Math.max(52,accent-26))]); // anchor takes the accent
       }
     }else{
       const sym=stack.motif[mi];
@@ -423,12 +426,15 @@ function applyOrns(hits,L,orns,li){
     const t0=(o.bar*bp+o.u)*PULSE, t1=t0+PULSE;
     const sd=SOUNDS[Math.abs(o.sym)-1]; if(!sd) return;
     if(o.act==='add'&&o.ch&&o.ch.S){                 // one-off sub-motif cell
-      const sub=PULSE/o.ch.S;
+      const sub=PULSE/o.ch.S, pre=o.ch.pre||0;
+      const letLen=letterGrid(L).bars*bp*PULSE;
       for(let j=0;j<o.ch.S;j++){
         const s2=o.ch.m[(j+(o.ch.p||0))%o.ch.m.length];
         if(!s2) continue;
         const sd2=SOUNDS[Math.abs(s2)-1]; if(!sd2) continue;
-        out.push([t0+j*sub, sd2[0], s2<0?52:(j===0?96:70)]);
+        let at=t0+(j-pre)*sub;                       // prenotes lead into the address
+        if(at<-1e-9) at+=letLen;                     // wrap to the letter's end
+        out.push([at, sd2[0], s2<0?52:(j===pre?96:70)]);
       }
     }
     else if(o.act==='add') out.push([t0, sd[0], o.sym<0?52:96]);
@@ -644,12 +650,17 @@ function drawStack(){
         <div class="row2"><span class="lbl">phase</span>
           <button id="cpm">−</button><b style="font-size:18px">${(ch.p||0)%ch.m.length}</b><button id="cpp">+</button>
           <span class="lbl" style="margin-left:8px">sub-motif tick the cell starts on</span></div>
+        <div class="row2"><span class="lbl">pre</span>
+          <button id="cprm">−</button><b style="font-size:18px">${(ch.pre||0)%ch.S}</b><button id="cprp">+</button>
+          <span class="lbl" style="margin-left:8px">prenotes — ticks that lead INTO the pulse</span></div>
         <div class="row2 mrow" id="subrow"></div>`;
       document.getElementById('delch').onclick=()=>{ delete stk.children[sel]; changed(); };
       document.getElementById('sm').onclick=()=>{ if(ch.S>1){ch.S--; changed();} };
       document.getElementById('sp2').onclick=()=>{ if(ch.S<8){ch.S++; changed();} };
       document.getElementById('cpm').onclick=()=>{ ch.p=(((ch.p||0)-1)%ch.m.length+ch.m.length)%ch.m.length; changed(); };
       document.getElementById('cpp').onclick=()=>{ ch.p=((ch.p||0)+1)%ch.m.length; changed(); };
+      document.getElementById('cprm').onclick=()=>{ ch.pre=(((ch.pre||0)-1)%ch.S+ch.S)%ch.S; changed(); };
+      document.getElementById('cprp').onclick=()=>{ ch.pre=((ch.pre||0)+1)%ch.S; changed(); };
       const sr=document.getElementById('subrow');
       ch.m.forEach((sym,j)=>{
         const b=document.createElement('button'); b.className='mspot';
@@ -928,6 +939,7 @@ function drawTlEdit(c){
       mk('+m',()=>{ if(o.ch.m.length<6){ o.ch.m.push(1); changed(); } });
       mk('−m',()=>{ if(o.ch.m.length>1){ o.ch.m.pop(); changed(); } });
       mk('p'+((o.ch.p||0)%o.ch.m.length),()=>{ o.ch.p=((o.ch.p||0)+1)%o.ch.m.length; changed(); });
+      mk('pre'+((o.ch.pre||0)%o.ch.S),()=>{ o.ch.pre=((o.ch.pre||0)+1)%o.ch.S; changed(); });
       mk('✕ sub',()=>{ delete o.ch; changed(); });
     }
   }
@@ -1096,7 +1108,7 @@ function updateRec(){
 // --- blob + take writer ---
 function stackBlob(stk){
   const chs=Object.entries(stk.children).map(([i,c])=>
-    `child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]${c.p?`,p=${c.p%c.m.length}`:''}]`).join(' ');
+    `child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]${c.p?`,p=${c.p%c.m.length}`:''}${c.pre?`,pre=${c.pre%c.S}`:''}]`).join(' ');
   const ph=phaseOf(stk);
   const pers=stk.periods.map((P,k)=>{
     const o=(stk.offs&&stk.offs[k])||0, d=(stk.steps&&stk.steps[k])||0;
@@ -1114,7 +1126,7 @@ document.getElementById('copy').onclick=async()=>{
     const ch=orch.chains.map((c,i)=>`chain${i+1}=${c.seq.join('')}`).join(' ');
     const orns=orch.chains.map((c,i)=>c.orns&&c.orns.length
       ?` orn${i+1}=[${c.orns.map(o=>`${o.li}.${o.bar}.${o.u}:`+
-        (o.act==='add'&&o.ch?`*${o.ch.S};${o.ch.m.join('.')};${o.ch.p||0}`
+        (o.act==='add'&&o.ch?`*${o.ch.S};${o.ch.m.join('.')};${o.ch.p||0}${o.ch.pre?`;${o.ch.pre}`:''}`
          :(o.act==='mute'?'x':o.act==='ghost'?'~':'')+
           (o.act==='add'?o.sym:Math.abs(o.sym)))).join(',')}]`:'').join('');
     const tabs=stacks.map((s,j)=>`${TABN[j]}={${tabBlob(s)}}`).join(' ');

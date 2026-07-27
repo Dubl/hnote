@@ -37,6 +37,10 @@ CASES = [
                          "motif=[1,0,0,0,0,1,0,0,-1,0,1,0,-1,0,0,1,-1,0,-1,0]}"),
     ("step-coprime", "hnote stack v1 pulse=1 periods=[4@0+3,16] "
                      "motif=[1,0,7,0,3,1,-7,3,1,0,7,7,3,-7,0,1]"),
+    ("child-prenotes", "hnote stack v1 pulse=1 periods=[10] motif=[2,1] "
+                       "child1=[S=4,m=[3,-3,1,0],p=0,pre=2]"),
+    ("prenote-wrap-and-phase", "hnote stack v1 pulse=1 periods=[8] motif=[1,4] "
+                               "child1=[S=3,m=[7,-7,2],pre=1] phase=3"),
 ]
 
 def x840(t, name):

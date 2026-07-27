@@ -54,12 +54,16 @@ def realize(pulse, periods, motif, children, phase=0, offs=None, steps=None, b=0
         accent = 116 if t == 0 else (102 if mi == 0 else 88)
         if ch:
             sub = pulse / ch["S"]
+            pre = ch.get("pre", 0) % ch["S"]
             for j in range(ch["S"]):
                 sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
                 if not sym:
                     continue                     # 0 = rest
-                vel = GHOST_VEL if sym < 0 else (accent if j == 0 else max(52, accent - 26))
-                hits.append((base + j * sub, SOUNDS[abs(sym) - 1], vel))
+                vel = GHOST_VEL if sym < 0 else (accent if j == pre else max(52, accent - 26))
+                at = base + (j - pre) * sub      # prenotes lead INTO the anchor
+                if at < -1e-9:
+                    at += top * pulse            # pickups wrap to the bar's end
+                hits.append((at, SOUNDS[abs(sym) - 1], vel))
         else:
             sym = motif[mi]
             if not sym:
@@ -110,10 +114,14 @@ def build_lane(pulse, periods, motif, children, phase=0, offs=None):
                 return leaf(0, 0, 1.0)           # explicit rest cell
             return leaf(SOUNDS[abs(sym) - 1], GHOST_VEL if sym < 0 else vel, 1.0)
         kids = []
-        for j in range(ch["S"]):
+        pre = ch.get("pre", 0) % ch["S"]
+        for k in range(ch["S"]):
+            j = k + pre                          # shift: prenotes moved to the grace lane
+            if j >= ch["S"]:
+                kids.append(leaf(0, 0, 1.0)); continue
             sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
             if sym:
-                v = GHOST_VEL if sym < 0 else (vel if j == 0 else max(52, vel - 26))
+                v = GHOST_VEL if sym < 0 else (vel if j == pre else max(52, vel - 26))
                 kids.append(leaf(SOUNDS[abs(sym) - 1], v, 1.0))
             else:
                 kids.append(leaf(0, 0, 1.0))     # 0 = explicit rest cell
@@ -148,6 +156,39 @@ def build_lane(pulse, periods, motif, children, phase=0, offs=None):
         node = cont([drop_unit(node, ph), trim_unit(node, ph)], float(span))
     return node, span
 
+def build_grace_bar(pulse, periods, motif, children, phase=0, offs=None):
+    """Prenotes as a parallel grace lane: for each realized pulse whose cell
+    has pre > 0, its first `pre` ticks land in the PREVIOUS pulse (wrapping
+    to the bar's end). Returns (node, span) or (None, span) if no graces."""
+    top = periods[0] if periods else len(motif)
+    ph = phase % top
+    cells = [leaf(0, 0, 1.0) for _ in range(top)]
+    any_g = False
+    for t in range(top):
+        mi = fold(t, periods, len(motif), offs)
+        ch = children.get(mi)
+        if not ch:
+            continue
+        pre = ch.get("pre", 0) % ch["S"]
+        if not pre:
+            continue
+        pos = (t - ph) % top
+        q = (pos - 1 + top) % top
+        kids = [leaf(0, 0, 1.0) for _ in range(ch["S"])]
+        accent = 116 if t == 0 else (102 if mi == 0 else 88)
+        got = False
+        for j in range(pre):
+            sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
+            if not sym:
+                continue
+            v = GHOST_VEL if sym < 0 else max(52, accent - 26)
+            kids[ch["S"] - pre + j] = leaf(SOUNDS[abs(sym) - 1], v, 1.0)
+            got = True
+        if got:
+            cells[q] = cont(kids, 1.0)
+            any_g = True
+    return (cont(cells, float(top)) if any_g else None, top)
+
 def fit_to(node, own_span, span_target):
     """Tile/cut a lane node so it spans exactly span_target pulses."""
     if own_span == span_target:
@@ -167,16 +208,26 @@ def build_measure(name, pulse, lanes):
     kids = []
     for ln in lanes:
         periods, motif, children, phase, offs, steps = ln
-        bars = []
+        bars, gbars, any_grace = [], [], False
         for b in range(C):
             offs_b = [((offs[k] if offs and k < len(offs) else 0) or 0)
                       + b * ((steps[k] if steps and k < len(steps) else 0) or 0)
                       for k in range(len(periods))]
             node, span = build_lane(pulse, periods, motif, children, phase, offs_b)
             bars.append(fit_to(node, span, top0))
+            gnode, gspan = build_grace_bar(pulse, periods, motif, children, phase, offs_b)
+            if gnode is None:
+                gnode = cont([leaf(0, 0, 1.0) for _ in range(gspan)], float(gspan))
+            else:
+                any_grace = True
+            gbars.append(fit_to(gnode, gspan, top0))
         lane_node = bars[0] if C == 1 else cont(bars, float(C * top0))
         lane_node["timing"] = 1.0
         kids.append(lane_node)
+        if any_grace:                             # prenotes ride a parallel grace lane
+            gl = gbars[0] if C == 1 else cont(gbars, float(C * top0))
+            gl["timing"] = 1.0
+            kids.append(gl)
     root = {"midi_number": 0, "velocity": 0, "timing": float(C * top0 * pulse), "channel": 9,
             "child_direction": "sidebyside", "children": kids,
             "start_time": 0.0, "end_time": 0.0, "name": name}
@@ -258,10 +309,11 @@ def parse_lane(body):
         steps.append(int(m.group(3) or 0))
     motif = [int(x) for x in re.search(r"motif=\[([-\d,]+)\]", body).group(1).split(",")]
     children = {}
-    for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([-\d,]+)\](?:,p=(\d+))?\]", body):
+    for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([-\d,]+)\](?:,p=(\d+))?(?:,pre=(\d+))?\]", body):
         children[int(m.group(1)) - 1] = {"S": int(m.group(2)),
                                          "m": [int(x) for x in m.group(3).split(",")],
-                                         "p": int(m.group(4) or 0)}
+                                         "p": int(m.group(4) or 0),
+                                         "pre": int(m.group(5) or 0)}
     phm = re.search(r"phase=(\d+)", body)
     return (periods, motif, children, int(phm.group(1)) if phm else 0, offs, steps)
 

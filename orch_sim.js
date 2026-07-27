@@ -202,7 +202,7 @@ function ws() {
       { ...stack([1,2,3], [16]),                     // A: 16-pulse ruler + 2 lanes
         lanes: [ { ...stack([4,0], [10]), offs: [3], steps: [2] },  // stepping: 5-bar cycle
                  stack([5,0,0,-2], [24]) ] },        //   24-pulse lane: cut at 16 (ghost incl)
-      { ...stack([2,1], [9], {0:{S:3,m:[1,0,4],p:1}}), phase: 2 },  // B: 2.25s-ish, phased + child phase
+      { ...stack([2,1], [9], {0:{S:3,m:[1,0,4],p:1,pre:1}}), phase: 2 },  // B: phased + prenote child
       { ...stack([3,0,-2,1,2,3,1,0], [4, 8]), offs: [5, 0] },  // C: 4-window sliding over 8 (wraps)
     ],
     winsBy: [
@@ -297,6 +297,8 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
       { li: 1, bar: 1, u: 2, act: 'ghost', sym: 1 },    // soften B's bar-2 kick
       { li: 0, bar: 0, u: 7, act: 'add', sym: 3,
         ch: { S: 4, m: [3, 0, -3], p: 0 } },            // one-off sub-motif burst
+      { li: 0, bar: 0, u: 9, act: 'add', sym: 3,
+        ch: { S: 2, m: [3, 3], p: 0, pre: 1 } },        // burst with a prenote pickup
     ]},
     { seq: ['B'], orns: [] },
   ]};
@@ -320,6 +322,11 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
     .map(h => [Math.round((h[0] - 7 * 0.25) / 0.0625), h[2]]).sort((a, b) => a[0] - b[0]);
   check('V9:burst', JSON.stringify(burst) === JSON.stringify([[0, 96], [2, 52], [3, 70]]),
     'sub-motif burst wrong: ' + JSON.stringify(burst));
+  // prenote burst at pulse 9 (S=2, pre=1): pickup at 8.5 ticks -> t=2.125 @70, anchor 2.25 @96
+  const preHits = e0.hits.filter(h => h[1] === 42 && h[0] > 2.05 && h[0] < 2.3)
+    .map(h => [Math.round(h[0] * 1000), h[2]]).sort((a, b) => a[0] - b[0]);
+  check('V9:prenote', JSON.stringify(preHits) === JSON.stringify([[2125, 70], [2250, 96]]),
+    'prenote burst wrong: ' + JSON.stringify(preHits));
 }
 
 console.log('V7 migration (v6 wrap+trim, v4/v3/v2 chain, v7 clamp)');

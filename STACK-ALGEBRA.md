@@ -28,9 +28,10 @@ A **stack** is:
             , steps    = [Δ₁ … Δₙ]      Δᵢ ≥ 0 (absent ⇒ 0): per-bar offset step
             , motif    = [m₁ … m_k]     k ≥ 1, mᵢ ∈ {−V … V} (0 = rest,
                                         negative = ghost of |mᵢ|, V = voice count)
-            , children = { i ↦ (S, m, p) }   for motif indices i (0-based):
+            , children = { i ↦ (S, m, p, pre) }  for motif indices i (0-based):
                                         S ∈ 1..8 slot ticks, m a sub-motif of
-                                        symbols as above, p ≥ 0 sub-phase
+                                        symbols as above, p ≥ 0 sub-phase,
+                                        pre ∈ 0..S−1 prenote count
             , phase    = φ ≥ 0 )
 
 A **tab** is a non-empty list of stacks [stack⁰ … stackᴸ] (L ≤ 3);
@@ -48,11 +49,15 @@ stack⁰ is the **ruler**.
 
 For each t ∈ [0, top), with mi = fold(t):
 
-  * if children[mi] = (S, m, p) exists (regardless of motif[mi]):
+  * if children[mi] = (S, m, p, pre) exists (regardless of motif[mi]):
     for j ∈ [0, S): let σ = m[(j + p) mod |m|]. If σ ≠ 0, emit
-        ( pos(t) + j/S,  |σ|,  52 if σ < 0
-                               else accent(t,mi) if j = 0
-                               else max(52, accent(t,mi) − 26) )
+        ( (pos(t) + (j − pre)/S) mod top,  |σ|,
+          52 if σ < 0
+          else accent(t,mi) if j = pre        -- the ANCHOR tick
+          else max(52, accent(t,mi) − 26) )
+    The first `pre` ticks are PRENOTES: they lead into the anchor, landing
+    before the cell's pulse (wrapping to the bar's end at pulse 0) — the
+    tree engine's prechildren concept, natively.
   * else let σ = motif[mi]. If σ ≠ 0, emit
         ( pos(t),  |σ|,  52 if σ < 0 else accent(t,mi) )
 
@@ -127,7 +132,7 @@ implementation, not this document.
     body(v2)    = "lane1={" lane-body "}" ["lane2={" lane-body "}" …]
     lane-body   = "periods=[" per ("," per)* "]"   where per = P("@"o)?("+"Δ)?
                   "motif=[" int ("," int)* "]"
-                  ("child" i "=[S=" S ",m=[" ints "]" (",p=" p)? "]")*
+                  ("child" i "=[S=" S ",m=[" ints "]" (",p=" p)? (",pre=" n)? "]")*
                   ("phase=" φ)? 
     mix-blob    = "hnote stackmix v1 pulse=" num ("base=" letter)?
                   (letter "={" body "}")+ "wins=[" (letter":"a"-"b)* "]"
