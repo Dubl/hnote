@@ -308,7 +308,7 @@ let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack',
     winsBy=st.winsBy, mixBase=st.mixBase??0, orch=st.orch, q=st.q;
 PULSE=st.pulse??0.25;
 let wins=winsBy[mixBase];        // bound to the selected mix's window list
-let sel=null, osel=null, curLane=0, selChain=null, tlSel=null;
+let sel=null, osel=null, curLane=0, selChain=null, tlSel=null, subGh=false;
 function persist(){ localStorage.setItem(KEY,JSON.stringify({v:7,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
 function S(){ return stacks[cur]; }
 
@@ -668,16 +668,23 @@ function drawStack(){
           if(sym<0) b.style.opacity=.55;
           b.textContent=SOUNDS[Math.abs(sym)-1][1]; }
         else { b.style.background='#2a2635'; b.style.color='var(--muted)'; b.textContent='·'; }
-        b.onclick=()=>{                         // cycle magnitude, keep ghost sign
-          const next=(Math.abs(sym)+1)%(SOUNDS.length+1);
-          ch.m[j]=next===0?0:(sym<0?-next:next); changed(); };
+        b.onclick=()=>{
+          if(subGh){ if(sym) ch.m[j]=-sym; }    // ♪ mode: tap flips full/ghost
+          else { const next=(Math.abs(sym)+1)%(SOUNDS.length+1);
+                 ch.m[j]=next===0?0:(sym<0?-next:next); }
+          changed(); };
         sr.appendChild(b);
       });
       const a2=document.createElement('button'); a2.className='mspot add'; a2.textContent='+';
       a2.onclick=()=>{ if(ch.m.length<6){ ch.m.push(1); changed(); } };
       const r2=document.createElement('button'); r2.className='mspot rem'; r2.textContent='−';
       r2.onclick=()=>{ if(ch.m.length>1){ ch.m.pop(); changed(); } };
-      sr.append(a2,r2);
+      const g2=document.createElement('button'); g2.className='mspot'; g2.textContent='♪';
+      g2.style.background=subGh?'var(--text)':'#2a2635';
+      g2.style.color=subGh?'#10131a':'var(--text)';
+      g2.title='when lit, tapping a tick flips full/ghost';
+      g2.onclick=()=>{ subGh=!subGh; draw(); };
+      sr.append(a2,r2,g2);
     }
   }
 }
@@ -930,11 +937,14 @@ function drawTlEdit(c){
       mk('+ sub-motif',()=>{ o.ch={S:2,m:[Math.abs(o.sym)||1,1],p:0}; changed(); });
     }else{
       mk('S'+o.ch.S,()=>{ o.ch.S=o.ch.S%8+1; changed(); });
+      mk('♪',()=>{ subGh=!subGh; changed(); }, subGh);
       o.ch.m.forEach((s2,j)=>{
         const lab=s2?SOUNDS[Math.abs(s2)-1][1]:'·';
         mk(s2<0?lab.toLowerCase():lab,()=>{
-          const nx=(Math.abs(s2)+1)%(SOUNDS.length+1);
-          o.ch.m[j]=nx===0?0:(s2<0?-nx:nx); changed(); });
+          if(subGh){ if(s2) o.ch.m[j]=-s2; }   // ♪ mode: tap flips full/ghost
+          else { const nx=(Math.abs(s2)+1)%(SOUNDS.length+1);
+                 o.ch.m[j]=nx===0?0:(s2<0?-nx:nx); }
+          changed(); });
       });
       mk('+m',()=>{ if(o.ch.m.length<6){ o.ch.m.push(1); changed(); } });
       mk('−m',()=>{ if(o.ch.m.length>1){ o.ch.m.pop(); changed(); } });
