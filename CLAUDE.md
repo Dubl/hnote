@@ -121,7 +121,13 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   base content as faint dots, ° marks ornamented chains in the realized
   string); while playing = inject (unchanged). Blob `hnote orch v4 …
   ornN=[li.bar.u:s|-s|xS|~S,…]`. Ornaments are score-layer, outside the
-  loop algebra (spec §6). Kit + SOUNDS grew: 49 crash 'C',
+  loop algebra (spec §6). Ornament adds may carry a sub-motif cell (burst,
+  blob `*S;m;p;pre`). **Prenotes** (`pre` on any sub-motif cell, child or
+  burst): the first `pre` ticks lead INTO the anchor (anchor tick takes
+  the accent; pickups wrap to the bar/letter end) — the tree's
+  prechildren concept rediscovered; compiled as a parallel GRACE LANE
+  (sidebyside sibling; closed-loop verified incl. steps+phase).
+  Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat
   shape) and now compiles the ACCENT RULE into the tree (116 bar-start
