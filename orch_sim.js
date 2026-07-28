@@ -20,6 +20,7 @@ let stacks=[], wins=[], winsBy=[[],[],[],[]], dirty=true, hits=[], looplen=0;
 let t0=0, schedUntil=0, segStart=0, oQueue=null, q='bar', mixBase=0;
 let orch=null, orchCache=null;
 let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
+let phLog=[];
 `;
 const EPILOGUE = `
 __api.buildCache = () => {

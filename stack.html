@@ -309,6 +309,7 @@ let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack',
 PULSE=st.pulse??0.25;
 let wins=winsBy[mixBase];        // bound to the selected mix's window list
 let sel=null, osel=null, curLane=0, selChain=null, tlSel=null, subGh=false;
+let tlCells={}, phKey=null;      // timeline cell refs + current playhead cell
 function persist(){ localStorage.setItem(KEY,JSON.stringify({v:7,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
 function S(){ return stacks[cur]; }
 
@@ -446,7 +447,7 @@ function applyOrns(hits,L,orns,li){
 function chainEntries(ci){              // a chain's letters with its one-offs applied
   const c=orch.chains[ci];
   const seq=(c&&c.seq&&c.seq.length)?c.seq:['A'];
-  return seq.map((L,li)=>({L, chain:ci+1,
+  return seq.map((L,li)=>({L, chain:ci+1, li,
     hits:applyOrns(letterHits(L),L,c&&c.orns,li), len:letterLen(L)}));
 }
 function buildOrchCache(){
@@ -877,6 +878,7 @@ function drawOrch(){
 }
 function drawTimeline(){
   const tp=document.getElementById('tlpanel');
+  tlCells={}; phKey=null;
   if(selChain==null||!orch.chains[selChain]){ tp.style.display='none'; return; }
   tp.style.display='';
   const c=orch.chains[selChain];
@@ -909,6 +911,7 @@ function drawTimeline(){
           (o&&o.sym<0?'opacity:.55;':'')+
           (tlSel&&tlSel.li===li&&tlSel.bar===bar&&tlSel.u===u?'box-shadow:0 0 0 2px var(--text) inset;':'');
         cell.onclick=()=>{ tlSel={li,bar,u}; draw(); };
+        tlCells[li+':'+(bar*bp+u)]=cell;
         rowEl.appendChild(cell);
       }
       g.appendChild(rowEl);
@@ -984,6 +987,7 @@ let take=[], takeStart=null;
 // orch engine state
 let segStart=0, oQueue=null, orchCache=null;
 let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
+let phLog=[];                    // recent letter boundaries, for the audible playhead
 let onSwitch=(B)=>markChains();
 function trimOnset(buf){
   const ch=buf.getChannelData(0);
@@ -1046,6 +1050,8 @@ function advance(B){
   curLetter=e.L; activeChain=e.chain;
   curHits=e.hits; curLen=e.len;
   segStart=B;
+  phLog.push({B, li:e.li||0, chain:e.chain, len:e.len});
+  if(phLog.length>8) phLog.shift();
   onSwitch(B);
 }
 function scheduleOrch(now,until){
@@ -1112,7 +1118,27 @@ function playLabel(){
   if(playTarget.view==='orch') return ' · playing ORCH ▸ '+curLetter+' ('+activeChain+')';
   return ' · playing '+(playTarget.view==='mix'?'MIX':TABN[playTarget.cur]);
 }
+function updateTlPlayhead(){
+  // audible-now playhead: follow the boundary log, not the lookahead pointer
+  let want=null;
+  if(playing&&playTarget&&playTarget.view==='orch'&&selChain!=null&&actx){
+    const now=actx.currentTime;
+    for(let i=phLog.length-1;i>=0;i--){
+      const e=phLog[i];
+      if(e.B<=now+1e-9){
+        if(e.chain-1===selChain&&now<e.B+e.len)
+          want=e.li+':'+Math.floor((now-e.B)/PULSE+1e-6);
+        break;
+      }
+    }
+  }
+  if(want===phKey) return;
+  if(phKey&&tlCells[phKey]) tlCells[phKey].style.outline='';
+  phKey=null;
+  if(want&&tlCells[want]){ tlCells[want].style.outline='2px solid var(--accent)'; phKey=want; }
+}
 function updateRec(){
+  updateTlPlayhead();
   const el=document.getElementById('recbar');
   if(take.length)
     el.innerHTML=`<span class="on">&#9679;</span> ${take.length} notes · ${(take[take.length-1][0]).toFixed(1)}s${playLabel()}`;
