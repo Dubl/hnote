@@ -173,7 +173,7 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
 
 <div id="orchview" style="display:none">
   <div class="panel">
-    <h2>Chains — up to 4 letters each · tap the number: stopped = timeline, playing = inject</h2>
+    <h2>Chains — up to 4 letters each · number = inject (playing) · ▦ = timeline, any time</h2>
     <div id="chains"></div>
     <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
       <span style="font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)">switch quantize</span>
@@ -814,6 +814,10 @@ function drawOrch(){
     r.onclick=()=>{ if(c.seq.length>1){ c.seq.pop();
       c.orns=(c.orns||[]).filter(o=>o.li<c.seq.length); changed(); } };
     row.append(a,r);
+    const tl=document.createElement('button');
+    tl.className='dchip'+(selChain===i?' on':''); tl.textContent='▦';
+    tl.onclick=()=>{ selChain=(selChain===i)?null:i; tlSel=null; draw(); };  // timeline, any time
+    row.appendChild(tl);
     const cp=document.createElement('button'); cp.className='dchip'; cp.textContent='⧉';
     cp.onclick=()=>{ if(orch.chains.length<CHAINMAX){
       orch.chains.push(JSON.parse(JSON.stringify(c))); changed(); } };  // copy takes the one-offs
