@@ -350,12 +350,13 @@ function realizeHitsFor(stack,b=0){
     const accent=(t===0)?116:(mi===0?102:88);
     if(ch){
       const sub=PULSE/ch.S, pre=ch.pre||0, barLen=top*PULSE;
-      for(let j=0;j<ch.S;j++){
+      const N=Math.max(ch.S, ch.m.length);                  // extra notes SPILL past the cell
+      for(let j=0;j<N;j++){
         const sym=ch.m[(j+(ch.p||0))%ch.m.length];         // p = sub-motif phase
         if(!sym) continue;                                  // 0 = rest
         const sd=SOUNDS[Math.abs(sym)-1]; if(!sd) continue;
         let at=base+(j-pre)*sub;                            // prenotes lead INTO the anchor
-        if(at<-1e-9) at+=barLen;                            // pickups wrap to the bar's end
+        at=((at%barLen)+barLen)%barLen;                     // wrap both directions at the bar
         out.push([at, sd[0],
                   sym<0?52:(j===pre?accent:Math.max(52,accent-26))]); // anchor takes the accent
       }
@@ -429,12 +430,13 @@ function applyOrns(hits,L,orns,li){
     if(o.act==='add'&&o.ch&&o.ch.S){                 // one-off sub-motif cell
       const sub=PULSE/o.ch.S, pre=o.ch.pre||0;
       const letLen=letterGrid(L).bars*bp*PULSE;
-      for(let j=0;j<o.ch.S;j++){
+      const N=Math.max(o.ch.S, o.ch.m.length);       // extra notes spill past the cell
+      for(let j=0;j<N;j++){
         const s2=o.ch.m[(j+(o.ch.p||0))%o.ch.m.length];
         if(!s2) continue;
         const sd2=SOUNDS[Math.abs(s2)-1]; if(!sd2) continue;
         let at=t0+(j-pre)*sub;                       // prenotes lead into the address
-        if(at<-1e-9) at+=letLen;                     // wrap to the letter's end
+        at=((at%letLen)+letLen)%letLen;              // wrap both directions at the letter
         out.push([at, sd2[0], s2<0?52:(j===pre?96:70)]);
       }
     }
@@ -647,7 +649,7 @@ function drawStack(){
       sp.innerHTML=html+`<button id="delch">✕ remove child</button></div>
         <div class="row2"><span class="lbl">slot ticks</span>
           <button id="sm">−</button><b style="font-size:18px">${ch.S}</b><button id="sp2">+</button>
-          <span class="lbl" style="margin-left:8px">sub-motif (${ch.m.length}) — cut at ${ch.S}, restart each visit</span></div>
+          <span class="lbl" style="margin-left:8px">sub-motif (${ch.m.length}) — ${ch.S} ticks/pulse; extra notes spill past</span></div>
         <div class="row2"><span class="lbl">phase</span>
           <button id="cpm">−</button><b style="font-size:18px">${(ch.p||0)%ch.m.length}</b><button id="cpp">+</button>
           <span class="lbl" style="margin-left:8px">sub-motif tick the cell starts on</span></div>

@@ -50,7 +50,7 @@ stack⁰ is the **ruler**.
 For each t ∈ [0, top), with mi = fold(t):
 
   * if children[mi] = (S, m, p, pre) exists (regardless of motif[mi]):
-    for j ∈ [0, S): let σ = m[(j + p) mod |m|]. If σ ≠ 0, emit
+    for j ∈ [0, max(S, |m|)): let σ = m[(j + p) mod |m|]. If σ ≠ 0, emit
         ( (pos(t) + (j − pre)/S) mod top,  |σ|,
           52 if σ < 0
           else accent(t,mi) if j = pre        -- the ANCHOR tick
@@ -65,8 +65,10 @@ Notes. Offsets make each level read INTO the level below at position oᵢ,
 wrapping at the next modulo — a small period on top plus its offset is a
 sliding window over the level below (periods [4@5,16] plays elements
 5–8 of the 16). Phase rotates the finished loop — accents travel with
-content. Children restart on every visit (the tail of m beyond S is
-silent unless sub-phase p slides it into reach).
+content. Children restart on every visit. When |m| > S the extra notes
+SPILL past the cell at the same tick rate (union with whatever is there —
+no erasure), wrapping at the bar like prenotes: pre reaches backward out
+of the cell, spillover reaches forward.
 
 ## 4. Tabs (lanes) — realizeTab(tab)
 

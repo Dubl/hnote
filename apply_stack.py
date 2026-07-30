@@ -55,14 +55,13 @@ def realize(pulse, periods, motif, children, phase=0, offs=None, steps=None, b=0
         if ch:
             sub = pulse / ch["S"]
             pre = ch.get("pre", 0) % ch["S"]
-            for j in range(ch["S"]):
+            N = max(ch["S"], len(ch["m"]))       # extra notes SPILL past the cell
+            for j in range(N):
                 sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
                 if not sym:
                     continue                     # 0 = rest
                 vel = GHOST_VEL if sym < 0 else (accent if j == pre else max(52, accent - 26))
-                at = base + (j - pre) * sub      # prenotes lead INTO the anchor
-                if at < -1e-9:
-                    at += top * pulse            # pickups wrap to the bar's end
+                at = (base + (j - pre) * sub) % (top * pulse)   # wrap both directions
                 hits.append((at, SOUNDS[abs(sym) - 1], vel))
         else:
             sym = motif[mi]
@@ -115,9 +114,10 @@ def build_lane(pulse, periods, motif, children, phase=0, offs=None):
             return leaf(SOUNDS[abs(sym) - 1], GHOST_VEL if sym < 0 else vel, 1.0)
         kids = []
         pre = ch.get("pre", 0) % ch["S"]
+        N = max(ch["S"], len(ch["m"]))
         for k in range(ch["S"]):
-            j = k + pre                          # shift: prenotes moved to the grace lane
-            if j >= ch["S"]:
+            j = k + pre                          # out-of-cell ticks ride the overflow lanes
+            if j >= N:
                 kids.append(leaf(0, 0, 1.0)); continue
             sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
             if sym:
@@ -156,38 +156,47 @@ def build_lane(pulse, periods, motif, children, phase=0, offs=None):
         node = cont([drop_unit(node, ph), trim_unit(node, ph)], float(span))
     return node, span
 
-def build_grace_bar(pulse, periods, motif, children, phase=0, offs=None):
-    """Prenotes as a parallel grace lane: for each realized pulse whose cell
-    has pre > 0, its first `pre` ticks land in the PREVIOUS pulse (wrapping
-    to the bar's end). Returns (node, span) or (None, span) if no graces."""
+def build_overflow_bars(pulse, periods, motif, children, phase=0, offs=None):
+    """Out-of-cell sub-motif ticks (prenotes backward, spillover forward) as
+    parallel overflow lanes. Each source cell's ticks are grouped by target
+    pulse; groups are packed greedily into as few lanes as collisions allow.
+    Returns (list of lane nodes, span) - list may be empty."""
     top = periods[0] if periods else len(motif)
     ph = phase % top
-    cells = [leaf(0, 0, 1.0) for _ in range(top)]
-    any_g = False
+    lanes = []                                   # each: dict target-pulse -> cell node
     for t in range(top):
         mi = fold(t, periods, len(motif), offs)
         ch = children.get(mi)
         if not ch:
             continue
-        pre = ch.get("pre", 0) % ch["S"]
-        if not pre:
-            continue
+        S = ch["S"]
+        pre = ch.get("pre", 0) % S
+        N = max(S, len(ch["m"]))
         pos = (t - ph) % top
-        q = (pos - 1 + top) % top
-        kids = [leaf(0, 0, 1.0) for _ in range(ch["S"])]
         accent = 116 if t == 0 else (102 if mi == 0 else 88)
-        got = False
-        for j in range(pre):
+        groups = {}                              # pulse offset -> {slot: leaf}
+        for j in range(N):
+            rel = j - pre
+            if 0 <= rel < S:
+                continue                         # in-cell: handled by motif_cell
             sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
             if not sym:
                 continue
             v = GHOST_VEL if sym < 0 else max(52, accent - 26)
-            kids[ch["S"] - pre + j] = leaf(SOUNDS[abs(sym) - 1], v, 1.0)
-            got = True
-        if got:
-            cells[q] = cont(kids, 1.0)
-            any_g = True
-    return (cont(cells, float(top)) if any_g else None, top)
+            groups.setdefault(rel // S, {})[rel % S] = leaf(SOUNDS[abs(sym) - 1], v, 1.0)
+        for off, slots in groups.items():
+            q = (pos + off) % top
+            kids = [slots.get(k, leaf(0, 0, 1.0)) for k in range(S)]
+            cell = cont(kids, 1.0)
+            for lane in lanes:                   # greedy packing
+                if q not in lane:
+                    lane[q] = cell
+                    break
+            else:
+                lanes.append({q: cell})
+    nodes = [cont([lane.get(q, leaf(0, 0, 1.0)) for q in range(top)], float(top))
+             for lane in lanes]
+    return nodes, top
 
 def fit_to(node, own_span, span_target):
     """Tile/cut a lane node so it spans exactly span_target pulses."""
@@ -208,24 +217,25 @@ def build_measure(name, pulse, lanes):
     kids = []
     for ln in lanes:
         periods, motif, children, phase, offs, steps = ln
-        bars, gbars, any_grace = [], [], False
+        bars, over_bars = [], []
         for b in range(C):
             offs_b = [((offs[k] if offs and k < len(offs) else 0) or 0)
                       + b * ((steps[k] if steps and k < len(steps) else 0) or 0)
                       for k in range(len(periods))]
             node, span = build_lane(pulse, periods, motif, children, phase, offs_b)
             bars.append(fit_to(node, span, top0))
-            gnode, gspan = build_grace_bar(pulse, periods, motif, children, phase, offs_b)
-            if gnode is None:
-                gnode = cont([leaf(0, 0, 1.0) for _ in range(gspan)], float(gspan))
-            else:
-                any_grace = True
-            gbars.append(fit_to(gnode, gspan, top0))
+            onodes, ospan = build_overflow_bars(pulse, periods, motif, children, phase, offs_b)
+            over_bars.append([fit_to(n, ospan, top0) for n in onodes])
         lane_node = bars[0] if C == 1 else cont(bars, float(C * top0))
         lane_node["timing"] = 1.0
         kids.append(lane_node)
-        if any_grace:                             # prenotes ride a parallel grace lane
-            gl = gbars[0] if C == 1 else cont(gbars, float(C * top0))
+        M = max((len(x) for x in over_bars), default=0)
+        for mi_ in range(M):                      # overflow lanes (prenotes + spillover)
+            def rest_bar():
+                return cont([leaf(0, 0, 1.0) for _ in range(top0)], float(top0))
+            bars_m = [over_bars[b][mi_] if mi_ < len(over_bars[b]) else rest_bar()
+                      for b in range(C)]
+            gl = bars_m[0] if C == 1 else cont(bars_m, float(C * top0))
             gl["timing"] = 1.0
             kids.append(gl)
     root = {"midi_number": 0, "velocity": 0, "timing": float(C * top0 * pulse), "channel": 9,

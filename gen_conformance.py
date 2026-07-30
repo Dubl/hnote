@@ -41,6 +41,10 @@ CASES = [
                        "child1=[S=4,m=[3,-3,1,0],p=0,pre=2]"),
     ("prenote-wrap-and-phase", "hnote stack v1 pulse=1 periods=[8] motif=[1,4] "
                                "child1=[S=3,m=[7,-7,2],pre=1] phase=3"),
+    ("spillover", "hnote stack v1 pulse=1 periods=[10] motif=[1,0,3,0,0] "
+                  "child3=[S=2,m=[7,-7,7,0,2]]"),
+    ("spill-pre-wrap", "hnote stack v1 pulse=1 periods=[6] motif=[1,2,3] "
+                       "child3=[S=3,m=[5,-5,5,5,-5],pre=1] phase=2"),
 ]
 
 def x840(t, name):

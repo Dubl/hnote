@@ -203,7 +203,7 @@ function ws() {
       { ...stack([1,2,3], [16]),                     // A: 16-pulse ruler + 2 lanes
         lanes: [ { ...stack([4,0], [10]), offs: [3], steps: [2] },  // stepping: 5-bar cycle
                  stack([5,0,0,-2], [24]) ] },        //   24-pulse lane: cut at 16 (ghost incl)
-      { ...stack([2,1], [9], {0:{S:3,m:[1,0,4],p:1,pre:1}}), phase: 2 },  // B: phased + prenote child
+      { ...stack([2,1], [9], {0:{S:3,m:[1,0,4,7],p:1,pre:1}}), phase: 2 },  // B: pre + SPILL child
       { ...stack([3,0,-2,1,2,3,1,0], [4, 8]), offs: [5, 0] },  // C: 4-window sliding over 8 (wraps)
     ],
     winsBy: [
@@ -300,6 +300,8 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
         ch: { S: 4, m: [3, 0, -3], p: 0 } },            // one-off sub-motif burst
       { li: 0, bar: 0, u: 9, act: 'add', sym: 3,
         ch: { S: 2, m: [3, 3], p: 0, pre: 1 } },        // burst with a prenote pickup
+      { li: 0, bar: 0, u: 12, act: 'add', sym: 5,
+        ch: { S: 2, m: [5, 0, -5, 5], p: 0 } },         // burst that SPILLS past its pulse
     ]},
     { seq: ['B'], orns: [] },
   ]};
@@ -328,6 +330,12 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
     .map(h => [Math.round(h[0] * 1000), h[2]]).sort((a, b) => a[0] - b[0]);
   check('V9:prenote', JSON.stringify(preHits) === JSON.stringify([[2125, 70], [2250, 96]]),
     'prenote burst wrong: ' + JSON.stringify(preHits));
+  // spill burst at pulse 12 (S=2, m len 4): ticks at 3.0(96), 3.25 ghost(52), 3.375(70)
+  const spill = e0.hits.filter(h => h[1] === 75 && h[0] > 2.9 && h[0] < 3.5)
+    .map(h => [Math.round(h[0] * 1000), h[2]]).sort((a, b) => a[0] - b[0]);
+  // (pulse 12 also holds a BASE rim @102 - union semantics: both sound)
+  check('V9:spill', JSON.stringify(spill) === JSON.stringify([[3000, 102], [3000, 96], [3250, 52], [3375, 70]]),
+    'spill burst wrong: ' + JSON.stringify(spill));
 }
 
 console.log('V7 migration (v6 wrap+trim, v4/v3/v2 chain, v7 clamp)');
