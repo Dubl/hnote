@@ -125,8 +125,11 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   blob `*S;m;p;pre`). **Prenotes** (`pre` on any sub-motif cell, child or
   burst): the first `pre` ticks lead INTO the anchor (anchor tick takes
   the accent; pickups wrap to the bar/letter end) — the tree's
-  prechildren concept rediscovered; compiled as a parallel GRACE LANE
-  (sidebyside sibling; closed-loop verified incl. steps+phase).
+  prechildren concept rediscovered. **Spillover** (2026-07-30): when
+  |m| > S the extra notes EXTEND past the cell at the tick rate (union,
+  no erasure; wrap at bar/letter) — pre reaches backward, spill forward.
+  Both compiled as parallel OVERFLOW LANES (sidebyside siblings, greedy
+  packing; closed-loop verified incl. steps+phase).
   Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat
