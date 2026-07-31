@@ -327,7 +327,18 @@ def parse_lane(body):
     phm = re.search(r"phase=(\d+)", body)
     return (periods, motif, children, int(phm.group(1)) if phm else 0, offs, steps)
 
-def parse_blob(blob):
+def parse_blob(blob, tab="A"):
+    s = blob.strip()
+    if s.startswith("hnote setup") or s.startswith("{"):
+        # full-page setup blob (Copy setup): compile one tab from the state JSON
+        state = json.loads(s[s.find("{"):])
+        t = state["stacks"]["ABCDEFGH".index(tab)]
+        def lane_tuple(l):
+            ch = {int(k): v for k, v in (l.get("children") or {}).items()}
+            return (l.get("periods") or [], l["motif"], ch, l.get("phase", 0) or 0,
+                    l.get("offs") or [], l.get("steps") or [])
+        lanes = [lane_tuple(t)] + [lane_tuple(x) for x in (t.get("lanes") or [])]
+        return float(state.get("pulse", 0.25)), lanes
     pulse = float(re.search(r"pulse=([\d.]+)", blob).group(1))
     lane_bodies = re.findall(r"lane\d+=\{([^{}]*)\}", blob)
     lanes = [parse_lane(b) for b in lane_bodies] if lane_bodies else [parse_lane(blob)]
@@ -336,7 +347,8 @@ def parse_blob(blob):
 def main():
     blob = sys.argv[1]
     name = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv else "stack1"
-    pulse, lanes = parse_blob(blob)
+    tab = sys.argv[sys.argv.index("--tab") + 1] if "--tab" in sys.argv else "A"
+    pulse, lanes = parse_blob(blob, tab)
     print(f"{name}: pulse {pulse}, {len(lanes)} lane(s)")
     for i, (periods, motif, children, phase, offs, steps) in enumerate(lanes):
         print(f"  lane{i+1}: periods {periods}, offs {offs}, steps {steps}, "

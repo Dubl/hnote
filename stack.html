@@ -197,7 +197,8 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
 </div>
 
 <div class="toolbar">
-  <button id="copy">Copy stack</button>
+  <button id="copy">Copy setup</button>
+  <button id="loadbtn">Load setup</button>
   <button id="dl">Download MIDI take</button>
   <button id="cleartake">Clear take</button>
 </div>
@@ -1163,28 +1164,32 @@ function tabBlob(s){
   return [s,...s.lanes].map((ln,i)=>`lane${i+1}={${stackBlob(ln)}}`).join(' ');
 }
 document.getElementById('copy').onclick=async()=>{
-  let text;
-  if(view==='orch'){
-    const ch=orch.chains.map((c,i)=>`chain${i+1}=${c.seq.join('')}`).join(' ');
-    const orns=orch.chains.map((c,i)=>c.orns&&c.orns.length
-      ?` orn${i+1}=[${c.orns.map(o=>`${o.li}.${o.bar}.${o.u}:`+
-        (o.act==='add'&&o.ch?`*${o.ch.S};${o.ch.m.join('.')};${o.ch.p||0}${o.ch.pre?`;${o.ch.pre}`:''}`
-         :(o.act==='mute'?'x':o.act==='ghost'?'~':'')+
-          (o.act==='add'?o.sym:Math.abs(o.sym)))).join(',')}]`:'').join('');
-    const tabs=stacks.map((s,j)=>`${TABN[j]}={${tabBlob(s)}}`).join(' ');
-    const wsTok=winsBy.map((ws,i)=>ws&&ws.length
-      ?` wins${TABN[i]}=[${ws.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',')}]`:'').join('');
-    text=`hnote orch v4 pulse=${PULSE} motif=[${orch.motif.join(',')}] ${ch}${orns} q=${q} ${tabs}${wsTok}`;
-  }else if(view==='mix'){
-    const tabs=stacks.map((s,i)=>`${TABN[i]}={${tabBlob(s)}}`).join(' ');
-    const ws=wins.map(w=>`${TABN[w.tab]}:${w.a.toFixed(2)}-${w.b.toFixed(2)}`).join(',');
-    text=`hnote stackmix v1 pulse=${PULSE}${mixBase?` base=${TABN[mixBase]}`:''} ${tabs} wins=[${ws}]`;
-  }else{
-    const s=S();
-    text=`hnote stack ${s.lanes&&s.lanes.length?'v2':'v1'} pulse=${PULSE} ${tabBlob(s)}`;
-  }
-  try{ await navigator.clipboard.writeText(text); show('copied'); }
+  // the ENTIRE configuration: the persisted state is the canonical form
+  const text='hnote setup v7 '+JSON.stringify(
+    {v:7,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE});
+  try{ await navigator.clipboard.writeText(text); show('setup copied'); }
   catch(e){ prompt('copy this:', text); }
+};
+document.getElementById('loadbtn').onclick=()=>{
+  const raw=prompt('paste a setup blob:');
+  if(!raw) return;
+  try{
+    const m=raw.match(/\{[\s\S]*\}/);            // tolerate the "hnote setup vN " prefix
+    const obj=JSON.parse(m?m[0]:raw);
+    const args=[null,null,null,null,null,null,null];
+    const slot={7:0,6:1,5:2,4:3,3:4}[obj.v];
+    if(slot!=null) args[slot]=obj; else args[5]=obj;    // v2-shaped fallback
+    const st2=migrateFrom(...args);               // the migration chain validates + clamps
+    if(playing){ playing=false; clearInterval(timer);
+      document.getElementById('playbtn').textContent='▸ Play'; }
+    oQueue=null; inj=null; phLog=[];
+    stacks=st2.stacks; cur=st2.cur??0; view=st2.view??'stack';
+    winsBy=st2.winsBy; mixBase=st2.mixBase??0; orch=st2.orch; q=st2.q;
+    PULSE=st2.pulse??0.25; wins=winsBy[mixBase];
+    sel=null; osel=null; curLane=0; selChain=null; tlSel=null;
+    dirty=true; persist(); drawBpm(); draw(); updateRec();
+    show('setup loaded');
+  }catch(e){ show('load failed'); }
 };
 function vlq(n){ const b=[n&0x7f]; n>>=7; while(n){ b.push(0x80|(n&0x7f)); n>>=7; } return b.reverse(); }
 document.getElementById('dl').onclick=()=>{

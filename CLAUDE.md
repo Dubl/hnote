@@ -129,7 +129,12 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   |m| > S the extra notes EXTEND past the cell at the tick rate (union,
   no erasure; wrap at bar/letter) — pre reaches backward, spill forward.
   Both compiled as parallel OVERFLOW LANES (sidebyside siblings, greedy
-  packing; closed-loop verified incl. steps+phase).
+  packing; closed-loop verified incl. steps+phase). **Copy setup / Load
+  setup**: Copy emits the ENTIRE configuration as `hnote setup v7 {json}`
+  (the persisted state IS the format); Load pastes any-version state
+  through migrateFrom (validates+clamps; stops playback first).
+  apply_stack accepts setup blobs directly (`--tab A` picks the tab).
+  The old per-view blobs remain emittable but the setup blob is primary.
   Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat
