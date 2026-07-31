@@ -489,7 +489,10 @@ function drawTabs(){
     const b=document.createElement('button');
     b.className=`tab t${TABN[i]}`+((view==='stack'&&cur===i)?' on':'');
     b.textContent=TABN[i];
-    b.onclick=()=>{ view='stack'; cur=i; sel=null; curLane=0; changed(); };
+    b.onclick=()=>{ view='stack'; cur=i; sel=null; curLane=0;
+      if(playing&&playTarget&&playTarget.view==='stack')
+        playTarget={view:'stack', cur:i};   // live-switch, aligned (window audition)
+      changed(); };
     tb.appendChild(b);
   });
   if(stacks.length<TABN.length){
