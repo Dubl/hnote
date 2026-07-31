@@ -496,7 +496,9 @@ function drawTabs(){
     const p=document.createElement('button'); p.className='tab plus'; p.textContent='+';
     p.onclick=()=>{
       stacks.push(JSON.parse(JSON.stringify(S())));
-      winsBy.push([]);
+      // the letter's identity includes its mix: copy the EFFECTIVE windows
+      // (self-aimed ones are inert in the source and would activate here)
+      winsBy.push(JSON.parse(JSON.stringify((winsBy[cur]||[]).filter(w=>w.tab!==cur))));
       view='stack'; cur=stacks.length-1; changed();
       show('duplicated '+TABN[cur-0]);
     };
