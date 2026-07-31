@@ -532,6 +532,39 @@ function drawLaneStrip(){
     x.onclick=()=>{ S().lanes.splice(curLane-1,1); curLane=0; sel=null; changed(); };
     ls.appendChild(x);
   }
+  if(stacks.length>1){
+    const xt=document.createElement('button'); xt.textContent='✕ tab '+TABN[cur];
+    xt.style.cssText='background:#4a2530; margin-left:auto;';
+    xt.onclick=()=>deleteTab(cur);
+    ls.appendChild(xt);
+  }
+}
+function deleteTab(i){
+  if(stacks.length<2) return;
+  if(!confirm('Delete tab '+TABN[i]+' — its lanes and its mix? Chain letters shift down; letters pointing at it become A.')) return;
+  if(playing){ playing=false; clearInterval(timer); oQueue=null; inj=null;
+    document.getElementById('playbtn').textContent='▸ Play'; }
+  stacks.splice(i,1);
+  winsBy.splice(i,1);
+  winsBy.forEach(ws=>{ for(let k=ws.length-1;k>=0;k--){
+    if(ws[k].tab===i) ws.splice(k,1);              // windows aimed at the deleted tab
+    else if(ws[k].tab>i) ws[k].tab--;
+  }});
+  if(mixBase===i) mixBase=0; else if(mixBase>i) mixBase--;
+  mixBase=Math.min(mixBase, stacks.length-1);
+  wins=winsBy[mixBase]=winsBy[mixBase]||[];
+  if(cur===i) cur=Math.min(i, stacks.length-1); else if(cur>i) cur--;
+  const remap=L=>{
+    const lo=LOS.indexOf(L);
+    if(lo>=0) return lo===i?'a':(lo>i?LOS[lo-1]:L);
+    const up=UPS.indexOf(L);
+    return up===i?'A':(up>i?UPS[up-1]:L);
+  };
+  orch.chains.forEach(c=>{ c.seq=c.seq.map(remap); });
+  if(stacks.length<2&&view!=='stack') view='stack';
+  sel=null; curLane=0; selChain=null; tlSel=null; phLog=[];
+  changed();
+  show('tab deleted');
 }
 function drawStack(){
   drawLaneStrip();
