@@ -42,7 +42,7 @@ __api.call = (now, until) => scheduleOrch(now, until);
 __api.letterHits = (L) => letterHits(L);
 __api.letterLen = (L) => letterLen(L);
 __api.buildOrchCache = () => buildOrchCache();
-__api.migrate = (a, b, c, d, e, f, g) => migrateFrom(a, b, c, d, e, f, g);
+__api.migrate = (a, b, c, d, e, f, g, h) => migrateFrom(a, b, c, d, e, f, g, h);
 `;
 
 function makeEngine() {
@@ -220,16 +220,16 @@ console.log('V1 written-sequence fidelity (variable-length letters incl M)');
   const w = ws();
   run('V1a', { ...w, orch: { motif: [1,2], chains: [CH('A'),CH('B','A')] }, dur: 90, seed: 7 });
   const w2 = ws();
-  run('V1b', { ...w2, orch: { motif: [1,2,3,2], chains: [CH('A','B','A'),CH('a','B'),CH('C')] }, dur: 120, seed: 11 });
+  run('V1b', { ...w2, orch: { motif: [1,2,3,2], chains: [CH('A','B','A'),CH('A','B'),CH('C')] }, dur: 120, seed: 11 });
   const w3 = ws();
-  run('V1c', { ...w3, orch: { motif: [2,2,1], chains: [CH('a'),CH('B','C','B','A')] }, dur: 120, seed: 13 });
+  run('V1c', { ...w3, orch: { motif: [2,2,1], chains: [CH('A'),CH('B','C','B','A')] }, dur: 120, seed: 13 });
   const w4 = ws();                                  // all three mixes as letters in one arrangement
-  run('V1d', { ...w4, orch: { motif: [1,2], chains: [CH('b','A','c'),CH('a','b')] }, dur: 120, seed: 19 });
+  run('V1d', { ...w4, orch: { motif: [1,2], chains: [CH('B','A','C'),CH('A','B')] }, dur: 120, seed: 19 });
   const w5 = ws();                                  // 5 tabs: E/e in play
   w5.stacks.push(stack([2,3], [6]));                // E: 1.50s
   w5.stacks.push(stack([1,4,2], [12]));             // E is idx 3... push twice -> idx 3,4
   w5.winsBy = [[],[],[],[{tab:0,a:0.25,b:1.0}],[{tab:3,a:0.5,b:2.0}]];
-  run('V1e', { ...w5, orch: { motif: [1,2], chains: [CH('E','e','A'),CH('d','E')] }, dur: 100, seed: 29 });
+  run('V1e', { ...w5, orch: { motif: [1,2], chains: [CH('E','E','A'),CH('D','E')] }, dur: 100, seed: 29 });
 }
 
 console.log('V2 inject-then-resume (q=bar)');
@@ -275,14 +275,14 @@ console.log('V5 mid-play edits (chains, motif, tab periods)');
 console.log('V6 long run, exact grid (dyadic bar lengths, no drift)');
 {
   const w = ws();
-  run('V6', { ...w, orch: { motif: [1,2,3,2,1], chains: [CH('A','B'),CH('c'),CH('a','B','b')] },
+  run('V6', { ...w, orch: { motif: [1,2,3,2,1], chains: [CH('A','B'),CH('C'),CH('A','B','B')] },
     dur: 1800, t0: 1000000.12, coarse: true, seed: 31 });
 }
 
 console.log('V8 real tempo (136bpm pulse) with lanes + ghosts');
 {
   const w = ws();
-  run('V8', { ...w, orch: { motif: [1,2,3], chains: [CH('A'),CH('b','C'),CH('a')] },
+  run('V8', { ...w, orch: { motif: [1,2,3], chains: [CH('A'),CH('B','C'),CH('A')] },
     pulse: 15/136, dur: 90, seed: 37 });
 }
 
@@ -338,23 +338,33 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
     'spill burst wrong: ' + JSON.stringify(spill));
 }
 
-console.log('V7 migration (v6 wrap+trim, v4/v3/v2 chain, v7 clamp)');
+console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp)');
 {
   const eng = makeEngine();
   const s1 = stack([1,2], [12]), s2 = stack([3], [8]);
+  const v7good = { v: 7, stacks: [s1, s2], cur: 0, view: 'orch', mixBase: 1, pulse: 0.2,
+    winsBy: [[],[{tab:0,a:1,b:2}]],
+    orch: { motif: [1,2], chains: [
+      { seq: ['b','A','a'], orns: [{ li: 1, bar: 0, u: 2, act: 'add', sym: 3 }] },
+      { seq: ['B'], orns: [] }] }, q: 'pulse' };
+  const m7g = eng.api.migrate(null, JSON.parse(JSON.stringify(v7good)), null, null, null, null, null, null);
+  check('V7:v7', m7g.v === 8 && m7g.pulse === 0.2
+    && m7g.orch.chains[0].seq.join('') === 'BAA'        // lowercase = its own uppercase now
+    && m7g.orch.chains[0].orns.length === 1,
+    JSON.stringify(m7g.orch));
   const v6good = { v: 6, stacks: [s1, s2], cur: 0, view: 'orch', mixBase: 1, pulse: 0.2,
     winsBy: [[],[{tab:0,a:1,b:2}]],
     orch: { motif: [1,2], chains: [['b','A','B','a','A'],['B']] }, q: 'pulse' };
-  const m6 = eng.api.migrate(null, JSON.parse(JSON.stringify(v6good)), null, null, null, null, null);
-  check('V7:v6', m6.v === 7 && m6.pulse === 0.2
-    && m6.orch.chains[0].seq.join('') === 'bABa'        // trimmed to the 4-phrase convention
+  const m6 = eng.api.migrate(null, null, JSON.parse(JSON.stringify(v6good)), null, null, null, null, null);
+  check('V7:v6', m6.v === 8 && m6.pulse === 0.2
+    && m6.orch.chains[0].seq.join('') === 'BABA'        // trimmed to 4 + uppercased
     && m6.orch.chains[0].orns.length === 0 && m6.winsBy[1].length === 1,
     JSON.stringify(m6.orch));
   const v4 = { v: 4, stacks: [s1, s2], cur: 0, view: 'mix', mixBase: 1,
     wins: [{tab:0,a:1,b:2}], orch: { motif: [1,2], chains: [['M','A'],['B']] }, q: 'pulse' };
-  const m4 = eng.api.migrate(null, null, null, v4, null, null, null);
-  check('V7:v4', m4.v === 7 && m4.pulse === 0.25 && m4.winsBy.length === 2
-    && m4.orch.chains[0].seq.join('') === 'bA' && m4.orch.chains[1].seq.join('') === 'B'
+  const m4 = eng.api.migrate(null, null, null, null, v4, null, null, null);
+  check('V7:v4', m4.v === 8 && m4.pulse === 0.25 && m4.winsBy.length === 2
+    && m4.orch.chains[0].seq.join('') === 'BA' && m4.orch.chains[1].seq.join('') === 'B'
     && m4.q === 'pulse' && m4.mixBase === 1, JSON.stringify(m4.orch));
   const v3 = { v: 3,
     setups: [
@@ -363,15 +373,15 @@ console.log('V7 migration (v6 wrap+trim, v4/v3/v2 chain, v7 clamp)');
       { stacks: [s1, s2], cur: 1, view: 'mix', wins: [], deck: 'MIX' },
     ],
     curSetup: 0, oview: 'orch', orch: { periods: [4], motif: [1, 3, 2] }, opulse: 8, q: 'tick' };
-  const m3 = eng.api.migrate(null, null, null, null, v3, null, null);
-  check('V7:v3', m3.v === 7 && m3.orch.chains.length === 3
-    && m3.orch.chains[0].seq.join('') === 'A' && m3.orch.chains[2].seq.join('') === 'a'
+  const m3 = eng.api.migrate(null, null, null, null, null, v3, null, null);
+  check('V7:v3', m3.v === 8 && m3.orch.chains.length === 3
+    && m3.orch.chains[0].seq.join('') === 'A' && m3.orch.chains[2].seq.join('') === 'A'
     && m3.orch.motif.join() === '1,3,2' && m3.q === 'bar', JSON.stringify(m3.orch));
   const v2 = { stacks: [s1], cur: 0, view: 'stack', wins: [] };
-  const m2 = eng.api.migrate(null, null, null, null, null, v2, null);
-  check('V7:v2', m2.v === 7 && m2.orch.chains.length === 1
+  const m2 = eng.api.migrate(null, null, null, null, null, null, v2, null);
+  check('V7:v2', m2.v === 8 && m2.orch.chains.length === 1
     && m2.orch.chains[0].seq.join('') === 'A' && m2.winsBy.length === 1);
-  const v7bad = { v: 7, stacks: [{...s1, lanes:[null, stack([2],[4]), {bogus:1}]}, s2],
+  const v8bad = { v: 8, stacks: [{...s1, lanes:[null, stack([2],[4]), {bogus:1}]}, s2],
     cur: 9, view: 'orch', mixBase: 7, pulse: 9.9,
     winsBy: [[{tab:1,a:0,b:1}]],
     orch: { motif: [1, 9, 2], chains: [
@@ -384,14 +394,14 @@ console.log('V7 migration (v6 wrap+trim, v4/v3/v2 chain, v7 clamp)');
       ]},
       { seq: ['B'] },
     ] }, q: 'weird' };
-  const m7 = eng.api.migrate(v7bad, null, null, null, null, null, null);
-  check('V7:v7clamp', m7.cur === 1 && m7.mixBase === 1 && m7.winsBy.length === 2
-    && m7.pulse === 0.25 && m7.stacks[0].lanes.length === 1
-    && m7.orch.chains[0].seq.join('') === 'AAb'
-    && m7.orch.chains[0].orns.length === 1
-    && m7.orch.chains[1].orns.length === 0
-    && m7.orch.motif.join() === '1,2,2' && m7.q === 'bar' && m7.view === 'orch',
-    JSON.stringify(m7.orch));
+  const m8 = eng.api.migrate(v8bad, null, null, null, null, null, null, null);
+  check('V7:v8clamp', m8.cur === 1 && m8.mixBase === 1 && m8.winsBy.length === 2
+    && m8.pulse === 0.25 && m8.stacks[0].lanes.length === 1
+    && m8.orch.chains[0].seq.join('') === 'AAB'          // Z->A, b->B
+    && m8.orch.chains[0].orns.length === 1
+    && m8.orch.chains[1].orns.length === 0
+    && m8.orch.motif.join() === '1,2,2' && m8.q === 'bar' && m8.view === 'orch',
+    JSON.stringify(m8.orch));
 }
 
 console.log(failures === 0 ? '\nALL GREEN' : `\n${failures} FAILURES`);

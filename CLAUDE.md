@@ -135,6 +135,12 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   through migrateFrom (validates+clamps; stops playback first).
   apply_stack accepts setup blobs directly (`--tab A` picks the tab).
   The old per-view blobs remain emittable but the setup blob is primary.
+  **Letter = tab + its mix** (state v8, 2026-07-31, Jon's correction):
+  the mix is part of the ground stack's IDENTITY — letter A in the orch
+  includes tab A's windows (empty = plain; law 7). Lowercase mix-letters
+  retired (migrate maps a→A etc). Consequence he accepted: timeline
+  one-offs address positions, so moving a mix window can orphan a
+  one-off's musical meaning — by design (exceptions vs invariants).
   Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat

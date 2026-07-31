@@ -95,10 +95,12 @@ The mix's length is the ground tab's length.
 
 ## 6. Sequences (chains / arrangement)
 
-A **letter** denotes a loop: uppercase A… = a tab's loop; lowercase a… =
-the mix grounded on that tab (with that ground's window list). A
-**chain** is a word of AT MOST FOUR letters (phrases; convention) =
-concatenation of their loops. An **arrangement** is a sequence of chain
+A **letter** (A…) denotes a tab's loop WITH THAT TAB'S MIX applied:
+ground = the tab, windows = its stored window list (§5). The mix is part
+of the ground stack's identity — a tab with no windows plays plain
+(law 7), and there is no separate mix alphabet. A **chain** is a word of
+AT MOST FOUR letters (phrases; convention) = concatenation of their
+loops. An **arrangement** is a sequence of chain
 references, concatenated likewise.
 
 **Ornaments (score layer).** A chain additionally carries a finite set of

@@ -209,13 +209,14 @@ let PULSE=0.25;                 // seconds per pulse (a 16th) - persisted, BPM-e
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N']];
 const TABN=['A','B','C','D','E','F','G','H'];
 const UPS=TABN.join(''), LOS=UPS.toLowerCase();
-const KEY='hnote_stack_v7';
+const KEY='hnote_stack_v8';
 const CHAINMAX=12;
 const PHRASEMAX=4;               // convention: a chain holds at most 4 letters (phrases)
 /* PURE-STATE-BEGIN */
-function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
+function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
   // old keys are never written back - migration only reads
-  if(v7&&v7.v===7){
+  if(v8&&v8.v===8){
+    const v7=v8;   // same shape as v7 except letters are UPPERCASE ONLY
     if(!v7.stacks||!v7.stacks.length) v7.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
     v7.cur=Math.min(v7.cur??0, v7.stacks.length-1);
     v7.stacks.forEach(s=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
@@ -229,7 +230,8 @@ function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
       ?v7.orch:{motif:[1],chains:[{seq:['A'],orns:[]}]};
     v7.orch.chains=v7.orch.chains.slice(0,CHAINMAX).map(c=>{
       const seq=((c&&c.seq&&c.seq.length)?c.seq:['A']).slice(0,PHRASEMAX)
-        .map(L=>(UPS+LOS).includes(L)?L:'A');
+        .map(L=>{ const lo=LOS.indexOf(L); if(lo>=0) return UPS[lo];
+                  return UPS.includes(L)?L:'A'; });
       const orns=(c&&Array.isArray(c.orns)?c.orns:[]).filter(o=>o
         &&Number.isInteger(o.li)&&o.li>=0&&o.li<seq.length
         &&Number.isInteger(o.bar)&&o.bar>=0&&Number.isInteger(o.u)&&o.u>=0
@@ -246,7 +248,13 @@ function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
     if(v7.stacks.length<2&&v7.view!=='stack') v7.view='stack';
     v7.q=v7.q==='pulse'?'pulse':'bar';
     v7.pulse=(typeof v7.pulse==='number'&&v7.pulse>=15/220&&v7.pulse<=15/40)?v7.pulse:0.25;
+    v7.v=8;
     return v7;
+  }
+  if(v7&&v7.v===7){
+    // v7 had lowercase mix-letters; under v8 the letter INCLUDES its tab's
+    // mix, so lowercase maps to its own uppercase (same meaning, one identity)
+    return migrateFrom(Object.assign({},v7,{v:8}), null, null, null, null, null, null, null);
   }
   if(v6&&v6.v===6){
     if(!v6.stacks||!v6.stacks.length) v6.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
@@ -261,20 +269,20 @@ function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
     // v6 chains were plain letter arrays; wrap them (trim to the 4-phrase convention)
     const chains=((v6.orch&&v6.orch.chains)||[['A']])
       .map(c=>({seq:(c&&c.length?c:['A']).slice(0,PHRASEMAX), orns:[]}));
-    return migrateFrom({v:7, stacks:v6.stacks, cur:v6.cur, view:v6.view,
+    return migrateFrom(null, {v:7, stacks:v6.stacks, cur:v6.cur, view:v6.view,
       winsBy:v6.winsBy, mixBase:v6.mixBase, pulse:v6.pulse, q:v6.q,
       orch:{motif:(v6.orch&&v6.orch.motif)||[1], chains}},
       null, null, null, null, null, null);
   }
   if(v5&&v5.v===5&&v5.stacks&&v5.stacks.length){
-    return migrateFrom(null, Object.assign({},v5,{v:6, pulse:0.25}), null, null, null, null, null);
+    return migrateFrom(null, null, Object.assign({},v5,{v:6, pulse:0.25}), null, null, null, null, null);
   }
   if(v4&&v4.v===4&&v4.stacks&&v4.stacks.length){
     const mb=Math.min(Math.max(0,v4.mixBase|0), v4.stacks.length-1);
     const wb=v4.stacks.map(()=>[]); wb[mb]=v4.wins??[];
     const low=LOS[mb];                        // old single mix -> that base's mix letter
     const chains=((v4.orch&&v4.orch.chains)||[['A']]).map(c=>c.map(L=>L==='M'?low:L));
-    return migrateFrom(null, null, {v:5, stacks:v4.stacks, cur:v4.cur??0, view:v4.view??'stack',
+    return migrateFrom(null, null, null, {v:5, stacks:v4.stacks, cur:v4.cur??0, view:v4.view??'stack',
       winsBy:wb, mixBase:mb,
       orch:{motif:(v4.orch&&v4.orch.motif)||[1], chains}, q:v4.q}, null, null, null, null);
   }
@@ -284,7 +292,7 @@ function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
       :(UPS.includes(s.deck)?s.deck:'A')]);
     const motif=((v3.orch&&v3.orch.motif&&v3.orch.motif.length)?v3.orch.motif:[1])
       .map(m=>Math.min(Math.max(1,m|0)||1, chains.length));
-    return migrateFrom(null, null, null, {v:4, stacks:su.stacks, cur:su.cur??0, view:'stack',
+    return migrateFrom(null, null, null, null, {v:4, stacks:su.stacks, cur:su.cur??0, view:'stack',
             wins:su.wins??[], mixBase:0,
             orch:{motif, chains}, q:v3.q==='pulse'?'pulse':'bar'}, null, null, null);
   }
@@ -292,13 +300,14 @@ function migrateFrom(v7,v6,v5,v4,v3,v2,v1){
     v2={stacks:[{motif:(v1&&v1.motif)||[1,2,3], periods:(v1&&v1.periods)||[16,8],
                  children:(v1&&v1.children)||{}}], cur:0, view:'stack', wins:[]};
   }
-  return migrateFrom(null, null, null, {v:4, stacks:v2.stacks, cur:v2.cur??0,
+  return migrateFrom(null, null, null, null, {v:4, stacks:v2.stacks, cur:v2.cur??0,
           view:v2.view==='mix'?'mix':'stack', wins:v2.wins??[], mixBase:0,
           orch:{motif:[1],chains:[['A']]}, q:'bar'}, null, null, null);
 }
 /* PURE-STATE-END */
 let st=migrateFrom(
   JSON.parse(localStorage.getItem(KEY)||'null'),
+  JSON.parse(localStorage.getItem('hnote_stack_v7')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v6')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v5')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v4')||'null'),
@@ -311,7 +320,7 @@ PULSE=st.pulse??0.25;
 let wins=winsBy[mixBase];        // bound to the selected mix's window list
 let sel=null, osel=null, curLane=0, selChain=null, tlSel=null, subGh=false;
 let tlCells={}, phKey=null;      // timeline cell refs + current playhead cell
-function persist(){ localStorage.setItem(KEY,JSON.stringify({v:7,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
+function persist(){ localStorage.setItem(KEY,JSON.stringify({v:8,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
@@ -413,9 +422,10 @@ function letterBase(L){
   return Math.max(0,Math.min(i, stacks.length-1));
 }
 function letterHits(L){
+  // a letter IS its tab with that tab's mix applied (empty windows = plain;
+  // the mix is part of the ground stack's identity, not a second alphabet)
   const i=letterBase(L);
-  if(LOS.includes(L)) return realizeMixHits(stacks,(winsBy[i]||[]),i);
-  return realizeTabHits(stacks[i]);
+  return realizeMixHits(stacks,(winsBy[i]||[]),i);
 }
 function letterLen(L){ return tabLen(stacks[letterBase(L)]); }
 // --- ornaments: one-offs held BY the chain at structural addresses ---
@@ -730,7 +740,8 @@ function drawStack(){
 function drawMix(){
   if(mixBase>=stacks.length) mixBase=0;
   document.getElementById('mixhead').textContent=
-    `Mix — tab ${TABN[mixBase]} is the ground; windows reveal the other running uberloops`;
+    `Mix — tab ${TABN[mixBase]}'s mix: windows swap other uberloops over the ground. `+
+    `Letter ${TABN[mixBase]} in the orch INCLUDES this.`;
   const bl=mixBarlen();
   const lay=document.getElementById('mixlay'); lay.innerHTML='';
   const np=Math.min(topPeriod(stacks[mixBase])*tabCycle(stacks[mixBase]), 64);
@@ -825,8 +836,7 @@ function drawMix(){
 // --- orch view (chains of uberloop bars) ---
 function drawOrch(){
   const cs=document.getElementById('chains'); cs.innerHTML='';
-  const avail=[...TABN.slice(0,stacks.length),
-               ...TABN.slice(0,stacks.length).map(t=>t.toLowerCase())];
+  const avail=TABN.slice(0,stacks.length);      // a letter includes its tab's mix
   orch.chains.forEach((c,i)=>{
     const row=document.createElement('div'); row.className='sucard';
     const big=document.createElement('button'); big.className='subig'; big.dataset.ch=i;
@@ -839,7 +849,6 @@ function drawOrch(){
     c.seq.forEach((L,j)=>{
       const b=document.createElement('button'); b.className='lchip';
       b.style.background=`var(--t${L.toUpperCase()})`;
-      if(LOS.includes(L)){ b.style.textDecoration='underline'; b.style.fontStyle='italic'; }
       b.textContent=L;
       b.onclick=()=>{ const k=avail.indexOf(L);
         c.seq[j]=avail[(k<0?0:(k+1)%avail.length)]; changed(); };
@@ -1198,8 +1207,8 @@ function tabBlob(s){
 }
 document.getElementById('copy').onclick=async()=>{
   // the ENTIRE configuration: the persisted state is the canonical form
-  const text='hnote setup v7 '+JSON.stringify(
-    {v:7,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE});
+  const text='hnote setup v8 '+JSON.stringify(
+    {v:8,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE});
   try{ await navigator.clipboard.writeText(text); show('setup copied'); }
   catch(e){ prompt('copy this:', text); }
 };
@@ -1209,9 +1218,9 @@ document.getElementById('loadbtn').onclick=()=>{
   try{
     const m=raw.match(/\{[\s\S]*\}/);            // tolerate the "hnote setup vN " prefix
     const obj=JSON.parse(m?m[0]:raw);
-    const args=[null,null,null,null,null,null,null];
-    const slot={7:0,6:1,5:2,4:3,3:4}[obj.v];
-    if(slot!=null) args[slot]=obj; else args[5]=obj;    // v2-shaped fallback
+    const args=[null,null,null,null,null,null,null,null];
+    const slot={8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
+    if(slot!=null) args[slot]=obj; else args[6]=obj;    // v2-shaped fallback
     const st2=migrateFrom(...args);               // the migration chain validates + clamps
     if(playing){ playing=false; clearInterval(timer);
       document.getElementById('playbtn').textContent='▸ Play'; }
