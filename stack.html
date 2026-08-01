@@ -236,7 +236,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
         &&['add','mute','ghost'].includes(o.act)
         &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length
         &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
-          &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=6
+          &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=8
           &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
           &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S))))
         &&(!o.S||(Number.isInteger(o.S)&&o.S>=1&&o.S<=8
@@ -256,7 +256,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
         &&['add','mute','ghost'].includes(o.act)
         &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length
         &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
-          &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=6
+          &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=8
           &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
           &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S))))
         &&(!o.S||(Number.isInteger(o.S)&&o.S>=1&&o.S<=8
@@ -760,7 +760,7 @@ function drawStack(){
         sr.appendChild(b);
       });
       const a2=document.createElement('button'); a2.className='mspot add'; a2.textContent='+';
-      a2.onclick=()=>{ if(ch.m.length<6){ ch.m.push(1); changed(); } };
+      a2.onclick=()=>{ if(ch.m.length<8){ ch.m.push(1); changed(); } };
       const r2=document.createElement('button'); r2.className='mspot rem'; r2.textContent='−';
       r2.onclick=()=>{ if(ch.m.length>1){ ch.m.pop(); changed(); } };
       const g2=document.createElement('button'); g2.className='mspot'; g2.textContent='♪';
@@ -1078,7 +1078,7 @@ function drawOrnEdit(c, selAddr, elId){
                  o.ch.m[j]=nx===0?0:(s2<0?-nx:nx); }
           changed(); });
       });
-      mk('+m',()=>{ if(o.ch.m.length<6){ o.ch.m.push(1); changed(); } });
+      mk('+m',()=>{ if(o.ch.m.length<8){ o.ch.m.push(1); changed(); } });
       mk('−m',()=>{ if(o.ch.m.length>1){ o.ch.m.pop(); changed(); } });
       mk('p'+((o.ch.p||0)%o.ch.m.length),()=>{ o.ch.p=((o.ch.p||0)+1)%o.ch.m.length; changed(); });
       mk('pre'+((o.ch.pre||0)%o.ch.S),()=>{ o.ch.pre=((o.ch.pre||0)+1)%o.ch.S; changed(); });
