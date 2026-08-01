@@ -117,7 +117,11 @@ address (weight 96, or ghost weight if s < 0) — an add may instead carry
 a sub-motif cell (S, m, p) exactly as in §3, realized within that single
 pulse (first tick weight 96, later ticks 70, ghosts ghost); `mute` = remove that
 occurrence's events of voice |s| in that pulse; `ghost` = set their
-weight to the ghost value. Ornaments apply to the chain's OWN occurrence
+weight to the ghost value. Mute and ghost may carry an optional
+sub-window (S ∈ 1..8, k ∈ 0..S−1): the action then targets only events
+in the k-th of S equal sub-slots of the pulse — sub-motif-level surgery,
+at either scope. Ornaments in a list apply in order (an add may be muted
+by a later ornament). Ornaments apply to the chain's OWN occurrence
 of the letter only — the underlying loops stay pristine — and copying a
 chain copies its ornaments. This layer is deliberately outside the loop
 algebra: loops state invariants; ornaments state exceptions.
@@ -152,6 +156,7 @@ implementation, not this document.
                   "q=" ("bar"|"pulse")
                   (letter "={" body "}")+ ("wins" letter "=[" … "]")*
                   -- orn actions: plain sym = add (signed), x = mute, ~ = ghost
+                  -- mute/ghost may append ";"S";"k for a sub-tick window
 
 `conformance.json` contains vectors {name, blob or structures, pulse: 1,
 bar840, hits: [[τ·840, sound, vel] …]} with all τ·840 exact integers.

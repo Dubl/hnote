@@ -238,7 +238,9 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
         &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
           &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=6
           &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
-          &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S)))))
+          &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S))))
+        &&(!o.S||(Number.isInteger(o.S)&&o.S>=1&&o.S<=8
+          &&(o.k==null||(Number.isInteger(o.k)&&o.k>=0&&o.k<o.S)))))
         .map(o=>Object.assign(o,{li:0})); });
     v7.winsBy=Array.from({length:v7.stacks.length},(_,i)=>(v7.winsBy&&v7.winsBy[i])||[]);
     v7.mixBase=Math.min(Math.max(0,v7.mixBase|0), v7.stacks.length-1);
@@ -256,7 +258,9 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
         &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
           &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=6
           &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
-          &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S)))));
+          &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S))))
+        &&(!o.S||(Number.isInteger(o.S)&&o.S>=1&&o.S<=8
+          &&(o.k==null||(Number.isInteger(o.k)&&o.k>=0&&o.k<o.S)))));
       return {seq, orns};
     });
     v7.orch.motif=v7.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v7.orch.chains.length));
@@ -467,8 +471,12 @@ function applyOrnList(hits,bp,totLen,orns){
       }
     }
     else if(o.act==='add') out.push([t0, sd[0], o.sym<0?52:96]);
-    else if(o.act==='mute') out=out.filter(([t,p])=>!(t>=t0-1e-9&&t<t1-1e-9&&p===sd[0]));
-    else if(o.act==='ghost') out=out.map(([t,p,v])=>(t>=t0-1e-9&&t<t1-1e-9&&p===sd[0])?[t,p,52]:[t,p,v]);
+    else if(o.act==='mute'||o.act==='ghost'){
+      const Ss=(o.S&&o.S>1)?o.S:1;                   // optional sub-tick window
+      const ta=t0+((o.k||0)%Ss)*(PULSE/Ss), tb=ta+PULSE/Ss;
+      if(o.act==='mute') out=out.filter(([t,p])=>!(t>=ta-1e-9&&t<tb-1e-9&&p===sd[0]));
+      else out=out.map(([t,p,v])=>(t>=ta-1e-9&&t<tb-1e-9&&p===sd[0])?[t,p,52]:[t,p,v]);
+    }
   });
   return out.sort((a,b)=>a[0]-b[0]);
 }
@@ -1052,6 +1060,10 @@ function drawOrnEdit(c, selAddr, elId){
     const a=Math.abs(o.sym)%SOUNDS.length+1; o.sym=o.sym<0?-a:a; changed(); });
   mk(o.sym<0?'♪ ghosted':'♪ ghost',()=>{ o.sym=-o.sym; changed(); }, o.sym<0);
   ['add','mute','ghost'].forEach(a=>mk(a,()=>{ o.act=a; changed(); }, o.act===a));
+  if(o.act==='mute'||o.act==='ghost'){              // sub-tick targeting
+    mk('S'+(o.S||1),()=>{ o.S=((o.S||1)%8)+1; o.k=(o.k||0)%o.S; changed(); }, (o.S||1)>1);
+    if((o.S||1)>1) mk('k'+(o.k||0),()=>{ o.k=((o.k||0)+1)%o.S; changed(); });
+  }
   if(o.act==='add'){                                        // one-off sub-motif (a burst)
     if(!o.ch){
       mk('+ sub-motif',()=>{ o.ch={S:2,m:[Math.abs(o.sym)||1,1],p:0}; changed(); });

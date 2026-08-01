@@ -303,6 +303,7 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
         ch: { S: 2, m: [3, 3], p: 0, pre: 1 } },        // burst with a prenote pickup
       { li: 0, bar: 0, u: 12, act: 'add', sym: 5,
         ch: { S: 2, m: [5, 0, -5, 5], p: 0 } },         // burst that SPILLS past its pulse
+      { li: 0, bar: 0, u: 7, act: 'mute', sym: 3, S: 4, k: 2 },  // sub-tick mute of the burst
     ]},
     { seq: ['B'], orns: [] },
   ]};
@@ -328,8 +329,9 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
   // sub-motif burst at pulse 7: S=4, m=[3,0,-3] -> j0 42@96, j2 42@52, j3 42@70
   const burst = e0.hits.filter(h => inPulse(h, 7) && h[1] === 42)
     .map(h => [Math.round((h[0] - 7 * 0.25) / 0.0625), h[2]]).sort((a, b) => a[0] - b[0]);
-  check('V9:burst', JSON.stringify(burst) === JSON.stringify([[0, 96], [2, 52], [3, 70]]),
-    'sub-motif burst wrong: ' + JSON.stringify(burst));
+  // the sub-tick mute (S=4, k=2) surgically removes the ghost at tick 2
+  check('V9:burst', JSON.stringify(burst) === JSON.stringify([[0, 96], [3, 70]]),
+    'sub-motif burst + sub-tick mute wrong: ' + JSON.stringify(burst));
   // prenote burst at pulse 9 (S=2, pre=1): pickup at 8.5 ticks -> t=2.125 @70, anchor 2.25 @96
   const preHits = e0.hits.filter(h => h[1] === 42 && h[0] > 2.05 && h[0] < 2.3)
     .map(h => [Math.round(h[0] * 1000), h[2]]).sort((a, b) => a[0] - b[0]);
