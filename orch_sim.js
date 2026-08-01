@@ -200,7 +200,8 @@ function run(name, cfg0, opts) {
 function ws() {
   return {
     stacks: [
-      { ...stack([1,2,3], [16]),                     // A: 16-pulse ruler + 2 lanes
+      { ...stack([1,2,3], [16]),                     // A: ruler + lanes + a LOOP one-off
+        orns: [{ li: 0, bar: 0, u: 1, act: 'add', sym: 6 }],   // baked-in crash @ pulse 1
         lanes: [ { ...stack([4,0], [10]), offs: [3], steps: [2] },  // stepping: 5-bar cycle
                  stack([5,0,0,-2], [24]) ] },        //   24-pulse lane: cut at 16 (ghost incl)
       { ...stack([2,1], [9], {0:{S:3,m:[1,0,4,7],p:1,pre:1}}), phase: 2 },  // B: pre + SPILL child
@@ -320,6 +321,10 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
   const plain = eng.api.letterHits('A');
   check('V9:pristine', plain.some(h => inPulse(h, 0) && h[1] === 36),
     'ornament leaked into the pristine letter');
+  check('V9:loopOrn', plain.some(h => inPulse(h, 1) && h[1] === 49),
+    'loop one-off missing from the letter');
+  check('V9:loopOrnCarried', e0.hits.some(h => inPulse(h, 1) && h[1] === 49),
+    'loop one-off did not carry into the chain occurrence');
   // sub-motif burst at pulse 7: S=4, m=[3,0,-3] -> j0 42@96, j2 42@52, j3 42@70
   const burst = e0.hits.filter(h => inPulse(h, 7) && h[1] === 42)
     .map(h => [Math.round((h[0] - 7 * 0.25) / 0.0625), h[2]]).sort((a, b) => a[0] - b[0]);

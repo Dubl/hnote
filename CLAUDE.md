@@ -141,6 +141,13 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   retired (migrate maps a→A etc). Consequence he accepted: timeline
   one-offs address positions, so moving a mix window can orphan a
   one-off's musical meaning — by design (exceptions vs invariants).
+  **Loop-level one-offs** (2026-08-01, Jon's layer insertion): tabs carry
+  `orns` at (bar,u) — same grammar as chain orns (li coerced 0), applied
+  via tabHitsOrn BEFORE mixing, so they're part of the letter's identity
+  and carry forward (stack play, mix ground+targets, letters, chains).
+  Pipeline: algebra → loop orns → mix → occurrence orns. Edited in the
+  "Loop one-offs" panel on the stack page (shared drawOrnEdit editor).
+  Not compiled by apply_stack (score layer, like chain orns).
   Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat

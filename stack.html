@@ -156,6 +156,11 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
     <div class="mrow" id="mrow"></div>
     <div id="spoted"></div>
   </div>
+  <div class="panel">
+    <h2>Loop one-offs — baked into this letter everywhere it plays</h2>
+    <div id="logrid"></div>
+    <div id="loedit" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;"></div>
+  </div>
 </div>
 
 <div id="mixview" style="display:none">
@@ -223,7 +228,18 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
       [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
         if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0));
         if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
-        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0)); }); });
+        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0)); });
+      // loop-level one-offs live on the primary stack (li coerced to 0)
+      if(s.orns&&!Array.isArray(s.orns)) delete s.orns;
+      if(s.orns) s.orns=s.orns.filter(o=>o
+        &&Number.isInteger(o.bar)&&o.bar>=0&&Number.isInteger(o.u)&&o.u>=0
+        &&['add','mute','ghost'].includes(o.act)
+        &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length
+        &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
+          &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=6
+          &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
+          &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S)))))
+        .map(o=>Object.assign(o,{li:0})); });
     v7.winsBy=Array.from({length:v7.stacks.length},(_,i)=>(v7.winsBy&&v7.winsBy[i])||[]);
     v7.mixBase=Math.min(Math.max(0,v7.mixBase|0), v7.stacks.length-1);
     v7.orch=(v7.orch&&v7.orch.motif&&v7.orch.motif.length&&v7.orch.chains&&v7.orch.chains.length)
@@ -320,6 +336,7 @@ PULSE=st.pulse??0.25;
 let wins=winsBy[mixBase];        // bound to the selected mix's window list
 let sel=null, osel=null, curLane=0, selChain=null, tlSel=null, subGh=false;
 let tlCells={}, phKey=null;      // timeline cell refs + current playhead cell
+let loSel=null;                  // selected loop one-off address {li:0,bar,u}
 function persist(){ localStorage.setItem(KEY,JSON.stringify({v:8,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
 function S(){ return stacks[cur]; }
 
@@ -402,10 +419,10 @@ function realizeMixHits(ss=stacks,ws=wins,base=mixBase){
   if(!ss[base]) base=0;
   const wsA=ws.filter(w=>w.tab!==base&&ss[w.tab]);   // windows aimed at the ground are inert
   const out=[];
-  realizeTabHits(ss[base]).forEach(h=>{ if(!winAt(h[0],wsA)) out.push(h); });
+  tabHitsOrn(ss[base]).forEach(h=>{ if(!winAt(h[0],wsA)) out.push(h); });
   wsA.forEach(w=>{
     const tgt=ss[w.tab];
-    const hits=realizeTabHits(tgt), tbl=tabLen(tgt);
+    const hits=tabHitsOrn(tgt), tbl=tabLen(tgt);
     hits.forEach(([tt,p,v])=>{
       for(let b=0;b+tt<w.b-1e-9;b+=tbl){
         const at=b+tt;
@@ -431,23 +448,20 @@ function letterLen(L){ return tabLen(stacks[letterBase(L)]); }
 // --- ornaments: one-offs held BY the chain at structural addresses ---
 function letterGrid(L){ const tb=stacks[letterBase(L)];
   return {bp:topPeriod(tb), bars:tabCycle(tb)}; }
-function applyOrns(hits,L,orns,li){
+function applyOrnList(hits,bp,totLen,orns){
   let out=hits.slice();
-  const bp=letterGrid(L).bp;
   (orns||[]).forEach(o=>{
-    if(o.li!==li) return;
     const t0=(o.bar*bp+o.u)*PULSE, t1=t0+PULSE;
     const sd=SOUNDS[Math.abs(o.sym)-1]; if(!sd) return;
     if(o.act==='add'&&o.ch&&o.ch.S){                 // one-off sub-motif cell
       const sub=PULSE/o.ch.S, pre=o.ch.pre||0;
-      const letLen=letterGrid(L).bars*bp*PULSE;
       const N=Math.max(o.ch.S, o.ch.m.length);       // extra notes spill past the cell
       for(let j=0;j<N;j++){
         const s2=o.ch.m[(j+(o.ch.p||0))%o.ch.m.length];
         if(!s2) continue;
         const sd2=SOUNDS[Math.abs(s2)-1]; if(!sd2) continue;
         let at=t0+(j-pre)*sub;                       // prenotes lead into the address
-        at=((at%letLen)+letLen)%letLen;              // wrap both directions at the letter
+        at=((at%totLen)+totLen)%totLen;              // wrap both directions
         out.push([at, sd2[0], s2<0?52:(j===pre?96:70)]);
       }
     }
@@ -456,6 +470,15 @@ function applyOrns(hits,L,orns,li){
     else if(o.act==='ghost') out=out.map(([t,p,v])=>(t>=t0-1e-9&&t<t1-1e-9&&p===sd[0])?[t,p,52]:[t,p,v]);
   });
   return out.sort((a,b)=>a[0]-b[0]);
+}
+function tabHitsOrn(tab){
+  // layer 2: the loop's own one-offs, baked into the tab's identity -
+  // they carry forward into mixes, letters, and chains
+  return applyOrnList(realizeTabHits(tab), topPeriod(tab), tabLen(tab), tab.orns);
+}
+function applyOrns(hits,L,orns,li){                  // layer 4: chain-occurrence one-offs
+  const g=letterGrid(L);
+  return applyOrnList(hits, g.bp, g.bars*g.bp*PULSE, (orns||[]).filter(o=>o.li===li));
 }
 function chainEntries(ci){              // a chain's letters with its one-offs applied
   const c=orch.chains[ci];
@@ -475,7 +498,7 @@ function buildOrchCache(){
 let playTarget=null;      // locked at launch: {view:'mix'} or {view:'stack', cur:i}
 function targetHits(){
   if(!playTarget) return [];
-  return playTarget.view==='mix' ? realizeMixHits() : realizeTabHits(stacks[playTarget.cur]);
+  return playTarget.view==='mix' ? realizeMixHits() : tabHitsOrn(stacks[playTarget.cur]);
 }
 function targetLen(){
   if(!playTarget) return 1;
@@ -489,7 +512,7 @@ function drawTabs(){
     const b=document.createElement('button');
     b.className=`tab t${TABN[i]}`+((view==='stack'&&cur===i)?' on':'');
     b.textContent=TABN[i];
-    b.onclick=()=>{ view='stack'; cur=i; sel=null; curLane=0;
+    b.onclick=()=>{ view='stack'; cur=i; sel=null; curLane=0; loSel=null;
       if(playing&&playTarget&&playTarget.view==='stack')
         playTarget={view:'stack', cur:i};   // live-switch, aligned (window audition)
       changed(); };
@@ -967,12 +990,49 @@ function drawTimeline(){
       g.appendChild(rowEl);
     }
   });
-  drawTlEdit(c);
+  drawOrnEdit(c, tlSel, 'tledit');
 }
-function drawTlEdit(c){
-  const ed=document.getElementById('tledit'); ed.innerHTML='';
-  if(!tlSel) return;
-  const {li,bar,u}=tlSel;
+function drawLoopOrns(){
+  const tab=S(), bp=topPeriod(tab), bars=tabCycle(tab);
+  const g=document.getElementById('logrid'); g.innerHTML='';
+  const base=new Set(realizeTabHits(tab).map(([t])=>Math.floor(t/PULSE+1e-6)));
+  const total=bars*bp, shown=Math.min(total,96);
+  let made=0;
+  for(let bar=0;bar<bars&&made<shown;bar++){
+    const rowEl=document.createElement('div');
+    rowEl.style.cssText='display:flex;flex-wrap:wrap;gap:2px;margin-bottom:3px;';
+    for(let u=0;u<bp&&made<shown;u++,made++){
+      const cell=document.createElement('button');
+      const o=(tab.orns||[]).find(o=>o.bar===bar&&o.u===u);
+      const has=base.has(bar*bp+u);
+      let bg='#221f2b', txt=has?'·':'', col='var(--muted)';
+      if(o){
+        txt=o.act==='mute'?'✕':o.act==='ghost'?'~':
+          SOUNDS[Math.abs(o.sym)-1][1]+(o.ch?'*':'');
+        bg=`var(--s${Math.abs(o.sym)})`; col='#10131a';
+      }
+      cell.textContent=txt;
+      cell.style.cssText=`width:24px;height:28px;border:none;border-radius:5px;`+
+        `font-size:11px;font-weight:800;cursor:pointer;background:${bg};color:${col};`+
+        (o&&o.sym<0?'opacity:.55;':'')+
+        (loSel&&loSel.bar===bar&&loSel.u===u?'box-shadow:0 0 0 2px var(--text) inset;':'');
+      cell.onclick=()=>{ loSel={li:0,bar,u}; draw(); };
+      rowEl.appendChild(cell);
+    }
+    g.appendChild(rowEl);
+  }
+  if(total>shown){
+    const n=document.createElement('div');
+    n.style.cssText='font-size:10px;color:var(--muted);';
+    n.textContent='… '+(total-shown)+' more addresses';
+    g.appendChild(n);
+  }
+  drawOrnEdit(tab, loSel, 'loedit');
+}
+function drawOrnEdit(c, selAddr, elId){
+  const ed=document.getElementById(elId); ed.innerHTML='';
+  if(!selAddr) return;
+  const {li,bar,u}=selAddr;
   const idx=(c.orns||[]).findIndex(o=>o.li===li&&o.bar===bar&&o.u===u);
   const o=idx>=0?c.orns[idx]:null;
   const lbl=document.createElement('span');
@@ -1025,7 +1085,8 @@ function draw(){
   document.getElementById('stackview').style.display=view==='stack'?'':'none';
   document.getElementById('mixview').style.display=view==='mix'?'':'none';
   document.getElementById('orchview').style.display=view==='orch'?'':'none';
-  if(view==='stack') drawStack(); else if(view==='mix') drawMix(); else drawOrch();
+  if(view==='stack'){ drawStack(); drawLoopOrns(); }
+  else if(view==='mix') drawMix(); else drawOrch();
 }
 function changed(){ persist(); draw(); dirty=true; }
 

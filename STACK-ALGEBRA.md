@@ -103,9 +103,15 @@ AT MOST FOUR letters (phrases; convention) = concatenation of their
 loops. An **arrangement** is a sequence of chain
 references, concatenated likewise.
 
-**Ornaments (score layer).** A chain additionally carries a finite set of
-one-off events at STRUCTURAL addresses (li, bar, u): phrase index within
-the chain, bar within that letter's cycle, pulse within the bar. Each
+**Ornaments (score layer) — two scopes.** One-off events share one
+grammar (action + signed symbol, optionally a §3 cell) but attach at two
+scopes. LOOP scope: a tab carries ornaments at (bar, u) over its own
+cycle; they are part of the tab's identity, applied BEFORE mixing — they
+carry into windows, letters, and chains everywhere the tab sounds.
+OCCURRENCE scope: a chain carries ornaments at (li, bar, u): phrase index
+within the chain, bar within that letter's cycle, pulse within the bar —
+applied to that occurrence only, after the mix. Pipeline per letter:
+algebra → loop ornaments → mix → occurrence ornaments. Each
 ornament has an action and a signed symbol: `add` = emit voice |s| at the
 address (weight 96, or ghost weight if s < 0) — an add may instead carry
 a sub-motif cell (S, m, p) exactly as in §3, realized within that single
