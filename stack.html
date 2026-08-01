@@ -153,6 +153,7 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
   </div>
   <div class="panel">
     <h2>Motif — the innermost loop (tap to select, tap again to change sound)</h2>
+    <div class="mixrow" id="msegrow" style="margin-bottom:8px;"></div>
     <div class="mrow" id="mrow"></div>
     <div id="spoted"></div>
   </div>
@@ -228,7 +229,12 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
       [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
         if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0));
         if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
-        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0)); });
+        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0));
+        const segOk=(g,tot)=>Array.isArray(g)&&g.length>=1&&g.length<=4
+          &&g.every(x=>Number.isInteger(x)&&x>=1)&&g.reduce((a,b)=>a+b,0)===tot;
+        if(l.mseg&&!segOk(l.mseg,l.motif.length)) delete l.mseg;
+        Object.values(l.children||{}).forEach(c=>{
+          if(c&&c.mseg&&!segOk(c.mseg,c.m.length)) delete c.mseg; }); });
       // loop-level one-offs live on the primary stack (li coerced to 0)
       if(s.orns&&!Array.isArray(s.orns)) delete s.orns;
       if(s.orns) s.orns=s.orns.filter(o=>o
@@ -342,6 +348,17 @@ let sel=null, osel=null, curLane=0, selChain=null, tlSel=null, subGh=false;
 let tlCells={}, phKey=null;      // timeline cell refs + current playhead cell
 let loSel=null;                  // selected loop one-off address {li:0,bar,u}
 let loCells={}, loPhKey=null;    // loop-grid cell refs + playhead cell
+let mSel=0, msSel=0;             // selected motif segment / sub-motif segment
+function shiftChildren(stk, from, delta){
+  // shift child keys >= from by delta; a negative delta drops keys in the removed range
+  const nc={};
+  Object.entries(stk.children).forEach(([k,v])=>{
+    k=+k;
+    if(delta<0&&k>=from&&k<from-delta) return;
+    nc[k>=from?k+delta:k]=v;
+  });
+  stk.children=nc;
+}
 function persist(){ localStorage.setItem(KEY,JSON.stringify({v:8,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
 function S(){ return stacks[cur]; }
 
@@ -521,7 +538,7 @@ function drawTabs(){
     const b=document.createElement('button');
     b.className=`tab t${TABN[i]}`+((view==='stack'&&cur===i)?' on':'');
     b.textContent=TABN[i];
-    b.onclick=()=>{ view='stack'; cur=i; sel=null; curLane=0; loSel=null;
+    b.onclick=()=>{ view='stack'; cur=i; sel=null; curLane=0; loSel=null; mSel=0; msSel=0;
       if(playing&&playTarget&&playTarget.view==='stack')
         playTarget={view:'stack', cur:i};   // live-switch, aligned (window audition)
       changed(); };
@@ -563,7 +580,7 @@ function drawLaneStrip(){
     const b=document.createElement('button');
     b.textContent=i===0?'lane 1 · ruler':'lane '+(i+1);
     b.style.cssText=i===curLane?'background:var(--text);color:#10131a;':'';
-    b.onclick=()=>{ curLane=i; sel=null; draw(); };
+    b.onclick=()=>{ curLane=i; sel=null; mSel=0; msSel=0; draw(); };
     ls.appendChild(b);
   });
   if(all.length<4){
@@ -686,8 +703,49 @@ function drawStack(){
   document.getElementById('real').innerHTML=rows+
     (C>1?`<span class="lrow dim" style="font-family:inherit;letter-spacing:0;">cycle = ${C} bars</span>`:'');
 
+  // motif segments: variants CONCATENATE (fold runs over the total; periods
+  // and offsets govern which variants are reached; a fresh copy is neutral)
+  if(!stk.mseg||stk.mseg.reduce((a,b)=>a+b,0)!==stk.motif.length) stk.mseg=[stk.motif.length];
+  if(mSel>=stk.mseg.length) mSel=0;
+  const segStart=stk.mseg.slice(0,mSel).reduce((a,b)=>a+b,0), segLen=stk.mseg[mSel];
+  const msr=document.getElementById('msegrow'); msr.innerHTML='';
+  if(stk.mseg.length>1||stk.motif.length*2<=128){
+    stk.mseg.forEach((L,si)=>{
+      const b=document.createElement('button');
+      b.textContent='motif '+(si+1);
+      b.style.cssText=si===mSel?'background:var(--text);color:#10131a;':'';
+      b.onclick=()=>{ mSel=si; sel=null; draw(); };
+      msr.appendChild(b);
+    });
+    if(stk.mseg.length<4&&stk.motif.length+segLen<=128){
+      const p=document.createElement('button'); p.textContent='+';
+      p.onclick=()=>{                            // copy this motif into the next slot
+        shiftChildren(stk, segStart+segLen, segLen);
+        const adds={};
+        Object.entries(stk.children).forEach(([k,v])=>{ k=+k;
+          if(k>=segStart&&k<segStart+segLen) adds[k+segLen]=JSON.parse(JSON.stringify(v)); });
+        Object.assign(stk.children, adds);
+        stk.motif.splice(segStart+segLen,0,...stk.motif.slice(segStart,segStart+segLen));
+        stk.mseg.splice(mSel+1,0,segLen);
+        mSel++; sel=null; changed();
+      };
+      msr.appendChild(p);
+    }
+    if(stk.mseg.length>1){
+      const x=document.createElement('button'); x.textContent='✕';
+      x.style.background='#4a2530';
+      x.onclick=()=>{
+        stk.motif.splice(segStart,segLen);
+        shiftChildren(stk, segStart, -segLen);
+        stk.mseg.splice(mSel,1);
+        mSel=Math.max(0,mSel-1); sel=null; changed();
+      };
+      msr.appendChild(x);
+    }
+  }
   const mr=document.getElementById('mrow'); mr.innerHTML='';
-  stk.motif.forEach((sym,i)=>{
+  for(let li2=0;li2<segLen;li2++){
+    const i=segStart+li2, sym=stk.motif[i];
     const b=document.createElement('button'); b.className='mspot';
     if(sym){ b.style.background=`var(--s${Math.abs(sym)})`;
       if(sym<0) b.style.opacity=.55;
@@ -703,15 +761,22 @@ function drawStack(){
         stk.motif[i]=next===0?0:(sym<0?-next:next);
         changed();
       }
-      else { sel=i; draw(); }
+      else { sel=i; msSel=0; draw(); }
     };
     mr.appendChild(b);
-  });
+  }
   const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
-  add.onclick=()=>{ if(stk.motif.length<32){ stk.motif.push(1); changed(); } };
+  add.onclick=()=>{ if(segLen<32&&stk.motif.length<128){
+    shiftChildren(stk, segStart+segLen, 1);
+    stk.motif.splice(segStart+segLen,0,1);
+    stk.mseg[mSel]++; changed(); } };
   const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
-  rem.onclick=()=>{ if(stk.motif.length>1){ stk.motif.pop(); delete stk.children[stk.motif.length];
-    if(sel>=stk.motif.length) sel=null; changed(); } };
+  rem.onclick=()=>{ if(segLen>1){
+    const idx=segStart+segLen-1;
+    if(sel===idx) sel=null;
+    stk.motif.splice(idx,1);
+    shiftChildren(stk, idx, -1);
+    stk.mseg[mSel]--; changed(); } };
   mr.append(add,rem);
 
   const sp=document.getElementById('spoted');
@@ -737,6 +802,7 @@ function drawStack(){
         <div class="row2"><span class="lbl">pre</span>
           <button id="cprm">−</button><b style="font-size:18px">${(ch.pre||0)%ch.S}</b><button id="cprp">+</button>
           <span class="lbl" style="margin-left:8px">prenotes — ticks that lead INTO the pulse</span></div>
+        <div class="row2 mrow" id="msegsub"></div>
         <div class="row2 mrow" id="subrow"></div>`;
       document.getElementById('delch').onclick=()=>{ delete stk.children[sel]; changed(); };
       document.getElementById('sm').onclick=()=>{ if(ch.S>1){ch.S--; changed();} };
@@ -745,8 +811,42 @@ function drawStack(){
       document.getElementById('cpp').onclick=()=>{ ch.p=((ch.p||0)+1)%ch.m.length; changed(); };
       document.getElementById('cprm').onclick=()=>{ ch.pre=(((ch.pre||0)-1)%ch.S+ch.S)%ch.S; changed(); };
       document.getElementById('cprp').onclick=()=>{ ch.pre=((ch.pre||0)+1)%ch.S; changed(); };
+      // sub-motif segments: same concatenation idea one level down
+      if(!ch.mseg||ch.mseg.reduce((a,b)=>a+b,0)!==ch.m.length) ch.mseg=[ch.m.length];
+      if(msSel>=ch.mseg.length) msSel=0;
+      const cs0=ch.mseg.slice(0,msSel).reduce((a,b)=>a+b,0), csL=ch.mseg[msSel];
+      const msb=document.getElementById('msegsub');
+      if(ch.mseg.length>1||ch.m.length*2<=32){
+        ch.mseg.forEach((L2,si)=>{
+          const b=document.createElement('button');
+          b.textContent='sub '+(si+1);
+          b.style.cssText=(si===msSel?'background:var(--text);color:#10131a;':'')+'width:auto;padding:0 10px;';
+          b.className='mspot';
+          b.onclick=()=>{ msSel=si; draw(); };
+          msb.appendChild(b);
+        });
+        if(ch.mseg.length<4&&ch.m.length+csL<=32){
+          const p2=document.createElement('button'); p2.className='mspot add'; p2.textContent='+';
+          p2.onclick=()=>{
+            ch.m.splice(cs0+csL,0,...ch.m.slice(cs0,cs0+csL));
+            ch.mseg.splice(msSel+1,0,csL);
+            msSel++; changed();
+          };
+          msb.appendChild(p2);
+        }
+        if(ch.mseg.length>1){
+          const x2=document.createElement('button'); x2.className='mspot rem'; x2.textContent='✕';
+          x2.onclick=()=>{
+            ch.m.splice(cs0,csL);
+            ch.mseg.splice(msSel,1);
+            msSel=Math.max(0,msSel-1); changed();
+          };
+          msb.appendChild(x2);
+        }
+      }
       const sr=document.getElementById('subrow');
-      ch.m.forEach((sym,j)=>{
+      for(let sj=0;sj<csL;sj++){
+        const j=cs0+sj, sym=ch.m[j];
         const b=document.createElement('button'); b.className='mspot';
         if(sym){ b.style.background=`var(--s${Math.abs(sym)})`;
           if(sym<0) b.style.opacity=.55;
@@ -758,11 +858,12 @@ function drawStack(){
                  ch.m[j]=next===0?0:(sym<0?-next:next); }
           changed(); };
         sr.appendChild(b);
-      });
+      }
       const a2=document.createElement('button'); a2.className='mspot add'; a2.textContent='+';
-      a2.onclick=()=>{ if(ch.m.length<8){ ch.m.push(1); changed(); } };
+      a2.onclick=()=>{ if(csL<8&&ch.m.length<32){
+        ch.m.splice(cs0+csL,0,1); ch.mseg[msSel]++; changed(); } };
       const r2=document.createElement('button'); r2.className='mspot rem'; r2.textContent='−';
-      r2.onclick=()=>{ if(ch.m.length>1){ ch.m.pop(); changed(); } };
+      r2.onclick=()=>{ if(csL>1){ ch.m.splice(cs0+csL-1,1); ch.mseg[msSel]--; changed(); } };
       const g2=document.createElement('button'); g2.className='mspot'; g2.textContent='♪';
       g2.style.background=subGh?'var(--text)':'#2a2635';
       g2.style.color=subGh?'#10131a':'var(--text)';

@@ -148,6 +148,15 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   Pipeline: algebra → loop orns → mix → occurrence orns. Edited in the
   "Loop one-offs" panel on the stack page (shared drawOrnEdit editor).
   Not compiled by apply_stack (score layer, like chain orns).
+  **Motif/sub-motif variants** (2026-08-01): up to 4 motifs per lane and
+  4 sub-motifs per child — pure CONCATENATION with an `mseg` view overlay
+  (flat arrays unchanged → zero realization/compiler/spec change). Reach
+  is governed by periods/offsets (inner period ≤ |motif 1| → later
+  variants never play); '+' copies the current segment (m++m ≡ m, so
+  adding is sonically neutral until edited — except a spilling child gets
+  a longer spill). Children keyed by GLOBAL index; shiftChildren handles
+  segment insert/delete. Caps: motif total 128 (32/segment), sub-motif
+  total 32 (8/segment). mseg travels in setup JSON, not per-tab blobs.
   Kit + SOUNDS grew: 49 crash 'C',
   40 snare 'N' (7 voices). Blob `hnote stack v2 … lane1={…} lane2={…}`.
   apply_stack compiles lanes to a sidebyside root (the canonical beat
