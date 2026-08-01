@@ -267,7 +267,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
     v7.view=['stack','mix','orch'].includes(v7.view)?v7.view:'stack';
     if(v7.stacks.length<2&&v7.view!=='stack') v7.view='stack';
     v7.q=v7.q==='pulse'?'pulse':'bar';
-    v7.pulse=(typeof v7.pulse==='number'&&v7.pulse>=15/220&&v7.pulse<=15/40)?v7.pulse:0.25;
+    v7.pulse=(typeof v7.pulse==='number'&&v7.pulse>=15/220&&v7.pulse<=15/20)?v7.pulse:0.25;
     v7.v=8;
     return v7;
   }
@@ -1355,7 +1355,7 @@ function drawBpm(){
     `${Math.round(15/PULSE)} bpm · pulse ${(PULSE*1000).toFixed(1)}ms (16ths)`;
 }
 function bumpBpm(d){
-  const bpm=Math.max(40,Math.min(220,Math.round(15/PULSE)+d));
+  const bpm=Math.max(20,Math.min(220,Math.round(15/PULSE)+d));
   PULSE=15/bpm; persist(); dirty=true; drawBpm(); draw();
 }
 document.getElementById('bpmm10').onclick=()=>bumpBpm(-10);
