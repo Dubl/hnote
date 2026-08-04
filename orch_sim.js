@@ -48,7 +48,7 @@ __api.migrate = (a, b, c, d, e, f, g, h) => migrateFrom(a, b, c, d, e, f, g, h);
 function makeEngine() {
   const played = [], events = [];
   const sandbox = {
-    PULSE: 0.25, SOUNDS: [[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N']],
+    PULSE: 0.25, SOUNDS: [[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N'],[35,'B']],
     TABN: ['A','B','C','D','E','F','G','H'], UPS: 'ABCDEFGH', LOS: 'abcdefgh',
     CHAINMAX: 12, PHRASEMAX: 4, Math, JSON,
     playHit: (at, p, v) => played.push([at, p, v]),

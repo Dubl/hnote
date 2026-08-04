@@ -1,0 +1,106 @@
+{
+ "kick": [
+  {
+   "file": "kick_1.mp3",
+   "label": "tight"
+  },
+  {
+   "file": "kick_2.mp3",
+   "label": "knock"
+  },
+  {
+   "file": "kick_3.mp3",
+   "label": "boom"
+  }
+ ],
+ "snare": [
+  {
+   "file": "snare_1.mp3",
+   "label": "crack"
+  },
+  {
+   "file": "snare_2.mp3",
+   "label": "paper"
+  },
+  {
+   "file": "snare_3.mp3",
+   "label": "think"
+  },
+  {
+   "file": "snare_4.mp3",
+   "label": "high"
+  }
+ ],
+ "clap": [
+  {
+   "file": "clap_1.mp3",
+   "label": "tightclap"
+  },
+  {
+   "file": "clap_2.mp3",
+   "label": "claplayer"
+  },
+  {
+   "file": "clap_3.mp3",
+   "label": "snapclap"
+  }
+ ],
+ "hatc": [
+  {
+   "file": "hatc_1.mp3",
+   "label": "dusty"
+  },
+  {
+   "file": "hatc_2.mp3",
+   "label": "metal"
+  },
+  {
+   "file": "hatc_3.mp3",
+   "label": "soft"
+  }
+ ],
+ "hato": [
+  {
+   "file": "hato_1.mp3",
+   "label": "dustyO"
+  },
+  {
+   "file": "hato_2.mp3",
+   "label": "metalO"
+  }
+ ],
+ "rim": [
+  {
+   "file": "rim_1.mp3",
+   "label": "classic"
+  },
+  {
+   "file": "rim_2.mp3",
+   "label": "woody"
+  }
+ ],
+ "crash": [
+  {
+   "file": "crash_1.mp3",
+   "label": "wash"
+  },
+  {
+   "file": "crash_2.mp3",
+   "label": "darkw"
+  }
+ ],
+ "sub": [
+  {
+   "file": "sub_1.mp3",
+   "label": "sine"
+  },
+  {
+   "file": "sub_2.mp3",
+   "label": "drop"
+  },
+  {
+   "file": "sub_3.mp3",
+   "label": "satsub"
+  }
+ ]
+}

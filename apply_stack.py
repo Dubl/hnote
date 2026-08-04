@@ -15,7 +15,7 @@
 
 import json, math, re, struct, subprocess, sys
 
-SOUNDS = [36, 38, 42, 46, 75, 49, 40]   # K S H O V C(crash) N(snare)
+SOUNDS = [36, 38, 42, 46, 75, 49, 40, 35]   # K S H O V C N B(sub)
 GHOST_VEL = 52
 
 def leaf(m, v, t=1.0):

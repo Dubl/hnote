@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HNote — Kit Audition</title>
+<style>
+  :root{ --bg:#17151d; --surface:#201d28; --line:#38334a; --text:#efeae2; --muted:#8d8798;
+    --accent:#f5a524; --teal:#3ec9b0; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px 12px 60px; max-width:640px; margin-inline:auto;}
+  h1{font-size:13px; letter-spacing:.25em; text-transform:uppercase; color:var(--accent); margin:0 0 2px;}
+  .sub{font-size:12px; color:var(--muted); margin-bottom:12px;}
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; margin-bottom:10px;}
+  .panel h2{font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin:0 0 8px;}
+  .row{display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:10px;}
+  .slotname{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); width:86px;}
+  .cand{border:1px solid var(--line); background:#2a2635; color:var(--text); border-radius:8px;
+    padding:10px 12px; font-size:12px; font-weight:700; cursor:pointer;}
+  .cand.on{background:var(--accent); color:#10131a; border-color:var(--accent);}
+  #groove{border:none; border-radius:10px; padding:14px 22px; font-size:15px; font-weight:800;
+    background:var(--teal); color:#10131a; cursor:pointer;}
+  #copy{border:1px solid var(--line); background:var(--surface); color:var(--text);
+    border-radius:10px; padding:12px 18px; font-size:13px; cursor:pointer;}
+  #flash{position:fixed; top:10px; left:50%; transform:translateX(-50%); background:var(--accent);
+    color:#10131a; font-weight:700; font-size:13px; padding:8px 18px; border-radius:20px;
+    opacity:0; transition:opacity .15s; pointer-events:none;}
+</style>
+</head>
+<body>
+<h1>Kit Audition — jungle / dnb</h1>
+<div class="sub">Tap a candidate to hear it and select it. The groove button loops the Amen
+cell at 170 through your current picks. Copy kit when it sounds right and paste the blob in chat.</div>
+<div class="panel"><h2>Candidates</h2><div id="slots"></div></div>
+<div class="panel">
+  <div class="row" style="margin:0;">
+    <button id="groove">▸ Groove test</button>
+    <button id="copy">Copy kit</button>
+  </div>
+</div>
+<div id="flash"></div>
+<script>
+const SLOTS=[["kick","Kick",36],["clap","Clap",38],["snare","Snare",40],["hatc","Closed hat",42],
+             ["hato","Open hat",46],["rim","Rim",75],["crash","Crash",49],["sub","Sub",35]];
+let manifest=null, sel={}, actx=null, bufs={}, playing=false, timer=null, t0=0, schedUntil=0;
+const PULSE=60/(4*170);            // a 16th at 170 bpm
+// the Amen cell (bars 1-2), plus the sub on 1 and the 3& kick, for context
+const GROOVE=[];
+for(let k=0;k<16;k+=2) GROOVE.push([k,"hatc",k===0?116:102]);
+[[0,116],[2,88],[10,88],[11,88]].forEach(([k,v])=>GROOVE.push([k,"kick",v]));
+[[4,88],[7,52],[9,52],[12,88],[15,52]].forEach(([k,v])=>GROOVE.push([k,"snare",v]));
+[[0,100],[10,90]].forEach(([k,v])=>GROOVE.push([k,"sub",v]));
+
+function trimOnset(buf){
+  const ch=buf.getChannelData(0); let i=0;
+  while(i<ch.length&&Math.abs(ch[i])<0.01) i++;
+  if(i===0||i>=ch.length) return buf;
+  const out=actx.createBuffer(buf.numberOfChannels, buf.length-i, buf.sampleRate);
+  for(let c=0;c<buf.numberOfChannels;c++)
+    out.getChannelData(c).set(buf.getChannelData(c).subarray(i));
+  return out;
+}
+async function initAudio(){
+  if(actx) return;
+  actx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:0});
+  const files=new Set();
+  Object.values(manifest).forEach(cs=>cs.forEach(c=>files.add(c.file)));
+  await Promise.all([...files].map(async f=>{
+    try{
+      const r=await fetch('kit_candidates/'+f);
+      bufs[f]=trimOnset(await actx.decodeAudioData(await r.arrayBuffer()));
+    }catch(e){ bufs[f]=null; }
+  }));
+  const z=actx.createBufferSource(); z.buffer=actx.createBuffer(1,1,actx.sampleRate);
+  z.connect(actx.destination); z.start();
+}
+function hit(file,vel,at){
+  const b=bufs[file]; if(!b) return;
+  const s=actx.createBufferSource(); s.buffer=b;
+  const g=actx.createGain(); g.gain.value=(vel||100)/111;
+  s.connect(g); g.connect(actx.destination); s.start(at||0);
+}
+function draw(){
+  const el=document.getElementById('slots'); el.innerHTML='';
+  SLOTS.forEach(([slot,label])=>{
+    const row=document.createElement('div'); row.className='row';
+    const nm=document.createElement('div'); nm.className='slotname'; nm.textContent=label;
+    row.appendChild(nm);
+    (manifest[slot]||[]).forEach(c=>{
+      const b=document.createElement('button');
+      b.className='cand'+(sel[slot]===c.file?' on':'');
+      b.textContent=c.label;
+      b.onclick=async()=>{ await initAudio();
+        if(actx.state==='suspended') await actx.resume();
+        sel[slot]=c.file; hit(c.file,100); draw(); };
+      row.appendChild(b);
+    });
+    el.appendChild(row);
+  });
+}
+function schedule(){
+  if(!playing) return;
+  const now=actx.currentTime, until=now+0.18, bar=16*PULSE;
+  while(schedUntil<until){
+    const to=Math.min(until,schedUntil+0.09);
+    GROOVE.forEach(([k,slot,v])=>{
+      let base=t0+Math.floor((schedUntil-t0)/bar)*bar;
+      for(let b=base;b<=to+bar;b+=bar){
+        const at=b+k*PULSE;
+        if(at>=schedUntil-1e-9&&at<to-1e-9) hit(sel[slot],v,at);
+      }
+    });
+    schedUntil=to;
+  }
+}
+document.getElementById('groove').onclick=async()=>{
+  const btn=document.getElementById('groove');
+  if(playing){ playing=false; clearInterval(timer); btn.textContent='▸ Groove test'; return; }
+  await initAudio();
+  if(actx.state==='suspended') await actx.resume();
+  playing=true; t0=actx.currentTime+0.12; schedUntil=t0;
+  timer=setInterval(schedule,50);
+  btn.textContent='■ Stop';
+};
+document.getElementById('copy').onclick=async()=>{
+  const text='hnote kit v1 '+SLOTS.map(([s])=>`${s}=${(sel[s]||'').replace('.mp3','')}`).join(' ');
+  try{ await navigator.clipboard.writeText(text); show('kit copied'); }
+  catch(e){ prompt('copy this:', text); }
+};
+function show(m){ const f=document.getElementById('flash');
+  f.textContent=m; f.style.opacity=1; setTimeout(()=>f.style.opacity=0,900); }
+fetch('kit_candidates/manifest.json').then(r=>r.json()).then(m=>{
+  manifest=m;
+  SLOTS.forEach(([s])=>{ if(m[s]&&m[s][0]) sel[s]=m[s][0].file; });
+  draw();
+});
+</script>
+</body>
+</html>

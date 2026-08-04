@@ -132,8 +132,8 @@ implementation, not this document.
 
 ## 7. Default profile (conventions riding on the algebra, swappable)
 
-  * Voices (V = 7): 1→36 kick, 2→38 clap, 3→42 closed hat, 4→46 open
-    hat, 5→75 rim, 6→49 crash, 7→40 snare. MIDI channel 10.
+  * Voices (V = 8): 1→36 kick, 2→38 clap, 3→42 closed hat, 4→46 open
+    hat, 5→75 rim, 6→49 crash, 7→40 snare, 8→35 sub bass. MIDI channel 10.
   * Velocities: bar-start 116, motif-head 102, body 88, child tick
     decrement 26 (floor 52), ghost 52.
   * A conformant implementation may substitute profiles but must
