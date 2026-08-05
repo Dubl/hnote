@@ -327,8 +327,9 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
     'loop one-off missing from the letter');
   check('V9:loopOrnCarried', e0.hits.some(h => inPulse(h, 1) && h[1] === 49),
     'loop one-off did not carry into the chain occurrence');
-  // the bar-9 orn is out of range for A (1-bar cycle): exactly one crash total
-  check('V9:orphanSilent', e0.hits.filter(h => h[1] === 49).length === 1,
+  // the bar-9 orn is out of range for A (1-bar cycle): exactly the two
+  // legitimate crashes (loop-orn @1, chain-orn @3) and nothing more
+  check('V9:orphanSilent', e0.hits.filter(h => h[1] === 49).length === 2,
     'out-of-range one-off sounded');
   // sub-motif burst at pulse 7: S=4, m=[3,0,-3] -> j0 42@96, j2 42@52, j3 42@70
   const burst = e0.hits.filter(h => inPulse(h, 7) && h[1] === 42)
