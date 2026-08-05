@@ -121,7 +121,9 @@ weight to the ghost value. Mute and ghost may carry an optional
 sub-window (S ∈ 1..8, k ∈ 0..S−1): the action then targets only events
 in the k-th of S equal sub-slots of the pulse — sub-motif-level surgery,
 at either scope. Ornaments in a list apply in order (an add may be muted
-by a later ornament). Ornaments apply to the chain's OWN occurrence
+by a later ornament), and any number of ornaments may share one address —
+e.g. two mutes carving different sub-slots of the same pulse (a mute
+layer). Ornaments apply to the chain's OWN occurrence
 of the letter only — the underlying loops stay pristine — and copying a
 chain copies its ornaments. This layer is deliberately outside the loop
 algebra: loops state invariants; ornaments state exceptions.

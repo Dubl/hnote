@@ -42,6 +42,7 @@ __api.call = (now, until) => scheduleOrch(now, until);
 __api.letterHits = (L) => letterHits(L);
 __api.letterLen = (L) => letterLen(L);
 __api.buildOrchCache = () => buildOrchCache();
+__api.isoWin = (f, o) => isoWin(f, o);
 __api.migrate = (a, b, c, d, e, f, g, h) => migrateFrom(a, b, c, d, e, f, g, h);
 `;
 
@@ -348,6 +349,36 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
   // (pulse 12 also holds a BASE rim @102 - union semantics: both sound)
   check('V9:spill', JSON.stringify(spill) === JSON.stringify([[3000, 102], [3000, 96], [3250, 52], [3375, 70]]),
     'spill burst wrong: ' + JSON.stringify(spill));
+}
+
+console.log('V10 mute layer (isolating windows + several one-offs at one address)');
+{
+  // isoWin: the smallest (S,k) window catching only the tapped sub-position
+  const eng = makeEngine();
+  const iw = eng.api.isoWin;
+  check('V10:isoLone', JSON.stringify(iw(0, [0])) === '{"S":1,"k":0}', JSON.stringify(iw(0, [0])));
+  check('V10:isoHalf', JSON.stringify(iw(0.5, [0, 0.5])) === '{"S":2,"k":1}', JSON.stringify(iw(0.5, [0, 0.5])));
+  check('V10:isoTriplet', JSON.stringify(iw(1/3, [0, 1/3, 2/3])) === '{"S":3,"k":1}',
+    JSON.stringify(iw(1/3, [0, 1/3, 2/3])));
+  // two notes at the SAME sub-position share fate: whole-pulse window
+  check('V10:isoTwin', JSON.stringify(iw(0.25, [0.25, 0.25])) === '{"S":1,"k":0}',
+    JSON.stringify(iw(0.25, [0.25, 0.25])));
+  // several one-offs at ONE address: two sub-tick mutes carve ticks 1 and 3
+  // out of an S4 hat cell; at another address an add and a mute coexist
+  const A = { ...stack([1, 3], [16], { 1: { S: 4, m: [3, 3, 3, 3] } }), orns: [
+    { li: 0, bar: 0, u: 1, act: 'mute', sym: 3, S: 4, k: 1 },
+    { li: 0, bar: 0, u: 1, act: 'mute', sym: 3, S: 4, k: 3 },
+    { li: 0, bar: 0, u: 0, act: 'add',  sym: 6 },
+    { li: 0, bar: 0, u: 0, act: 'mute', sym: 1 },
+  ]};
+  eng.api.init({ stacks: [A], winsBy: [[]], orch: { motif: [1], chains: [CH('A')] }, q: 'bar', t0: 0 });
+  const hs = eng.api.letterHits('A');
+  const hats = hs.filter(h => h[1] === 42 && h[0] < 0.5 - 1e-9)
+    .map(h => Math.round(h[0] * 1000)).sort((a, b) => a - b);
+  check('V10:twoMutes', JSON.stringify(hats) === '[250,375]', JSON.stringify(hats));
+  check('V10:coexist', hs.some(h => h[0] < 1e-9 && h[1] === 49)
+    && !hs.some(h => h[0] < 0.25 - 1e-9 && h[1] === 36),
+    'add + mute at one address failed');
 }
 
 console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp)');
