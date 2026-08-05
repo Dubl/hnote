@@ -473,7 +473,9 @@ function letterGrid(L){ const tb=stacks[letterBase(L)];
   return {bp:topPeriod(tb), bars:tabCycle(tb)}; }
 function applyOrnList(hits,bp,totLen,orns){
   let out=hits.slice();
+  const totPulses=Math.round(totLen/PULSE);
   (orns||[]).forEach(o=>{
+    if(o.bar*bp+o.u>=totPulses) return;   // out-of-range = ORPHANED: silent (and listed in the UI)
     const t0=(o.bar*bp+o.u)*PULSE, t1=t0+PULSE;
     const sd=SOUNDS[Math.abs(o.sym)-1]; if(!sd) return;
     if(o.act==='add'&&o.ch&&o.ch.S){                 // one-off sub-motif cell
@@ -1101,6 +1103,10 @@ function drawTimeline(){
       g.appendChild(rowEl);
     }
   });
+  drawOrphans(g, c, o=>{
+    const L2=c.seq[o.li]; if(!L2) return true;
+    const gg=letterGrid(L2); return o.bar*gg.bp+o.u>=gg.bars*gg.bp;
+  }, o=>`${o.li+1}·${o.bar}·${o.u}`);
   drawOrnEdit(c, tlSel, 'tledit');
 }
 function drawLoopOrns(){
@@ -1140,7 +1146,25 @@ function drawLoopOrns(){
     n.textContent='… '+(total-shown)+' more addresses';
     g.appendChild(n);
   }
+  drawOrphans(g, tab, o=>o.bar*bp+o.u>=total, o=>`${o.bar}·${o.u}`);
   drawOrnEdit(tab, loSel, 'loedit');
+}
+function drawOrphans(container, holder, isOrph, fmt){
+  const orph=(holder.orns||[]).filter(isOrph);
+  if(!orph.length) return;
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;';
+  const lbl=document.createElement('span');
+  lbl.style.cssText='font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--rec);';
+  lbl.textContent='orphaned (out of range, silent)';
+  row.appendChild(lbl);
+  orph.forEach(o=>{
+    const b=document.createElement('button'); b.className='dchip';
+    b.textContent=fmt(o)+' ✕';
+    b.onclick=()=>{ holder.orns.splice(holder.orns.indexOf(o),1); changed(); };
+    row.appendChild(b);
+  });
+  container.appendChild(row);
 }
 function drawOrnEdit(c, selAddr, elId){
   const ed=document.getElementById(elId); ed.innerHTML='';

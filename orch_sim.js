@@ -304,6 +304,7 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
       { li: 0, bar: 0, u: 12, act: 'add', sym: 5,
         ch: { S: 2, m: [5, 0, -5, 5], p: 0 } },         // burst that SPILLS past its pulse
       { li: 0, bar: 0, u: 7, act: 'mute', sym: 3, S: 4, k: 2 },  // sub-tick mute of the burst
+      { li: 0, bar: 9, u: 0, act: 'add', sym: 6 },      // OUT OF RANGE: must be silent
     ]},
     { seq: ['B'], orns: [] },
   ]};
@@ -326,6 +327,9 @@ console.log('V9 chain one-offs (add/mute/ghost at structural addresses + injecti
     'loop one-off missing from the letter');
   check('V9:loopOrnCarried', e0.hits.some(h => inPulse(h, 1) && h[1] === 49),
     'loop one-off did not carry into the chain occurrence');
+  // the bar-9 orn is out of range for A (1-bar cycle): exactly one crash total
+  check('V9:orphanSilent', e0.hits.filter(h => h[1] === 49).length === 1,
+    'out-of-range one-off sounded');
   // sub-motif burst at pulse 7: S=4, m=[3,0,-3] -> j0 42@96, j2 42@52, j3 42@70
   const burst = e0.hits.filter(h => inPulse(h, 7) && h[1] === 42)
     .map(h => [Math.round((h[0] - 7 * 0.25) / 0.0625), h[2]]).sort((a, b) => a[0] - b[0]);
