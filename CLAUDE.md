@@ -190,6 +190,27 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   change), leaving zero-flex output byte-identical (law 10). Conformance
   scale bumped 840→84000 (=840·100) so 1%-flex at any S≤8 stays integral;
   4 flex vectors added, dual-verified; flex closed-loop `apply_stack` 4/4.
+  **Breathing** (state v10, 2026-08-06): a global zero-mean sinusoidal TEMPO
+  MAP locked to one orch cycle — the arrangement "breathes" (tape-like swell),
+  clock-only (no pitch bend). δ(u)=(A·Λₑ/2π)(cos2πφ−cos2π(u/Λₑ+φ)),
+  Λ=Σ seq.len (one orch cycle in score-secs), Λₑ=Λ/n. Zero-mean ⇒
+  boundary-anchored (arrangement downbeat exact on grid), drift-free (cycle
+  wall-duration = Λ, avg tempo preserved), keyed to MAIN-CYCLE position so
+  injection FREEZES phase (steady insert) and the cycle resumes. Applied at
+  the ONE scheduler seam (`at=segStart+t` → warp) in ORCH-CORE (`breathDelta`,
+  `advance`/`scheduleOrch`, new `cycPhase`/`cycLen`); realize/letterHits stay
+  flat pulse-seconds, so flex/conformance/apply_stack are untouched (breath
+  and flex are orthogonal axes — pulse-space vs seconds-map). Stack/mix
+  audition stays flat (unequal lengths → no coherent period). Breath is
+  read LIVE (no cache rebuild — depth/n/phase ear-dial-able mid-play);
+  `breath={on,depth≤0.2,n1..8,phase}` in state, Breathe panel in orch view.
+  Recorded `take` exports breathe; MIDI tempo-track is deferred with orch
+  compilation (apply_orch, parked). orch_sim mirrors the warp in its oracle
+  (dual-verify) + V12 (warp/drift-free/off-grid/content-identity) + V13
+  (breath+injection); the pulse-grid boundary check is skipped when breath
+  is on (boundaries legitimately leave the wall grid). Breath is the first
+  deliberately NON-rational quantity (sine) — lives in the π layer the
+  algebra is declared independent of; may later become "tempo as a stack".
   `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
   phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
   transcription table; amen_kit.mp3 on the index.

@@ -21,19 +21,21 @@ let t0=0, schedUntil=0, segStart=0, oQueue=null, q='bar', mixBase=0;
 let orch=null, orchCache=null;
 let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
 let phLog=[];
+let breath=null, cycLen=0, cycPhase=0, curPhase0=0, curDelta0=0, curWarpLen=1, curRate=1, curInj=false;
 `;
 const EPILOGUE = `
 __api.buildCache = () => {
-  orchCache=buildOrchCache();
+  orchCache=buildOrchCache(); cycLen=orchCache.cycLen;
   if(wi>=orchCache.seq.length) wi=0;
   const e=orchCache.seq[(wi-1+orchCache.seq.length)%orchCache.seq.length];
-  if(e&&e.L===curLetter){ curHits=e.hits; curLen=e.len; }
+  if(e&&e.L===curLetter){ curHits=e.hits; curLen=e.len;
+    curWarpLen=curInj?curRate*curLen:curLen+breathDelta(curPhase0+curLen)-curDelta0; }
 };
 __api.init = (o) => { stacks=o.stacks; winsBy=o.winsBy||[[],[],[],[]]; orch=o.orch; q=o.q; t0=o.t0;
-  PULSE=o.pulse||0.25;
+  PULSE=o.pulse||0.25; breath=o.breath||null;
   mixBase=o.mixBase||0; wins=winsBy[mixBase]||[];
-  schedUntil=t0; wi=0; inj=null; oQueue=null;
-  orchCache=buildOrchCache();
+  schedUntil=t0; wi=0; inj=null; oQueue=null; cycPhase=0;
+  orchCache=buildOrchCache(); cycLen=orchCache.cycLen;
   advance(t0); };
 __api.tap = (i) => { oQueue=i; };
 __api.get = () => ({t0, schedUntil, segStart, wi, inj: inj?{idx:inj.idx,n:inj.list.length}:null,
@@ -78,6 +80,15 @@ function oracle(cfg, steps) {
   let letter = null, chainNo = 0, seg = t0, len = 0, hs = [];
   const hits = [], events = [];
   function build() { return cfg.buildOrchCache(); }
+  // independent breath mirror (must match the sliced page warp exactly)
+  const br = cfg.breath, cycLenO = cache.cycLen || 0;
+  let cycPhaseO = 0, curWarpLenO = 0, curPhase0O = 0, curDelta0O = 0, curInjO = false, curRateO = 1;
+  const bOn = () => br && br.on && cycLenO > 0 && (br.depth || 0) > 0;
+  const bDelta = (u) => { if (!bOn()) return 0; const A = br.depth, n = Math.max(1, br.n || 1),
+    ph = br.phase || 0, Le = cycLenO / n;
+    return (A * Le / (2 * Math.PI)) * (Math.cos(2 * Math.PI * ph) - Math.cos(2 * Math.PI * (u / Le + ph))); };
+  const bRate = (u) => { if (!bOn()) return 1; const A = br.depth, n = Math.max(1, br.n || 1),
+    ph = br.phase || 0, Le = cycLenO / n; return 1 + A * Math.sin(2 * Math.PI * (u / Le + ph)); };
   function adv(B) {
     if (injO && injO.idx >= injO.list.length) injO = null;
     if (quO != null) {
@@ -85,10 +96,16 @@ function oracle(cfg, steps) {
       injO = { list: (list && list.length) ? list : [cache.seq[0]], idx: 0 };
       quO = null;
     }
-    let e;
-    if (injO) { e = injO.list[injO.idx++]; }
-    else { e = cache.seq[wiO]; wiO = (wiO + 1) % cache.seq.length; }
-    letter = e.L; chainNo = e.chain; len = e.len; hs = e.hits; seg = B;
+    let e, wasInj;
+    if (injO) { e = injO.list[injO.idx++]; wasInj = true; }
+    else { e = cache.seq[wiO]; wiO = (wiO + 1) % cache.seq.length; wasInj = false; }
+    letter = e.L; chainNo = e.chain; len = e.len; hs = e.hits; seg = B; curInjO = wasInj;
+    if (wasInj) { curRateO = bRate(cycPhaseO); curPhase0O = cycPhaseO; curDelta0O = 0;
+      curWarpLenO = curRateO * len; }
+    else { curRateO = 1; curPhase0O = cycPhaseO; curDelta0O = bDelta(cycPhaseO);
+      curWarpLenO = len + bDelta(cycPhaseO + len) - curDelta0O;
+      if (cycLenO > 0) { cycPhaseO += len;
+        if (cycPhaseO >= cycLenO - 1e-6) { cycPhaseO -= cycLenO; if (Math.abs(cycPhaseO) < 1e-6) cycPhaseO = 0; } } }
     events.push({ t: B, letter, chain: chainNo, segStart: seg });
   }
   adv(t0);
@@ -96,10 +113,11 @@ function oracle(cfg, steps) {
     if (step.tap !== undefined) { quO = step.tap; continue; }
     if (step.edit) { step.edit(); cache = build(); if (wiO >= cache.seq.length) wiO = 0;
       const e2 = cache.seq[(wiO - 1 + cache.seq.length) % cache.seq.length];
-      if (e2 && e2.L === letter) { len = e2.len; hs = e2.hits; } continue; }
+      if (e2 && e2.L === letter) { len = e2.len; hs = e2.hits;
+        curWarpLenO = curInjO ? curRateO*len : len + bDelta(curPhase0O+len) - curDelta0O; } continue; }
     const { now, until } = step;
     for (;;) {
-      let b = seg + len;
+      let b = seg + curWarpLenO;                     // warped wall length of this bar
       if (quO != null && q === 'pulse') {
         const pu = cfg.pulse;
         const p = t0 + Math.ceil((Math.max(su, now) - t0) / pu - 1e-9) * pu;
@@ -108,7 +126,8 @@ function oracle(cfg, steps) {
       const to = Math.min(until, b);
       if (to > su + 1e-9) {
         for (const [t, p, v] of hs) {
-          const at = seg + t;
+          const at = curInjO ? seg + curRateO * t
+                             : seg + t + bDelta(curPhase0O + t) - curDelta0O;
           if (at >= su - 1e-9 && at < to - 1e-9) hits.push([at, p, v]);
         }
         su = to;
@@ -151,12 +170,12 @@ function run(name, cfg0, opts) {
   const eng = makeEngine();
   const cfg = {
     stacks: cfg0.stacks, winsBy: cfg0.winsBy || [[],[],[],[]], orch: cfg0.orch,
-    q: cfg0.q || 'bar', t0: cfg0.t0 ?? 100.12, pulse: cfg0.pulse || 0.25,
+    q: cfg0.q || 'bar', t0: cfg0.t0 ?? 100.12, pulse: cfg0.pulse || 0.25, breath: cfg0.breath,
     letterHits: eng.api.letterHits, letterLen: eng.api.letterLen,
     buildOrchCache: eng.api.buildOrchCache,
   };
   eng.api.init({ stacks: cfg.stacks, winsBy: cfg.winsBy, orch: cfg.orch, q: cfg.q, t0: cfg.t0,
-    mixBase: cfg0.mixBase || 0, pulse: cfg.pulse });
+    mixBase: cfg0.mixBase || 0, pulse: cfg.pulse, breath: cfg.breath });
   const snap = JSON.stringify({ stacks: cfg.stacks, winsBy: cfg.winsBy, orch: cfg.orch });
   const launchEv = eng.events.splice(0);          // advance(t0) fires one event pre-steps
   const r = rng(cfg0.seed ?? 42);
@@ -189,8 +208,10 @@ function run(name, cfg0, opts) {
   const oc = oracle(cfg, steps);
   matchHits(name, eng.played, oc.hits);
   matchEvents(name, [...launchEv, ...eng.events].slice(1), oc.events.slice(1));
-  // structural: every boundary sits on the pulse grid (1e-6: non-dyadic pulses round)
-  for (const e of eng.events) {
+  // structural: every boundary sits on the pulse grid (1e-6: non-dyadic pulses
+  // round). Breath deliberately warps boundaries off the wall grid, so this
+  // check runs only when breath is off; V12/V13 assert the breath timing laws.
+  if (!(cfg0.breath && cfg0.breath.on)) for (const e of eng.events) {
     const pf = (e.t - cfg.t0) / cfg.pulse;
     check(name + ':grid', Math.abs(pf - Math.round(pf)) < 1e-6, `boundary off pulse grid at ${e.t}`);
   }
@@ -402,6 +423,43 @@ console.log('V11 fractional time (flex): spot + subspot timing nudge');
     'zero-flex not on grid: ' + JSON.stringify(g(38)) + ' ' + JSON.stringify(g(46)));
 }
 
+console.log('V12 breathing (global orch-level tempo swell)');
+{
+  const A = stack([1,2,3,4],[4]);                 // top 4, letterLen 1.0s at pulse .25
+  const orchB = { motif:[1], chains:[CH('A','A')] };  // cycle = 2 letters = 2.0s
+  const breath = { on:true, depth:0.05, n:1, phase:0 };
+  const { eng } = run('V12', { stacks:[A], winsBy:[[]], orch:orchB, breath, t0:0, dur:9, seed:5 });
+  // run() already dual-verified engine==oracle (matchHits/matchEvents).
+  const cyc = 2.0, TWO_PI = 2*Math.PI;
+  const delta = u => (0.05*cyc/TWO_PI)*(1 - Math.cos(TWO_PI*(u/cyc)));
+  // analytic: the H (42) at score 0.5 in letter 1 plays at 0.5 + delta(0.5)
+  const want = 0.5 + delta(0.5);
+  check('V12:warp', eng.played.some(h => h[1]===42 && Math.abs(h[0]-want) < 1e-6),
+    `H@0.5 not warped to ${want.toFixed(6)}: ${eng.played.filter(h=>h[1]===42).map(h=>h[0].toFixed(4))}`);
+  // drift-free: every cycle boundary lands EXACTLY on k*cycLen
+  let driftOk = true;
+  for (let k=1;k<=4;k++) if(!eng.events.some(e=>Math.abs(e.t - k*cyc) < 1e-6)) driftOk=false;
+  check('V12:driftFree', driftOk, 'cycle boundary off k*cycLen: '+eng.events.map(e=>e.t.toFixed(4)).join(','));
+  // warp is actually active: some hit sits off the flat pulse grid
+  check('V12:active', eng.played.some(h => { const pf=h[0]/0.25; return Math.abs(pf-Math.round(pf))>1e-4; }),
+    'no off-grid (breathed) hit found');
+  // content identity: same count + pitch multiset as the breath-off run
+  const flat = run('V12flat', { stacks:[A], winsBy:[[]], orch:orchB, t0:0, dur:9, seed:5 });
+  const pm = arr => arr.map(h=>h[1]).sort((a,b)=>a-b).join(',');
+  check('V12:content', eng.played.length===flat.eng.played.length && pm(eng.played)===pm(flat.eng.played),
+    'breath added/dropped notes');
+}
+
+console.log('V13 breathing + live injection (phase held; engine==oracle)');
+{
+  const A = stack([1,2,3,4],[4]), B = stack([5,0,6,0],[4]);
+  const orchB = { motif:[1], chains:[CH('A','A'), CH('B')] };
+  const breath = { on:true, depth:0.06, n:1, phase:0.1 };
+  const { eng } = run('V13', { stacks:[A,B], winsBy:[[],[]], orch:orchB, breath, t0:0, dur:10, seed:8 },
+    { actions:[{ at: 2.5, tap: 1 }] });   // tap chain 2 mid-play (dual-verified vs oracle)
+  check('V13:injected', eng.events.some(e=>e.chain===2), 'injected chain never played');
+}
+
 console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp)');
 {
   const eng = makeEngine();
@@ -412,7 +470,7 @@ console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp
       { seq: ['b','A','a'], orns: [{ li: 1, bar: 0, u: 2, act: 'add', sym: 3 }] },
       { seq: ['B'], orns: [] }] }, q: 'pulse' };
   const m7g = eng.api.migrate(null, JSON.parse(JSON.stringify(v7good)), null, null, null, null, null, null);
-  check('V7:v7', m7g.v === 9 && m7g.pulse === 0.2
+  check('V7:v7', m7g.v === 10 && m7g.pulse === 0.2
     && m7g.orch.chains[0].seq.join('') === 'BAA'        // lowercase = its own uppercase now
     && m7g.orch.chains[0].orns.length === 1,
     JSON.stringify(m7g.orch));
@@ -420,14 +478,14 @@ console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp
     winsBy: [[],[{tab:0,a:1,b:2}]],
     orch: { motif: [1,2], chains: [['b','A','B','a','A'],['B']] }, q: 'pulse' };
   const m6 = eng.api.migrate(null, null, JSON.parse(JSON.stringify(v6good)), null, null, null, null, null);
-  check('V7:v6', m6.v === 9 && m6.pulse === 0.2
+  check('V7:v6', m6.v === 10 && m6.pulse === 0.2
     && m6.orch.chains[0].seq.join('') === 'BABA'        // trimmed to 4 + uppercased
     && m6.orch.chains[0].orns.length === 0 && m6.winsBy[1].length === 1,
     JSON.stringify(m6.orch));
   const v4 = { v: 4, stacks: [s1, s2], cur: 0, view: 'mix', mixBase: 1,
     wins: [{tab:0,a:1,b:2}], orch: { motif: [1,2], chains: [['M','A'],['B']] }, q: 'pulse' };
   const m4 = eng.api.migrate(null, null, null, null, v4, null, null, null);
-  check('V7:v4', m4.v === 9 && m4.pulse === 0.25 && m4.winsBy.length === 2
+  check('V7:v4', m4.v === 10 && m4.pulse === 0.25 && m4.winsBy.length === 2
     && m4.orch.chains[0].seq.join('') === 'BA' && m4.orch.chains[1].seq.join('') === 'B'
     && m4.q === 'pulse' && m4.mixBase === 1, JSON.stringify(m4.orch));
   const v3 = { v: 3,
@@ -438,12 +496,12 @@ console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp
     ],
     curSetup: 0, oview: 'orch', orch: { periods: [4], motif: [1, 3, 2] }, opulse: 8, q: 'tick' };
   const m3 = eng.api.migrate(null, null, null, null, null, v3, null, null);
-  check('V7:v3', m3.v === 9 && m3.orch.chains.length === 3
+  check('V7:v3', m3.v === 10 && m3.orch.chains.length === 3
     && m3.orch.chains[0].seq.join('') === 'A' && m3.orch.chains[2].seq.join('') === 'A'
     && m3.orch.motif.join() === '1,3,2' && m3.q === 'bar', JSON.stringify(m3.orch));
   const v2 = { stacks: [s1], cur: 0, view: 'stack', wins: [] };
   const m2 = eng.api.migrate(null, null, null, null, null, null, v2, null);
-  check('V7:v2', m2.v === 9 && m2.orch.chains.length === 1
+  check('V7:v2', m2.v === 10 && m2.orch.chains.length === 1
     && m2.orch.chains[0].seq.join('') === 'A' && m2.winsBy.length === 1);
   const v8bad = { v: 8, stacks: [{...s1, lanes:[null, stack([2],[4]), {bogus:1}]}, s2],
     cur: 9, view: 'orch', mixBase: 7, pulse: 9.9,

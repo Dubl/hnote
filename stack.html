@@ -189,6 +189,19 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
       <button class="dchip" id="qpulse">pulse</button>
     </div>
   </div>
+  <div class="panel">
+    <h2>Breathe — a global tempo swell locked to one arrangement cycle</h2>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+      <button class="dchip" id="brOn">off</button>
+      <span class="lbl">depth</span>
+      <button class="dchip" id="brDm">−</button><b id="brDv" style="min-width:40px;display:inline-block;text-align:center">3%</b><button class="dchip" id="brDp">+</button>
+      <span class="lbl" style="margin-left:6px">breaths/cycle</span>
+      <button class="dchip" id="brNm">−</button><b id="brNv" style="min-width:22px;display:inline-block;text-align:center">1</b><button class="dchip" id="brNp">+</button>
+      <span class="lbl" style="margin-left:6px">phase</span>
+      <button class="dchip" id="brPm">−</button><b id="brPv" style="min-width:40px;display:inline-block;text-align:center">0.00</b><button class="dchip" id="brPp">+</button>
+    </div>
+    <div id="brInfo" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
+  </div>
   <div class="panel" id="tlpanel" style="display:none">
     <h2 id="tlhead">Timeline</h2>
     <div id="tlgrid"></div>
@@ -217,13 +230,13 @@ let PULSE=0.25;                 // seconds per pulse (a 16th) - persisted, BPM-e
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N'],[35,'B']];
 const TABN=['A','B','C','D','E','F','G','H'];
 const UPS=TABN.join(''), LOS=UPS.toLowerCase();
-const KEY='hnote_stack_v9';
+const KEY='hnote_stack_v10';
 const CHAINMAX=12;
 const PHRASEMAX=4;               // convention: a chain holds at most 4 letters (phrases)
 /* PURE-STATE-BEGIN */
 function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
   // old keys are never written back - migration only reads
-  if(v8&&(v8.v===8||v8.v===9)){    // v9 = v8 + fractional-time flex (additive)
+  if(v8&&(v8.v===8||v8.v===9||v8.v===10)){    // v9 += flex, v10 += breath (additive)
     const v7=v8;   // same shape as v7 except letters are UPPERCASE ONLY
     if(!v7.stacks||!v7.stacks.length) v7.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
     v7.cur=Math.min(v7.cur??0, v7.stacks.length-1);
@@ -283,7 +296,10 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
     if(v7.stacks.length<2&&v7.view!=='stack') v7.view='stack';
     v7.q=v7.q==='pulse'?'pulse':'bar';
     v7.pulse=(typeof v7.pulse==='number'&&v7.pulse>=15/220&&v7.pulse<=15/20)?v7.pulse:0.25;
-    v7.v=9;
+    // breath: global orch-level tempo swell (additive, v10)
+    { const b=v7.breath||{}; const num=(x,d,lo,hi)=>{ x=+x; return (Number.isFinite(x)&&x>=lo&&x<=hi)?x:d; };
+      v7.breath={ on:!!b.on, depth:num(b.depth,0.03,0,0.2), n:Math.round(num(b.n,1,1,8)), phase:num(b.phase,0,0,1) }; }
+    v7.v=10;
     return v7;
   }
   if(v7&&v7.v===7){
@@ -341,7 +357,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
 }
 /* PURE-STATE-END */
 let st=migrateFrom(
-  JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('hnote_stack_v8')||'null'),
+  JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('hnote_stack_v9')||localStorage.getItem('hnote_stack_v8')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v7')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v6')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v5')||'null'),
@@ -350,7 +366,7 @@ let st=migrateFrom(
   JSON.parse(localStorage.getItem('hnote_stack_v2')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v1')||'null'));
 let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack',
-    winsBy=st.winsBy, mixBase=st.mixBase??0, orch=st.orch, q=st.q;
+    winsBy=st.winsBy, mixBase=st.mixBase??0, orch=st.orch, q=st.q, breath=st.breath;
 PULSE=st.pulse??0.25;
 let wins=winsBy[mixBase];        // bound to the selected mix's window list
 let sel=null, osel=null, curLane=0, selChain=null, tlSel=null, subGh=false;
@@ -382,7 +398,7 @@ function copyRange(obj, start, len){
     if(k>=start&&k<start+len) adds[k+len]=(v&&typeof v==='object')?JSON.parse(JSON.stringify(v)):v; });
   Object.assign(obj, adds);
 }
-function persist(){ localStorage.setItem(KEY,JSON.stringify({v:9,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
+function persist(){ localStorage.setItem(KEY,JSON.stringify({v:10,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE,breath})); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
@@ -559,7 +575,8 @@ function buildOrchCache(){
     (chainSeqs[Math.min(sym,orch.chains.length)-1]||[]).forEach(e=>seq.push(e));
   });
   if(!seq.length) seq.push({L:'A',chain:1,hits:letterHits('A'),len:letterLen('A')});
-  return {seq, chainSeqs};
+  const cyc=seq.reduce((s,e)=>s+e.len,0);          // one orch cycle in score-seconds
+  return {seq, chainSeqs, cycLen:cyc};
 }
 let playTarget=null;      // locked at launch: {view:'mix'} or {view:'stack', cur:i}
 function targetHits(){
@@ -1061,6 +1078,7 @@ function drawMix(){
 
 // --- orch view (chains of uberloop bars) ---
 function drawOrch(){
+  drawBreath();
   const cs=document.getElementById('chains'); cs.innerHTML='';
   const avail=TABN.slice(0,stacks.length);      // a letter includes its tab's mix
   orch.chains.forEach((c,i)=>{
@@ -1382,6 +1400,8 @@ let take=[], takeStart=null;
 // orch engine state
 let segStart=0, oQueue=null, orchCache=null;
 let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
+// breath (global orch-level tempo swell): cycLen = one orch cycle in score-secs
+let cycLen=0, cycPhase=0, curPhase0=0, curDelta0=0, curWarpLen=1, curRate=1, curInj=false;
 let phLog=[];                    // recent letter boundaries, for the audible playhead
 let onSwitch=(B)=>markChains();
 function trimOnset(buf){
@@ -1420,10 +1440,12 @@ function playHit(at,p,v){
 }
 function refreshOrch(){
   orchCache=buildOrchCache();
+  cycLen=orchCache.cycLen;
   if(wi>=orchCache.seq.length) wi=0;
   if(playing&&playTarget&&playTarget.view==='orch'){
     const e=orchCache.seq[(wi-1+orchCache.seq.length)%orchCache.seq.length];
-    if(e&&e.L===curLetter){ curHits=e.hits; curLen=e.len; }
+    if(e&&e.L===curLetter){ curHits=e.hits; curLen=e.len;
+      curWarpLen=curInj?curRate*curLen:curLen+breathDelta(curPhase0+curLen)-curDelta0; }
   }
 }
 function refresh(){
@@ -1432,6 +1454,20 @@ function refresh(){
   dirty=false;
 }
 /* ORCH-CORE-BEGIN */
+function breathDelta(u){
+  // zero-mean tempo swell: wall = u + delta(u), period = cycLen/n, depth A,
+  // phase phi. delta(0)=delta(cycLen)=0 so the arrangement downbeat stays exact.
+  if(!breath||!breath.on||cycLen<=0) return 0;
+  const A=breath.depth||0; if(!A) return 0;
+  const n=Math.max(1,breath.n||1), ph=breath.phase||0, Le=cycLen/n;
+  return (A*Le/(2*Math.PI))*( Math.cos(2*Math.PI*ph) - Math.cos(2*Math.PI*(u/Le+ph)) );
+}
+function breathRate(u){                              // instantaneous tempo factor at phase u
+  if(!breath||!breath.on||cycLen<=0) return 1;
+  const A=breath.depth||0; if(!A) return 1;
+  const n=Math.max(1,breath.n||1), ph=breath.phase||0, Le=cycLen/n;
+  return 1 + A*Math.sin(2*Math.PI*(u/Le+ph));
+}
 function advance(B){
   if(inj&&inj.idx>=inj.list.length) inj=null;      // injected phrase finished
   if(oQueue!=null){                                 // tap pre-empts (even mid-injection)
@@ -1439,19 +1475,30 @@ function advance(B){
     inj={list:(list&&list.length)?list:[orchCache.seq[0]], idx:0};
     oQueue=null;
   }
-  let e;
-  if(inj){ e=inj.list[inj.idx++]; }
-  else{ e=orchCache.seq[wi]; wi=(wi+1)%orchCache.seq.length; }
+  let e, wasInj;
+  if(inj){ e=inj.list[inj.idx++]; wasInj=true; }
+  else{ e=orchCache.seq[wi]; wi=(wi+1)%orchCache.seq.length; wasInj=false; }
   curLetter=e.L; activeChain=e.chain;
   curHits=e.hits; curLen=e.len;
-  segStart=B;
-  phLog.push({B, li:e.li||0, chain:e.chain, len:e.len});
+  segStart=B; curInj=wasInj;
+  // breath warp: main entries breathe by cycle phase; injected bars hold the
+  // frozen instantaneous tempo (phase does NOT advance, so the cycle resumes)
+  if(wasInj){
+    curRate=breathRate(cycPhase); curPhase0=cycPhase; curDelta0=0;
+    curWarpLen=curRate*curLen;
+  }else{
+    curRate=1; curPhase0=cycPhase; curDelta0=breathDelta(cycPhase);
+    curWarpLen=curLen + breathDelta(cycPhase+curLen) - curDelta0;
+    if(cycLen>0){ cycPhase+=curLen;
+      if(cycPhase>=cycLen-1e-6){ cycPhase-=cycLen; if(Math.abs(cycPhase)<1e-6) cycPhase=0; } }
+  }
+  phLog.push({B, li:e.li||0, chain:e.chain, len:curWarpLen});
   if(phLog.length>8) phLog.shift();
   onSwitch(B);
 }
 function scheduleOrch(now,until){
   while(true){
-    let boundary=segStart+curLen;                   // a letter = one full uberloop bar
+    let boundary=segStart+curWarpLen;               // warped wall length of this bar
     if(oQueue!=null&&q==='pulse'){
       const pB=t0+Math.ceil((Math.max(schedUntil,now)-t0)/PULSE-1e-9)*PULSE;
       if(pB<boundary-1e-6) boundary=pB;             // cut the bar at the next pulse
@@ -1459,7 +1506,8 @@ function scheduleOrch(now,until){
     const to=Math.min(until,boundary);
     if(to>schedUntil+1e-9){
       for(const [t,p,v] of curHits){
-        const at=segStart+t;
+        const at=curInj ? segStart+curRate*t
+                        : segStart+t+breathDelta(curPhase0+t)-curDelta0;   // warp
         if(at>=schedUntil-1e-9&&at<to-1e-9) playHit(at,p,v);
       }
       schedUntil=to;
@@ -1503,7 +1551,7 @@ document.getElementById('playbtn').onclick=async()=>{
   refresh();
   playing=true; t0=actx.currentTime+0.12; schedUntil=t0;
   if(playTarget.view==='orch'){
-    wi=0; inj=null; oQueue=null; advance(t0);
+    wi=0; inj=null; oQueue=null; cycPhase=0; advance(t0);
   }
   timer=setInterval(schedule,50);
   btn.textContent='■ Stop';
@@ -1578,8 +1626,8 @@ function tabBlob(s){
 }
 document.getElementById('copy').onclick=async()=>{
   // the ENTIRE configuration: the persisted state is the canonical form
-  const text='hnote setup v9 '+JSON.stringify(
-    {v:9,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE});
+  const text='hnote setup v10 '+JSON.stringify(
+    {v:10,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE,breath});
   try{ await navigator.clipboard.writeText(text); show('setup copied'); }
   catch(e){ prompt('copy this:', text); }
 };
@@ -1590,7 +1638,7 @@ document.getElementById('loadbtn').onclick=()=>{
     const m=raw.match(/\{[\s\S]*\}/);            // tolerate the "hnote setup vN " prefix
     const obj=JSON.parse(m?m[0]:raw);
     const args=[null,null,null,null,null,null,null,null];
-    const slot={9:0,8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
+    const slot={10:0,9:0,8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
     if(slot!=null) args[slot]=obj; else args[6]=obj;    // v2-shaped fallback
     const st2=migrateFrom(...args);               // the migration chain validates + clamps
     if(playing){ playing=false; clearInterval(timer);
@@ -1598,7 +1646,7 @@ document.getElementById('loadbtn').onclick=()=>{
     oQueue=null; inj=null; phLog=[];
     stacks=st2.stacks; cur=st2.cur??0; view=st2.view??'stack';
     winsBy=st2.winsBy; mixBase=st2.mixBase??0; orch=st2.orch; q=st2.q;
-    PULSE=st2.pulse??0.25; wins=winsBy[mixBase];
+    PULSE=st2.pulse??0.25; wins=winsBy[mixBase]; breath=st2.breath;
     sel=null; osel=null; curLane=0; selChain=null; tlSel=null;
     dirty=true; persist(); drawBpm(); draw(); updateRec();
     show('setup loaded');
@@ -1639,6 +1687,30 @@ document.getElementById('bpmm1').onclick=()=>bumpBpm(-1);
 document.getElementById('bpmp1').onclick=()=>bumpBpm(1);
 document.getElementById('bpmp10').onclick=()=>bumpBpm(10);
 drawBpm();
+// Breathe: global orch-level tempo swell (live — no cache rebuild)
+function drawBreath(){
+  const b=breath||{on:false,depth:0.03,n:1,phase:0};
+  const on=document.getElementById('brOn'); if(!on) return;
+  on.textContent=b.on?'on':'off'; on.classList.toggle('on',!!b.on);
+  document.getElementById('brDv').textContent=Math.round(b.depth*100)+'%';
+  document.getElementById('brNv').textContent=b.n;
+  document.getElementById('brPv').textContent=b.phase.toFixed(2);
+  let info=`${Math.round(15/PULSE)} bpm ±${Math.round(b.depth*100)}% · ${b.n} breath${b.n>1?'s':''}/cycle`;
+  try{ const cl=buildOrchCache().cycLen; if(cl>0) info+=` · cycle ${cl.toFixed(1)}s`; }catch(e){}
+  document.getElementById('brInfo').textContent=b.on?info:'off — the arrangement plays flat';
+}
+function setBreath(patch){
+  breath=Object.assign({on:false,depth:0.03,n:1,phase:0}, breath, patch);
+  persist(); drawBreath();     // read live by scheduleOrch; no rebuild
+}
+document.getElementById('brOn').onclick=()=>setBreath({on:!(breath&&breath.on)});
+document.getElementById('brDm').onclick=()=>setBreath({depth:Math.max(0,Math.round((breath.depth-0.01)*100)/100)});
+document.getElementById('brDp').onclick=()=>setBreath({depth:Math.min(0.2,Math.round((breath.depth+0.01)*100)/100)});
+document.getElementById('brNm').onclick=()=>setBreath({n:Math.max(1,breath.n-1)});
+document.getElementById('brNp').onclick=()=>setBreath({n:Math.min(8,breath.n+1)});
+document.getElementById('brPm').onclick=()=>setBreath({phase:Math.max(0,Math.round((breath.phase-0.05)*100)/100)});
+document.getElementById('brPp').onclick=()=>setBreath({phase:Math.min(1,Math.round((breath.phase+0.05)*100)/100)});
+drawBreath();
 function show(m){ const f=document.getElementById('flash');
   f.textContent=m; f.style.opacity=1; setTimeout(()=>f.style.opacity=0,800); }
 draw();
