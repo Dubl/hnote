@@ -1,9 +1,10 @@
 # Generate conformance vectors for STACK-ALGEBRA.md from the Python
-# reference (apply_stack). Times are stored as exact integers x840 (pulse=1;
-# every legal time has denominator dividing 840 = lcm 1..8). After this,
-# conformance_check.js recomputes every vector with the JS reference sliced
-# out of stack.html and appends dual-verified mix vectors - only agreement
-# ships.
+# reference (apply_stack). Times are stored as exact integers x84000 (pulse=1;
+# unflexed times have denominator dividing 840 = lcm 1..8, and fractional-time
+# flex adds a bounded rational with denominator 100*S, so 84000 = 840*100 keeps
+# every legal time an exact integer). After this, conformance_check.js
+# recomputes every vector with the JS reference sliced out of stack.html and
+# appends dual-verified mix vectors - only agreement ships.
 import json, sys
 from apply_stack import parse_blob, realize_tab
 
@@ -45,10 +46,19 @@ CASES = [
                   "child3=[S=2,m=[7,-7,7,0,2]]"),
     ("spill-pre-wrap", "hnote stack v1 pulse=1 periods=[6] motif=[1,2,3] "
                        "child3=[S=3,m=[5,-5,5,5,-5],pre=1] phase=2"),
+    # fractional time (flex): +- % of the local step, off the 840 lattice
+    ("flex-spot", "hnote stack v1 pulse=1 periods=[4] motif=[1,2,3,4] flex=[0:10]"),
+    ("flex-subspot", "hnote stack v1 pulse=1 periods=[4] motif=[1,2,3,4] "
+                     "child2=[S=2,m=[3,4],flexm=[1:-20]]"),
+    ("flex-swing", "hnote stack v1 pulse=1 periods=[2] motif=[1,1] "
+                   "child1=[S=2,m=[3,3],flexm=[1:12]] child2=[S=2,m=[3,3],flexm=[1:12]]"),
+    ("flex-wrap", "hnote stack v1 pulse=1 periods=[4] motif=[5,2,3,4] flex=[0:-10]"),
 ]
 
-def x840(t, name):
-    x = t * 840
+SCALE = 84000    # 840 * 100: unflexed times divide 840; flex adds denom 100*S
+
+def x84k(t, name):
+    x = t * SCALE
     assert abs(x - round(x)) < 1e-6, (name, t)
     return int(round(x))
 
@@ -58,15 +68,15 @@ for name, blob in CASES:
     assert pulse == 1.0
     hits, top = realize_tab(1.0, lanes)
     structures = [{"periods": p, "offs": o, "steps": st, "motif": m,
-                   "children": {str(k): v for k, v in c.items()}, "phase": ph}
-                  for (p, m, c, ph, o, st) in lanes]
+                   "children": {str(k): v for k, v in c.items()}, "phase": ph, "flex": fx}
+                  for (p, m, c, ph, o, st, fx) in lanes]
     vectors.append({
         "name": name, "kind": "tab", "blob": blob, "pulse": 1,
-        "lanes": structures, "bar840": top * 840,
-        "hits": sorted([x840(t, name), p, v] for t, p, v in hits),
+        "lanes": structures, "bar840": top * SCALE,
+        "hits": sorted([x84k(t, name), p, v] for t, p, v in hits),
     })
     print(f"{name}: {len(vectors[-1]['hits'])} events, bar {top} pulses")
 
-json.dump({"spec": "STACK-ALGEBRA.md v1", "scale": 840, "vectors": vectors},
+json.dump({"spec": "STACK-ALGEBRA.md v1", "scale": SCALE, "vectors": vectors},
           open("conformance.json", "w", encoding="utf-8"), indent=1)
 print(f"wrote conformance.json ({len(vectors)} tab vectors; run conformance_check.js next)")

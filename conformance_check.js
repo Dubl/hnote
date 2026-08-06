@@ -22,9 +22,10 @@ __x.tab = (lanes) => { const s = {...lanes[0], lanes: lanes.slice(1)}; return re
 __x.mix = (ss, ws, base) => { stacks = ss; winsBy = []; return realizeMixHits(ss, ws, base); };
 `, sandbox);
 
-const x840 = (t, name) => {
-  const x = t * 840;
-  if (Math.abs(x - Math.round(x)) > 1e-6) throw new Error(`${name}: non-840 time ${t}`);
+const SCALE = 84000;   // 840*100: unflexed times divide 840, flex adds denom 100*S
+const x84k = (t, name) => {
+  const x = t * SCALE;
+  if (Math.abs(x - Math.round(x)) > 1e-6) throw new Error(`${name}: off-grid time ${t}`);
   return Math.round(x);
 };
 const key = h => h.join('|');
@@ -33,8 +34,8 @@ const doc = JSON.parse(fs.readFileSync('conformance.json', 'utf8'));
 let bad = 0;
 for (const v of doc.vectors.filter(v => v.kind === 'tab')) {
   const lanes = v.lanes.map(l => ({ periods: l.periods, offs: l.offs, steps: l.steps,
-    motif: l.motif, children: l.children, phase: l.phase }));
-  const got = sandbox.__x.tab(lanes).map(([t, p, w]) => [x840(t, v.name), p, w])
+    motif: l.motif, children: l.children, phase: l.phase, flex: l.flex }));
+  const got = sandbox.__x.tab(lanes).map(([t, p, w]) => [x84k(t, v.name), p, w])
     .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]).map(key).sort();
   const want = v.hits.map(key).sort();
   const ok = got.length === want.length && got.every((g, i) => g === want[i]);
@@ -56,7 +57,7 @@ const MIXES = [
 doc.vectors = doc.vectors.filter(v => v.kind !== 'mix');
 for (const m of MIXES) {
   const hits = sandbox.__x.mix(m.stacks, m.wins, m.ground)
-    .map(([t, p, w]) => [x840(t, m.name), p, w])
+    .map(([t, p, w]) => [x84k(t, m.name), p, w])
     .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
   doc.vectors.push({ name: m.name, kind: 'mix', pulse: 1, ground: m.ground,
     stacks: m.stacks, wins: m.wins, hits });

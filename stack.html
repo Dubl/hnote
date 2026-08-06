@@ -63,6 +63,7 @@
     color:#10131a; cursor:pointer; position:relative;}
   .mspot.sel{box-shadow:0 0 0 3px var(--text) inset;}
   .mspot .star{position:absolute; top:2px; right:5px; font-size:11px;}
+  .mspot .flx{position:absolute; bottom:1px; right:4px; font-size:10px; font-weight:700; opacity:.85;}
   .mrow .add,.mrow .rem{background:#2a2635; color:var(--text); width:40px; font-size:18px;}
   #spoted{margin-top:10px; border-top:1px solid var(--line); padding-top:10px; display:none;}
   #spoted.show{display:block;}
@@ -216,13 +217,13 @@ let PULSE=0.25;                 // seconds per pulse (a 16th) - persisted, BPM-e
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N'],[35,'B']];
 const TABN=['A','B','C','D','E','F','G','H'];
 const UPS=TABN.join(''), LOS=UPS.toLowerCase();
-const KEY='hnote_stack_v8';
+const KEY='hnote_stack_v9';
 const CHAINMAX=12;
 const PHRASEMAX=4;               // convention: a chain holds at most 4 letters (phrases)
 /* PURE-STATE-BEGIN */
 function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
   // old keys are never written back - migration only reads
-  if(v8&&v8.v===8){
+  if(v8&&(v8.v===8||v8.v===9)){    // v9 = v8 + fractional-time flex (additive)
     const v7=v8;   // same shape as v7 except letters are UPPERCASE ONLY
     if(!v7.stacks||!v7.stacks.length) v7.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
     v7.cur=Math.min(v7.cur??0, v7.stacks.length-1);
@@ -234,8 +235,15 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
         const segOk=(g,tot)=>Array.isArray(g)&&g.length>=1&&g.length<=4
           &&g.every(x=>Number.isInteger(x)&&x>=1)&&g.reduce((a,b)=>a+b,0)===tot;
         if(l.mseg&&!segOk(l.mseg,l.motif.length)) delete l.mseg;
+        // per-spot flex: sparse map motif-index -> pct in -20..20 (0 omitted)
+        const flexOk=(o,len)=>{ if(!o||typeof o!=='object'||Array.isArray(o)) return null;
+          const nf={}; Object.entries(o).forEach(([k,val])=>{ k=+k;
+            if(Number.isInteger(k)&&k>=0&&k<len&&Number.isInteger(val)&&val>=-20&&val<=20&&val!==0) nf[k]=val; });
+          return Object.keys(nf).length?nf:null; };
+        { const nf=flexOk(l.flex,l.motif.length); if(nf) l.flex=nf; else delete l.flex; }
         Object.values(l.children||{}).forEach(c=>{
-          if(c&&c.mseg&&!segOk(c.mseg,c.m.length)) delete c.mseg; }); });
+          if(c&&c.mseg&&!segOk(c.mseg,c.m.length)) delete c.mseg;
+          if(c){ const nf=flexOk(c.flexm,c.m.length); if(nf) c.flexm=nf; else delete c.flexm; } }); });
       // loop-level one-offs live on the primary stack (li coerced to 0)
       if(s.orns&&!Array.isArray(s.orns)) delete s.orns;
       if(s.orns) s.orns=s.orns.filter(o=>o
@@ -275,7 +283,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
     if(v7.stacks.length<2&&v7.view!=='stack') v7.view='stack';
     v7.q=v7.q==='pulse'?'pulse':'bar';
     v7.pulse=(typeof v7.pulse==='number'&&v7.pulse>=15/220&&v7.pulse<=15/20)?v7.pulse:0.25;
-    v7.v=8;
+    v7.v=9;
     return v7;
   }
   if(v7&&v7.v===7){
@@ -333,7 +341,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
 }
 /* PURE-STATE-END */
 let st=migrateFrom(
-  JSON.parse(localStorage.getItem(KEY)||'null'),
+  JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('hnote_stack_v8')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v7')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v6')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v5')||'null'),
@@ -350,17 +358,31 @@ let tlCells={}, phKey=null;      // timeline cell refs + current playhead cell
 let loSel=null;                  // selected loop one-off address {li:0,bar,u}
 let loCells={}, loPhKey=null;    // loop-grid cell refs + playhead cell
 let mSel=0, msSel=0;             // selected motif segment / sub-motif segment
+let subSel=null;                 // selected sub-cell (global index into ch.m) for flex
 function shiftChildren(stk, from, delta){
   // shift child keys >= from by delta; a negative delta drops keys in the removed range
-  const nc={};
-  Object.entries(stk.children).forEach(([k,v])=>{
+  stk.children=shiftMap(stk.children, from, delta);
+}
+function shiftMap(obj, from, delta){
+  // generic index-keyed shift (children, per-spot flex, per-subspot flex):
+  // keys >= from move by delta; a negative delta drops keys in the removed range
+  const nm={};
+  Object.entries(obj||{}).forEach(([k,v])=>{
     k=+k;
     if(delta<0&&k>=from&&k<from-delta) return;
-    nc[k>=from?k+delta:k]=v;
+    nm[k>=from?k+delta:k]=v;
   });
-  stk.children=nc;
+  return nm;
 }
-function persist(){ localStorage.setItem(KEY,JSON.stringify({v:8,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
+function copyRange(obj, start, len){
+  // duplicate the [start,start+len) entries to +len (segment copy); mutates obj
+  if(!obj) return;
+  const adds={};
+  Object.entries(obj).forEach(([k,v])=>{ k=+k;
+    if(k>=start&&k<start+len) adds[k+len]=(v&&typeof v==='object')?JSON.parse(JSON.stringify(v)):v; });
+  Object.assign(obj, adds);
+}
+function persist(){ localStorage.setItem(KEY,JSON.stringify({v:9,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE})); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
@@ -402,10 +424,12 @@ function realizeHitsFor(stack,b=0){
       const sub=PULSE/ch.S, pre=ch.pre||0, barLen=top*PULSE;
       const N=Math.max(ch.S, ch.m.length);                  // extra notes SPILL past the cell
       for(let j=0;j<N;j++){
-        const sym=ch.m[(j+(ch.p||0))%ch.m.length];         // p = sub-motif phase
+        const si=(j+(ch.p||0))%ch.m.length;                // p = sub-motif phase
+        const sym=ch.m[si];
         if(!sym) continue;                                  // 0 = rest
         const sd=SOUNDS[Math.abs(sym)-1]; if(!sd) continue;
-        let at=base+(j-pre)*sub;                            // prenotes lead INTO the anchor
+        const fm=(ch.flexm&&ch.flexm[si])||0;               // flex: ± % of a sub-slot
+        let at=base+(j-pre+fm/100)*sub;                     // prenotes lead INTO the anchor
         at=((at%barLen)+barLen)%barLen;                     // wrap both directions at the bar
         out.push([at, sd[0],
                   sym<0?52:(j===pre?accent:Math.max(52,accent-26))]); // anchor takes the accent
@@ -414,7 +438,9 @@ function realizeHitsFor(stack,b=0){
       const sym=stack.motif[mi];
       if(!sym) continue;                                    // 0 = rest (top level too)
       const sd=SOUNDS[Math.abs(sym)-1]; if(!sd) continue;
-      out.push([base, sd[0], sym<0?52:accent]);             // negative = ghost
+      const fS=(stack.flex&&stack.flex[mi])||0, barLen=top*PULSE;  // flex: ± % of a pulse
+      let at=((( base+(fS/100)*PULSE )%barLen)+barLen)%barLen;
+      out.push([at, sd[0], sym<0?52:accent]);               // negative = ghost
     }
   }
   return out.sort((a,b)=>a[0]-b[0]);
@@ -735,10 +761,8 @@ function drawStack(){
       const p=document.createElement('button'); p.textContent='+';
       p.onclick=()=>{                            // copy this motif into the next slot
         shiftChildren(stk, segStart+segLen, segLen);
-        const adds={};
-        Object.entries(stk.children).forEach(([k,v])=>{ k=+k;
-          if(k>=segStart&&k<segStart+segLen) adds[k+segLen]=JSON.parse(JSON.stringify(v)); });
-        Object.assign(stk.children, adds);
+        copyRange(stk.children, segStart, segLen);
+        if(stk.flex){ stk.flex=shiftMap(stk.flex, segStart+segLen, segLen); copyRange(stk.flex, segStart, segLen); }
         stk.motif.splice(segStart+segLen,0,...stk.motif.slice(segStart,segStart+segLen));
         stk.mseg.splice(mSel+1,0,segLen);
         mSel++; sel=null; changed();
@@ -751,6 +775,7 @@ function drawStack(){
       x.onclick=()=>{
         stk.motif.splice(segStart,segLen);
         shiftChildren(stk, segStart, -segLen);
+        if(stk.flex) stk.flex=shiftMap(stk.flex, segStart, -segLen);
         stk.mseg.splice(mSel,1);
         mSel=Math.max(0,mSel-1); sel=null; changed();
       };
@@ -760,13 +785,15 @@ function drawStack(){
   const mr=document.getElementById('mrow'); mr.innerHTML='';
   for(let li2=0;li2<segLen;li2++){
     const i=segStart+li2, sym=stk.motif[i];
+    const fv=(stk.flex&&stk.flex[i])||0;
+    const flexSup=fv?`<span class="flx">${fv>0?'+':''}${fv}</span>`:'';
     const b=document.createElement('button'); b.className='mspot';
     if(sym){ b.style.background=`var(--s${Math.abs(sym)})`;
       if(sym<0) b.style.opacity=.55;
-      b.innerHTML=`${i+1}·${SOUNDS[Math.abs(sym)-1][1]}${stk.children[i]?'<span class="star">✱</span>':''}`;
+      b.innerHTML=`${i+1}·${SOUNDS[Math.abs(sym)-1][1]}${stk.children[i]?'<span class="star">✱</span>':''}${flexSup}`;
     }else{
       b.style.background='#2a2635'; b.style.color='var(--muted)';
-      b.innerHTML=`${i+1}·&nbsp;·${stk.children[i]?'<span class="star">✱</span>':''}`;
+      b.innerHTML=`${i+1}·&nbsp;·${stk.children[i]?'<span class="star">✱</span>':''}${flexSup}`;
     }
     if(sel===i) b.classList.add('sel');
     b.onclick=()=>{
@@ -775,13 +802,14 @@ function drawStack(){
         stk.motif[i]=next===0?0:(sym<0?-next:next);
         changed();
       }
-      else { sel=i; msSel=0; draw(); }
+      else { sel=i; msSel=0; subSel=null; draw(); }
     };
     mr.appendChild(b);
   }
   const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
   add.onclick=()=>{ if(segLen<32&&stk.motif.length<128){
     shiftChildren(stk, segStart+segLen, 1);
+    if(stk.flex) stk.flex=shiftMap(stk.flex, segStart+segLen, 1);
     stk.motif.splice(segStart+segLen,0,1);
     stk.mseg[mSel]++; changed(); } };
   const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
@@ -790,6 +818,7 @@ function drawStack(){
     if(sel===idx) sel=null;
     stk.motif.splice(idx,1);
     shiftChildren(stk, idx, -1);
+    if(stk.flex) stk.flex=shiftMap(stk.flex, idx, -1);
     stk.mseg[mSel]--; changed(); } };
   mr.append(add,rem);
 
@@ -799,12 +828,28 @@ function drawStack(){
     sp.className='show';
     const ch=stk.children[sel];
     let html=`<div class="row2"><span class="lbl">spot ${sel+1} child</span>`;
+    const fv=(stk.flex&&stk.flex[sel])||0;
+    const flexRow=`<div class="row2"><span class="lbl">flex</span>
+      <button id="fm5">−5</button><button id="fm1">−</button>
+      <b style="font-size:18px;min-width:52px;display:inline-block;text-align:center">${fv>0?'+':''}${fv}%</b>
+      <button id="fp1">+</button><button id="fp5">+5</button><button id="f0">0</button>
+      <span class="lbl" style="margin-left:8px">± timing nudge · ±20% of a pulse (swing/humanize)</span></div>`;
+    const wireFlex=()=>{
+      const setF=d=>{ const cur=(stk.flex&&stk.flex[sel])||0, nv=(d==null)?0:Math.max(-20,Math.min(20,cur+d));
+        stk.flex=stk.flex||{}; if(nv) stk.flex[sel]=nv; else delete stk.flex[sel]; changed(); };
+      document.getElementById('fm5').onclick=()=>setF(-5);
+      document.getElementById('fm1').onclick=()=>setF(-1);
+      document.getElementById('fp1').onclick=()=>setF(1);
+      document.getElementById('fp5').onclick=()=>setF(5);
+      document.getElementById('f0').onclick=()=>setF(null);
+    };
     if(!ch){
       const gh=stk.motif[sel]?`<button id="ghtog">${stk.motif[sel]<0?'♪ unghost':'♪ ghost'}</button>`:'';
-      sp.innerHTML=html+gh+`<button id="addch">+ give it a child loop</button></div>`;
+      sp.innerHTML=html+gh+`<button id="addch">+ give it a child loop</button></div>`+flexRow;
       if(stk.motif[sel]) document.getElementById('ghtog').onclick=()=>{
         stk.motif[sel]=-stk.motif[sel]; changed(); };
       document.getElementById('addch').onclick=()=>{ stk.children[sel]={S:2,m:[Math.abs(stk.motif[sel])||1,1]}; changed(); };
+      wireFlex();
     }else{
       sp.innerHTML=html+`<button id="delch">✕ remove child</button></div>
         <div class="row2"><span class="lbl">slot ticks</span>
@@ -816,8 +861,11 @@ function drawStack(){
         <div class="row2"><span class="lbl">pre</span>
           <button id="cprm">−</button><b style="font-size:18px">${(ch.pre||0)%ch.S}</b><button id="cprp">+</button>
           <span class="lbl" style="margin-left:8px">prenotes — ticks that lead INTO the pulse</span></div>
+        ${flexRow}
         <div class="row2 mrow" id="msegsub"></div>
-        <div class="row2 mrow" id="subrow"></div>`;
+        <div class="row2 mrow" id="subrow"></div>
+        <div class="row2" id="subflex"></div>`;
+      wireFlex();
       document.getElementById('delch').onclick=()=>{ delete stk.children[sel]; changed(); };
       document.getElementById('sm').onclick=()=>{ if(ch.S>1){ch.S--; changed();} };
       document.getElementById('sp2').onclick=()=>{ if(ch.S<8){ch.S++; changed();} };
@@ -842,6 +890,7 @@ function drawStack(){
         if(ch.mseg.length<4&&ch.m.length+csL<=32){
           const p2=document.createElement('button'); p2.className='mspot add'; p2.textContent='+';
           p2.onclick=()=>{
+            if(ch.flexm){ ch.flexm=shiftMap(ch.flexm, cs0+csL, csL); copyRange(ch.flexm, cs0, csL); }
             ch.m.splice(cs0+csL,0,...ch.m.slice(cs0,cs0+csL));
             ch.mseg.splice(msSel+1,0,csL);
             msSel++; changed();
@@ -852,6 +901,7 @@ function drawStack(){
           const x2=document.createElement('button'); x2.className='mspot rem'; x2.textContent='✕';
           x2.onclick=()=>{
             ch.m.splice(cs0,csL);
+            if(ch.flexm) ch.flexm=shiftMap(ch.flexm, cs0, -csL);
             ch.mseg.splice(msSel,1);
             msSel=Math.max(0,msSel-1); changed();
           };
@@ -861,29 +911,53 @@ function drawStack(){
       const sr=document.getElementById('subrow');
       for(let sj=0;sj<csL;sj++){
         const j=cs0+sj, sym=ch.m[j];
+        const sfv=(ch.flexm&&ch.flexm[j])||0;
+        const sup=sfv?`<span class="flx">${sfv>0?'+':''}${sfv}</span>`:'';
         const b=document.createElement('button'); b.className='mspot';
         if(sym){ b.style.background=`var(--s${Math.abs(sym)})`;
           if(sym<0) b.style.opacity=.55;
-          b.textContent=SOUNDS[Math.abs(sym)-1][1]; }
-        else { b.style.background='#2a2635'; b.style.color='var(--muted)'; b.textContent='·'; }
+          b.innerHTML=SOUNDS[Math.abs(sym)-1][1]+sup; }
+        else { b.style.background='#2a2635'; b.style.color='var(--muted)'; b.innerHTML='·'+sup; }
+        if(subSel===j) b.classList.add('sel');
         b.onclick=()=>{
-          if(subGh){ if(sym) ch.m[j]=-sym; }    // ♪ mode: tap flips full/ghost
-          else { const next=(Math.abs(sym)+1)%(SOUNDS.length+1);
-                 ch.m[j]=next===0?0:(sym<0?-next:next); }
-          changed(); };
+          if(subGh){ if(sym) ch.m[j]=-sym; changed(); return; }  // ♪ mode: tap flips full/ghost
+          if(subSel===j){ const next=(Math.abs(sym)+1)%(SOUNDS.length+1);  // cycle when already selected
+            ch.m[j]=next===0?0:(sym<0?-next:next); changed(); }
+          else { subSel=j; draw(); }                              // else select (reveals its flex)
+        };
         sr.appendChild(b);
       }
       const a2=document.createElement('button'); a2.className='mspot add'; a2.textContent='+';
       a2.onclick=()=>{ if(csL<8&&ch.m.length<32){
+        if(ch.flexm) ch.flexm=shiftMap(ch.flexm, cs0+csL, 1);
         ch.m.splice(cs0+csL,0,1); ch.mseg[msSel]++; changed(); } };
       const r2=document.createElement('button'); r2.className='mspot rem'; r2.textContent='−';
-      r2.onclick=()=>{ if(csL>1){ ch.m.splice(cs0+csL-1,1); ch.mseg[msSel]--; changed(); } };
+      r2.onclick=()=>{ if(csL>1){ ch.m.splice(cs0+csL-1,1);
+        if(ch.flexm) ch.flexm=shiftMap(ch.flexm, cs0+csL-1, -1);
+        ch.mseg[msSel]--; changed(); } };
       const g2=document.createElement('button'); g2.className='mspot'; g2.textContent='♪';
       g2.style.background=subGh?'var(--text)':'#2a2635';
       g2.style.color=subGh?'#10131a':'var(--text)';
       g2.title='when lit, tapping a tick flips full/ghost';
       g2.onclick=()=>{ subGh=!subGh; draw(); };
       sr.append(a2,r2,g2);
+      // sub-cell flex: acts on the selected sub-cell (tap a tick to select it)
+      const sfEl=document.getElementById('subflex'); sfEl.innerHTML='';
+      if(subSel!=null && subSel>=cs0 && subSel<cs0+csL){
+        const sfv=(ch.flexm&&ch.flexm[subSel])||0;
+        sfEl.innerHTML=`<span class="lbl">sub ${subSel-cs0+1} flex</span>
+          <button id="sfm5">−5</button><button id="sfm1">−</button>
+          <b style="font-size:18px;min-width:52px;display:inline-block;text-align:center">${sfv>0?'+':''}${sfv}%</b>
+          <button id="sfp1">+</button><button id="sfp5">+5</button><button id="sf0">0</button>
+          <span class="lbl" style="margin-left:8px">± % of a sub-slot</span>`;
+        const setSF=d=>{ const cur=(ch.flexm&&ch.flexm[subSel])||0, nv=(d==null)?0:Math.max(-20,Math.min(20,cur+d));
+          ch.flexm=ch.flexm||{}; if(nv) ch.flexm[subSel]=nv; else delete ch.flexm[subSel]; changed(); };
+        document.getElementById('sfm5').onclick=()=>setSF(-5);
+        document.getElementById('sfm1').onclick=()=>setSF(-1);
+        document.getElementById('sfp1').onclick=()=>setSF(1);
+        document.getElementById('sfp5').onclick=()=>setSF(5);
+        document.getElementById('sf0').onclick=()=>setSF(null);
+      }
     }
   }
 }
@@ -1481,15 +1555,22 @@ function updateRec(){
 }
 
 // --- blob + take writer ---
+function flexTok(o){   // sparse index:pct map -> "i:p,i:p" (0-based), sorted
+  return Object.entries(o||{}).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0])
+    .map(([k,v])=>`${k}:${v}`).join(',');
+}
 function stackBlob(stk){
-  const chs=Object.entries(stk.children).map(([i,c])=>
-    `child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]${c.p?`,p=${c.p%c.m.length}`:''}${c.pre?`,pre=${c.pre%c.S}`:''}]`).join(' ');
+  const chs=Object.entries(stk.children).map(([i,c])=>{
+    const ft=c.flexm?flexTok(c.flexm):'';
+    return `child${+i+1}=[S=${c.S},m=[${c.m.join(',')}]${c.p?`,p=${c.p%c.m.length}`:''}${c.pre?`,pre=${c.pre%c.S}`:''}${ft?`,flexm=[${ft}]`:''}]`;
+  }).join(' ');
   const ph=phaseOf(stk);
   const pers=stk.periods.map((P,k)=>{
     const o=(stk.offs&&stk.offs[k])||0, d=(stk.steps&&stk.steps[k])||0;
     return (o||d)?`${P}@${o}${d?`+${d}`:''}`:`${P}`;
   }).join(',');
-  return `periods=[${pers}] motif=[${stk.motif.join(',')}]${chs?' '+chs:''}${ph?` phase=${ph}`:''}`;
+  const sf=stk.flex?flexTok(stk.flex):'';
+  return `periods=[${pers}] motif=[${stk.motif.join(',')}]${sf?` flex=[${sf}]`:''}${chs?' '+chs:''}${ph?` phase=${ph}`:''}`;
 }
 function tabBlob(s){
   if(!(s.lanes&&s.lanes.length)) return stackBlob(s);
@@ -1497,8 +1578,8 @@ function tabBlob(s){
 }
 document.getElementById('copy').onclick=async()=>{
   // the ENTIRE configuration: the persisted state is the canonical form
-  const text='hnote setup v8 '+JSON.stringify(
-    {v:8,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE});
+  const text='hnote setup v9 '+JSON.stringify(
+    {v:9,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE});
   try{ await navigator.clipboard.writeText(text); show('setup copied'); }
   catch(e){ prompt('copy this:', text); }
 };
@@ -1509,7 +1590,7 @@ document.getElementById('loadbtn').onclick=()=>{
     const m=raw.match(/\{[\s\S]*\}/);            // tolerate the "hnote setup vN " prefix
     const obj=JSON.parse(m?m[0]:raw);
     const args=[null,null,null,null,null,null,null,null];
-    const slot={8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
+    const slot={9:0,8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
     if(slot!=null) args[slot]=obj; else args[6]=obj;    // v2-shaped fallback
     const st2=migrateFrom(...args);               // the migration chain validates + clamps
     if(playing){ playing=false; clearInterval(timer);

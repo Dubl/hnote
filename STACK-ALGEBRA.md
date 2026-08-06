@@ -12,8 +12,11 @@ the HNote Rust engine via compiled share-trees. Conformance vectors:
 A **loop** is a pair (L, E): a length L > 0 in *pulses*, and a finite
 multiset E of events (τ, s, w) with time τ ∈ [0, L) in pulses, sound s
 (a positive integer), and weight w (an integer velocity 1–127 under the
-default profile, §7). All times are exact rationals; every τ produced by
-this algebra has a denominator dividing 840 (= lcm 1..8) per pulse.
+default profile, §7). All times are exact rationals. Without flex (§3),
+every τ has a denominator dividing 840 (= lcm 1..8) per pulse; **flex**
+adds a bounded rational offset with denominator 100·S, so the full lattice
+is n/84000 (= 840·100) per pulse. Flex is the only operator that leaves
+the 840 grid — it is fractional time, deliberately off-lattice.
 
 A **pulse** π > 0 is a duration in seconds bound at render time
 (π = 15/bpm treats a pulse as a sixteenth). The algebra is independent
@@ -28,11 +31,17 @@ A **stack** is:
             , steps    = [Δ₁ … Δₙ]      Δᵢ ≥ 0 (absent ⇒ 0): per-bar offset step
             , motif    = [m₁ … m_k]     k ≥ 1, mᵢ ∈ {−V … V} (0 = rest,
                                         negative = ghost of |mᵢ|, V = voice count)
-            , children = { i ↦ (S, m, p, pre) }  for motif indices i (0-based):
+            , flex     = { i ↦ fᵢ }     per-spot flex, fᵢ ∈ {−20..20} percent
+                                        (absent ⇒ 0), for childless motif index i
+            , children = { i ↦ (S, m, p, pre, flexm) }  for motif indices i (0-based):
                                         S ∈ 1..8 slot ticks, m a sub-motif of
                                         symbols as above, p ≥ 0 sub-phase,
-                                        pre ∈ 0..S−1 prenote count
+                                        pre ∈ 0..S−1 prenote count, flexm =
+                                        { j ↦ fⱼ } per-subspot flex on sub-cell j
             , phase    = φ ≥ 0 )
+
+Flex fᵢ / fⱼ is a signed **fractional-time** nudge in percent of the local
+step (see §3), |f| ≤ 20; 0 (absent) is the solid grid position.
 
 A **tab** is a non-empty list of stacks [stack⁰ … stackᴸ] (L ≤ 3);
 stack⁰ is the **ruler**.
@@ -49,9 +58,9 @@ stack⁰ is the **ruler**.
 
 For each t ∈ [0, top), with mi = fold(t):
 
-  * if children[mi] = (S, m, p, pre) exists (regardless of motif[mi]):
-    for j ∈ [0, max(S, |m|)): let σ = m[(j + p) mod |m|]. If σ ≠ 0, emit
-        ( (pos(t) + (j − pre)/S) mod top,  |σ|,
+  * if children[mi] = (S, m, p, pre, flexm) exists (regardless of motif[mi]):
+    for j ∈ [0, max(S, |m|)): let si = (j + p) mod |m|, σ = m[si]. If σ ≠ 0,
+    emit ( (pos(t) + (j − pre + flexm[si]/100)/S) mod top,  |σ|,
           52 if σ < 0
           else accent(t,mi) if j = pre        -- the ANCHOR tick
           else max(52, accent(t,mi) − 26) )
@@ -59,7 +68,18 @@ For each t ∈ [0, top), with mi = fold(t):
     before the cell's pulse (wrapping to the bar's end at pulse 0) — the
     tree engine's prechildren concept, natively.
   * else let σ = motif[mi]. If σ ≠ 0, emit
-        ( pos(t),  |σ|,  52 if σ < 0 else accent(t,mi) )
+        ( (pos(t) + flex[mi]/100) mod top,  |σ|,  52 if σ < 0 else accent(t,mi) )
+
+FLEX (fractional time). The signed nudge flex[mi]/100 (a spot, in units of
+one pulse = its local step) or flexm[si]/100 (a subspot, folded into the
+tick index j, so in units of one sub-slot = pulse/S) shifts an onset off
+the grid, |f| ≤ 20 percent. It is keyed to CONTENT — the spot's motif index,
+the subspot's sub-cell index — so it travels with phase-rotation, offsets,
+steps, spillover and prenotes, and repeats wherever its index repeats.
+Because |f| ≤ 20% is below the ½-gap to any neighbor, flex never reorders
+onsets. The wrap `mod top` sends a note pushed before pulse 0 to the bar's
+end, exactly like a prenote. Accents key on the grid position t, not the
+nudged time, so weight stays with the content.
 
 Notes. Offsets make each level read INTO the level below at position oᵢ,
 wrapping at the next modulo — a small period on top plus its offset is a
@@ -148,7 +168,9 @@ implementation, not this document.
     body(v2)    = "lane1={" lane-body "}" ["lane2={" lane-body "}" …]
     lane-body   = "periods=[" per ("," per)* "]"   where per = P("@"o)?("+"Δ)?
                   "motif=[" int ("," int)* "]"
-                  ("child" i "=[S=" S ",m=[" ints "]" (",p=" p)? (",pre=" n)? "]")*
+                  ("flex=[" (i":"f) ("," i":"f)* "]")?     -- per-spot flex, f ∈ −20..20
+                  ("child" i "=[S=" S ",m=[" ints "]" (",p=" p)? (",pre=" n)?
+                     (",flexm=[" (j":"f) ("," j":"f)* "]")? "]")*
                   ("phase=" φ)? 
     mix-blob    = "hnote stackmix v1 pulse=" num ("base=" letter)?
                   (letter "={" body "}")+ "wins=[" (letter":"a"-"b)* "]"
@@ -161,10 +183,12 @@ implementation, not this document.
                   -- mute/ghost may append ";"S";"k for a sub-tick window
 
 `conformance.json` contains vectors {name, blob or structures, pulse: 1,
-bar840, hits: [[τ·840, sound, vel] …]} with all τ·840 exact integers.
-An implementation conforms iff it reproduces every vector's hit multiset
-exactly. Vectors are dual-generated: computed by the Python reference and
-independently recomputed by the JS reference; only agreement is recorded.
+bar840, hits: [[τ·84000, sound, vel] …]} with all τ·84000 exact integers
+(the field is named `bar840` for history; the scale is 84000 = 840·100 so
+flexed times stay integral). An implementation conforms iff it reproduces
+every vector's hit multiset exactly. Vectors are dual-generated: computed by
+the Python reference and independently recomputed by the JS reference; only
+agreement is recorded.
 
 ## 9. Laws (identities any implementation must satisfy)
 
@@ -182,3 +206,8 @@ independently recomputed by the JS reference; only agreement is recorded.
   9. A step Δ over span S cycles with period S/gcd(Δ mod S, S) bars;
      Δ ≡ 0 (mod S) is the stepless stack. Distinct levels' cycles
      combine by lcm.
+  10. flex 0 ≡ identity (a zero/absent nudge is the solid grid position, so
+     a flex-free stack renders byte-identically). |flex| ≤ 20% preserves the
+     onset order of every loop. Flex travels with content under phase and
+     composes additively with itself: flex f then f′ ≡ flex (f+f′), clamped
+     to ±20. Flex is the sole operator producing off-840 times (§1).

@@ -164,11 +164,32 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   patched pre-rotation, 102 mi=0, 88 else; verification includes
   velocities — flat-96 divergence found and fixed 2026-07-25).
   **STACK-ALGEBRA.md** = the distilled spec (objects, realize equations,
-  blob grammar, laws, default profile); `conformance.json` = 16 vectors,
-  times as exact ×840 integers at pulse=1, DUAL-generated
+  blob grammar, laws, default profile); `conformance.json` = 26 vectors,
+  times as exact ×84000 integers at pulse=1, DUAL-generated
   (gen_conformance.py = Python reference, conformance_check.js recomputes
   via sliced page JS + adds mix vectors; only agreement ships). Any new
   implementation of the algebra must reproduce the vectors exactly.
+  **Mute layer** (2026-08-05): the one-off editor lists a pulse's realized
+  notes; tap one to mute exactly it (smallest isolating (S,k) window via
+  `isoWin`), tap again to unmute; any number of one-offs share an address
+  (grid cells mark multiples with ⁺). No engine change — ordered mute orns.
+  **Fractional time / flex** (state v9, 2026-08-06, the last core axis):
+  every spot and subspot carries an optional signed **flex** ∈ −20..20 %,
+  a timing nudge of `f/100 × local step` (spot = a pulse; subspot = a
+  sub-slot = pulse/S), keyed to CONTENT so it travels with phase/offsets/
+  steps/spill/prenote and repeats where its index repeats; |f|≤20% never
+  reorders onsets; wraps `mod top` like a prenote; accents key on the grid
+  position. Per-spot `stack.flex={i:pct}`, per-subspot `child.flexm={j:pct}`
+  (both sparse maps shifted through `shiftMap`, the children-key contract,
+  at every motif/sub-motif length mutation). UI: a flex stepper on the
+  selected spot and (tap a sub-cell to select) sub-cell, superscripts on
+  flexed cells. Blob `flex=[i:p,…]` / child `,flexm=[j:p,…]`. Realize adds
+  one term to each emit formula; the COMPILER routes any flexed cell through
+  a new absolute-position **flex lane** (`build_flex_bars`) with non-uniform
+  shares (the Rust engine already lays out arbitrary rationals — no engine
+  change), leaving zero-flex output byte-identical (law 10). Conformance
+  scale bumped 840→84000 (=840·100) so 1%-flex at any S≤8 stays integral;
+  4 flex vectors added, dual-verified; flex closed-loop `apply_stack` 4/4.
   `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
   phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
   transcription table; amen_kit.mp3 on the index.

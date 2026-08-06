@@ -43,7 +43,7 @@ def cycle_of(periods, mlen, steps):
             C = C * (span // math.gcd(d, span)) // math.gcd(C, span // math.gcd(d, span))
     return C
 
-def realize(pulse, periods, motif, children, phase=0, offs=None, steps=None, b=0):
+def realize(pulse, periods, motif, children, phase=0, offs=None, steps=None, flex=None, b=0):
     top = periods[0] if periods else len(motif)
     ph = phase % top
     hits = []
@@ -56,22 +56,27 @@ def realize(pulse, periods, motif, children, phase=0, offs=None, steps=None, b=0
             sub = pulse / ch["S"]
             pre = ch.get("pre", 0) % ch["S"]
             N = max(ch["S"], len(ch["m"]))       # extra notes SPILL past the cell
+            fm = ch.get("flexm") or {}
             for j in range(N):
-                sym = ch["m"][(j + ch.get("p", 0)) % len(ch["m"])]
+                si = (j + ch.get("p", 0)) % len(ch["m"])
+                sym = ch["m"][si]
                 if not sym:
                     continue                     # 0 = rest
+                f = fm.get(si, 0) or 0           # flex: +- % of a sub-slot
                 vel = GHOST_VEL if sym < 0 else (accent if j == pre else max(52, accent - 26))
-                at = (base + (j - pre) * sub) % (top * pulse)   # wrap both directions
+                at = (base + (j - pre + f / 100.0) * sub) % (top * pulse)   # wrap both directions
                 hits.append((at, SOUNDS[abs(sym) - 1], vel))
         else:
             sym = motif[mi]
             if not sym:
                 continue                         # 0 = rest at the top level too
-            hits.append((base, SOUNDS[abs(sym) - 1], GHOST_VEL if sym < 0 else accent))
+            f = (flex or {}).get(mi, 0) or 0     # flex: +- % of a pulse
+            at = (base + f / 100.0 * pulse) % (top * pulse)
+            hits.append((at, SOUNDS[abs(sym) - 1], GHOST_VEL if sym < 0 else accent))
     return hits, top
 
 def lane_cycle(ln):
-    periods, motif, children, phase, offs, steps = ln
+    periods, motif, children, phase, offs, steps, flex = ln
     return cycle_of(periods, len(motif), steps)
 
 def tab_cycle(lanes):
@@ -103,9 +108,18 @@ def realize_tab(pulse, lanes):
                 bb += lb
     return out, top0 * C
 
-def build_lane(pulse, periods, motif, children, phase=0, offs=None):
-    """Nested tree for one lane: motif node -> wrap in each period (inside-out)."""
+def is_flexed(children, flex, mi):
+    ch = children.get(mi)
+    if ch:
+        return any((ch.get("flexm") or {}).values())
+    return bool((flex or {}).get(mi))
+
+def build_lane(pulse, periods, motif, children, phase=0, offs=None, flex=None):
+    """Nested tree for one lane: motif node -> wrap in each period (inside-out).
+    Cells with nonzero flex become rests here - they sound from the flex lane."""
     def motif_cell(mi, vel):
+        if is_flexed(children, flex, mi):
+            return leaf(0, 0, 1.0)               # flexed: carried by the flex lane
         ch = children.get(mi)
         if not ch:
             sym = motif[mi]
@@ -156,7 +170,7 @@ def build_lane(pulse, periods, motif, children, phase=0, offs=None):
         node = cont([drop_unit(node, ph), trim_unit(node, ph)], float(span))
     return node, span
 
-def build_overflow_bars(pulse, periods, motif, children, phase=0, offs=None):
+def build_overflow_bars(pulse, periods, motif, children, phase=0, offs=None, flex=None):
     """Out-of-cell sub-motif ticks (prenotes backward, spillover forward) as
     parallel overflow lanes. Each source cell's ticks are grouped by target
     pulse; groups are packed greedily into as few lanes as collisions allow.
@@ -169,6 +183,8 @@ def build_overflow_bars(pulse, periods, motif, children, phase=0, offs=None):
         ch = children.get(mi)
         if not ch:
             continue
+        if is_flexed(children, flex, mi):
+            continue                             # flexed cell: whole thing rides the flex lane
         S = ch["S"]
         pre = ch.get("pre", 0) % S
         N = max(S, len(ch["m"]))
@@ -198,6 +214,69 @@ def build_overflow_bars(pulse, periods, motif, children, phase=0, offs=None):
              for lane in lanes]
     return nodes, top
 
+def build_flex_bars(pulse, periods, motif, children, phase, offs, flex, span_target):
+    """Flexed cells (fractional time) as absolute-position lanes: every note of
+    a flexed cell lands at its exact off-grid pulse position via unequal shares.
+    Built already tiled+cut to span_target so the integer-share rotation
+    primitives are never applied to fractional leaves. Returns list of nodes."""
+    top = periods[0] if periods else len(motif)
+    ph = phase % top
+    raw = []                                     # (pos_in_pulses, midi, vel) within one bar
+    for t in range(top):
+        mi = fold(t, periods, len(motif), offs)
+        base = (t - ph) % top
+        accent = 116 if t == 0 else (102 if mi == 0 else 88)
+        ch = children.get(mi)
+        if ch:
+            fm = ch.get("flexm") or {}
+            if not any(fm.values()):
+                continue
+            S = ch["S"]; pre = ch.get("pre", 0) % S; N = max(S, len(ch["m"]))
+            for j in range(N):
+                si = (j + ch.get("p", 0)) % len(ch["m"])
+                sym = ch["m"][si]
+                if not sym:
+                    continue
+                f = fm.get(si, 0) or 0
+                v = GHOST_VEL if sym < 0 else (accent if j == pre else max(52, accent - 26))
+                at = (base + (j - pre + f / 100.0) / S) % top
+                raw.append((at, SOUNDS[abs(sym) - 1], v))
+        else:
+            f = (flex or {}).get(mi, 0) or 0
+            if not f:
+                continue
+            sym = motif[mi]
+            if not sym:
+                continue
+            v = GHOST_VEL if sym < 0 else accent
+            at = (base + f / 100.0) % top
+            raw.append((at, SOUNDS[abs(sym) - 1], v))
+    # tile the bar's flex notes across span_target, cut half-open at the ruler bar
+    notes, bb = [], 0.0
+    while bb < span_target - 1e-9:
+        for (at, m, v) in raw:
+            if bb + at < span_target - 1e-9:
+                notes.append((bb + at, m, v))
+        bb += top
+    # pack into parallel sequential lanes; same-position notes go to separate lanes
+    lanes = []
+    for n in sorted(notes, key=lambda x: (x[0], x[1])):
+        for lane in lanes:
+            if abs(lane[-1][0] - n[0]) > 1e-9:
+                lane.append(n); break
+        else:
+            lanes.append([n])
+    out = []
+    for lane in lanes:
+        kids = []
+        if lane[0][0] > 1e-9:
+            kids.append(leaf(0, 0, lane[0][0]))          # leading rest to the first onset
+        for idx, (pos, m, v) in enumerate(lane):
+            nxt = lane[idx + 1][0] if idx + 1 < len(lane) else float(span_target)
+            kids.append(leaf(m, v, max(nxt - pos, 1e-9)))  # share = gap to next onset
+        out.append(cont(kids, float(span_target)))
+    return out
+
 def fit_to(node, own_span, span_target):
     """Tile/cut a lane node so it spans exactly span_target pulses."""
     if own_span == span_target:
@@ -214,30 +293,34 @@ def build_measure(name, pulse, lanes):
     unroll: C bar-trees per lane, each built with that bar's offsets."""
     top0 = lanes[0][0][0] if lanes[0][0] else len(lanes[0][1])
     C = tab_cycle(lanes)
+    def rest_bar():
+        return cont([leaf(0, 0, 1.0) for _ in range(top0)], float(top0))
     kids = []
     for ln in lanes:
-        periods, motif, children, phase, offs, steps = ln
-        bars, over_bars = [], []
+        periods, motif, children, phase, offs, steps, flex = ln
+        bars, over_bars, flex_bars = [], [], []
         for b in range(C):
             offs_b = [((offs[k] if offs and k < len(offs) else 0) or 0)
                       + b * ((steps[k] if steps and k < len(steps) else 0) or 0)
                       for k in range(len(periods))]
-            node, span = build_lane(pulse, periods, motif, children, phase, offs_b)
+            node, span = build_lane(pulse, periods, motif, children, phase, offs_b, flex)
             bars.append(fit_to(node, span, top0))
-            onodes, ospan = build_overflow_bars(pulse, periods, motif, children, phase, offs_b)
+            onodes, ospan = build_overflow_bars(pulse, periods, motif, children, phase, offs_b, flex)
             over_bars.append([fit_to(n, ospan, top0) for n in onodes])
+            flex_bars.append(build_flex_bars(pulse, periods, motif, children, phase, offs_b, flex, top0))
         lane_node = bars[0] if C == 1 else cont(bars, float(C * top0))
         lane_node["timing"] = 1.0
         kids.append(lane_node)
-        M = max((len(x) for x in over_bars), default=0)
-        for mi_ in range(M):                      # overflow lanes (prenotes + spillover)
-            def rest_bar():
-                return cont([leaf(0, 0, 1.0) for _ in range(top0)], float(top0))
-            bars_m = [over_bars[b][mi_] if mi_ < len(over_bars[b]) else rest_bar()
-                      for b in range(C)]
-            gl = bars_m[0] if C == 1 else cont(bars_m, float(C * top0))
-            gl["timing"] = 1.0
-            kids.append(gl)
+        def parallel_lanes(per_bar):              # concat one parallel lane across the C bars
+            M = max((len(x) for x in per_bar), default=0)
+            for mi_ in range(M):
+                bars_m = [per_bar[b][mi_] if mi_ < len(per_bar[b]) else rest_bar()
+                          for b in range(C)]
+                gl = bars_m[0] if C == 1 else cont(bars_m, float(C * top0))
+                gl["timing"] = 1.0
+                kids.append(gl)
+        parallel_lanes(over_bars)                 # prenotes + spillover
+        parallel_lanes(flex_bars)                 # fractional-time (flexed) cells
     root = {"midi_number": 0, "velocity": 0, "timing": float(C * top0 * pulse), "channel": 9,
             "child_direction": "sidebyside", "children": kids,
             "start_time": 0.0, "end_time": 0.0, "name": name}
@@ -318,14 +401,25 @@ def parse_lane(body):
         periods.append(int(m.group(1))); offs.append(int(m.group(2) or 0))
         steps.append(int(m.group(3) or 0))
     motif = [int(x) for x in re.search(r"motif=\[([-\d,]+)\]", body).group(1).split(",")]
+    def flexmap(s):                              # "i:p,i:p" -> {i: p}
+        d = {}
+        for pair in (s or "").split(","):
+            if ":" in pair:
+                k, v = pair.split(":"); d[int(k)] = int(v)
+        return d
     children = {}
-    for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([-\d,]+)\](?:,p=(\d+))?(?:,pre=(\d+))?\]", body):
-        children[int(m.group(1)) - 1] = {"S": int(m.group(2)),
-                                         "m": [int(x) for x in m.group(3).split(",")],
-                                         "p": int(m.group(4) or 0),
-                                         "pre": int(m.group(5) or 0)}
+    for m in re.finditer(r"child(\d+)=\[S=(\d+),m=\[([-\d,]+)\](?:,p=(\d+))?(?:,pre=(\d+))?(?:,flexm=\[([-\d:,]*)\])?\]", body):
+        ch = {"S": int(m.group(2)),
+              "m": [int(x) for x in m.group(3).split(",")],
+              "p": int(m.group(4) or 0),
+              "pre": int(m.group(5) or 0)}
+        if m.group(6):
+            ch["flexm"] = flexmap(m.group(6))
+        children[int(m.group(1)) - 1] = ch
+    fm = re.search(r"(?:^|\s)flex=\[([-\d:,]*)\]", body)
+    flex = flexmap(fm.group(1)) if fm else {}
     phm = re.search(r"phase=(\d+)", body)
-    return (periods, motif, children, int(phm.group(1)) if phm else 0, offs, steps)
+    return (periods, motif, children, int(phm.group(1)) if phm else 0, offs, steps, flex)
 
 def parse_blob(blob, tab="A"):
     s = blob.strip()
@@ -334,9 +428,13 @@ def parse_blob(blob, tab="A"):
         state = json.loads(s[s.find("{"):])
         t = state["stacks"]["ABCDEFGH".index(tab)]
         def lane_tuple(l):
-            ch = {int(k): v for k, v in (l.get("children") or {}).items()}
+            ch = {int(k): dict(v) for k, v in (l.get("children") or {}).items()}
+            for c in ch.values():                # coerce sub-flex keys to int
+                if c.get("flexm"):
+                    c["flexm"] = {int(k): val for k, val in c["flexm"].items()}
+            flex = {int(k): v for k, v in (l.get("flex") or {}).items()}
             return (l.get("periods") or [], l["motif"], ch, l.get("phase", 0) or 0,
-                    l.get("offs") or [], l.get("steps") or [])
+                    l.get("offs") or [], l.get("steps") or [], flex)
         lanes = [lane_tuple(t)] + [lane_tuple(x) for x in (t.get("lanes") or [])]
         return float(state.get("pulse", 0.25)), lanes
     pulse = float(re.search(r"pulse=([\d.]+)", blob).group(1))
@@ -350,9 +448,9 @@ def main():
     tab = sys.argv[sys.argv.index("--tab") + 1] if "--tab" in sys.argv else "A"
     pulse, lanes = parse_blob(blob, tab)
     print(f"{name}: pulse {pulse}, {len(lanes)} lane(s)")
-    for i, (periods, motif, children, phase, offs, steps) in enumerate(lanes):
+    for i, (periods, motif, children, phase, offs, steps, flex) in enumerate(lanes):
         print(f"  lane{i+1}: periods {periods}, offs {offs}, steps {steps}, "
-              f"motif {motif}, children {children}, phase {phase}")
+              f"motif {motif}, children {children}, phase {phase}, flex {flex}")
 
     measure, top = build_measure(name, pulse, lanes)
     calls = [{"target": name, "function": "once"}] * 4
