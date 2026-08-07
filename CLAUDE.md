@@ -211,6 +211,29 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   is on (boundaries legitimately leave the wall grid). Breath is the first
   deliberately NON-rational quantity (sine) — lives in the π layer the
   algebra is declared independent of; may later become "tempo as a stack".
+  **Composite tabs** (state v11, 2026-08-07, the driver at the tab level): a
+  tab may carry `compose=[srcTabIndex,…]` (live, ordered) — its motif is the
+  sources' cells CONCATENATED (each with its own children/flex), while it
+  keeps its OWN periods/offs/steps/phase + one-offs. Jon's example: A(4
+  cells)+B(3 cells), period 10 → `1,2,3,4,5,6,7,1,2,3` (wrap, since 10>7),
+  loops — exactly the mseg concatenate-then-fold, sourced from other tabs.
+  Implemented by MATERIALIZE, not a seam: `materializeComposites()` (top of
+  the realization region, sliced by the sim) rebuilds each composite's
+  motif/children/flex from sources on every `changed()`/load (recursive,
+  cycle-guarded; children merged with keys offset by running length). After
+  that a composite IS a base stack, so realization, chains, orch, mix, AND
+  the compiler (sees the assembled motif in the Copy-setup JSON) all work
+  UNCHANGED — apply_stack needs no change; `compose` is surplus it ignores.
+  It's a distinct tab with its own letter (◇ marker; `+◇` creates one), so a
+  chain references it as one symbol; edit a source → composite + everything
+  above regenerate (live = the driver). `deleteTab` patches `compose` indices
+  like it patches chain letters. UI: compose editor (cycle/remove/swap/add
+  source chips) in drawStack; the composed cells + child/flex authoring go
+  READ-ONLY (edit them in the source tab), periods/offsets/steps/phase +
+  loop one-offs stay editable. v1 composes each source's PRIMARY motif only
+  (source lanes ignored; composite has none) and shares the 8 A–H tab slots
+  (both deferred). orch_sim V14 asserts assembly + Jon's fold + child-merge
+  offset + live source-tracking; a composite Copy-setup blob closed-loops 4/4.
   `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
   phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
   transcription table; amen_kit.mp3 on the index.

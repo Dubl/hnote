@@ -230,17 +230,17 @@ let PULSE=0.25;                 // seconds per pulse (a 16th) - persisted, BPM-e
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N'],[35,'B']];
 const TABN=['A','B','C','D','E','F','G','H'];
 const UPS=TABN.join(''), LOS=UPS.toLowerCase();
-const KEY='hnote_stack_v10';
+const KEY='hnote_stack_v11';
 const CHAINMAX=12;
 const PHRASEMAX=4;               // convention: a chain holds at most 4 letters (phrases)
 /* PURE-STATE-BEGIN */
 function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
   // old keys are never written back - migration only reads
-  if(v8&&(v8.v===8||v8.v===9||v8.v===10)){    // v9 += flex, v10 += breath (additive)
+  if(v8&&(v8.v===8||v8.v===9||v8.v===10||v8.v===11)){  // v9+=flex, v10+=breath, v11+=compose (additive)
     const v7=v8;   // same shape as v7 except letters are UPPERCASE ONLY
     if(!v7.stacks||!v7.stacks.length) v7.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
     v7.cur=Math.min(v7.cur??0, v7.stacks.length-1);
-    v7.stacks.forEach(s=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
+    v7.stacks.forEach((s,si)=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
       [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
         if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0));
         if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
@@ -269,7 +269,11 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
           &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S))))
         &&(!o.S||(Number.isInteger(o.S)&&o.S>=1&&o.S<=8
           &&(o.k==null||(Number.isInteger(o.k)&&o.k>=0&&o.k<o.S)))))
-        .map(o=>Object.assign(o,{li:0})); });
+        .map(o=>Object.assign(o,{li:0}));
+      // composite tab: live source refs (ints in range, no self; deeper cycles caught at runtime)
+      if(s.compose&&!Array.isArray(s.compose)) delete s.compose;
+      if(s.compose){ s.compose=s.compose.filter(x=>Number.isInteger(x)&&x>=0&&x<v7.stacks.length&&x!==si);
+        if(!s.compose.length) delete s.compose; } });
     v7.winsBy=Array.from({length:v7.stacks.length},(_,i)=>(v7.winsBy&&v7.winsBy[i])||[]);
     v7.mixBase=Math.min(Math.max(0,v7.mixBase|0), v7.stacks.length-1);
     v7.orch=(v7.orch&&v7.orch.motif&&v7.orch.motif.length&&v7.orch.chains&&v7.orch.chains.length)
@@ -299,7 +303,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
     // breath: global orch-level tempo swell (additive, v10)
     { const b=v7.breath||{}; const num=(x,d,lo,hi)=>{ x=+x; return (Number.isFinite(x)&&x>=lo&&x<=hi)?x:d; };
       v7.breath={ on:!!b.on, depth:num(b.depth,0.03,0,0.2), n:Math.round(num(b.n,1,1,32)), phase:num(b.phase,0,0,1) }; }
-    v7.v=10;
+    v7.v=11;
     return v7;
   }
   if(v7&&v7.v===7){
@@ -357,7 +361,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
 }
 /* PURE-STATE-END */
 let st=migrateFrom(
-  JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('hnote_stack_v9')||localStorage.getItem('hnote_stack_v8')||'null'),
+  JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('hnote_stack_v10')||localStorage.getItem('hnote_stack_v9')||localStorage.getItem('hnote_stack_v8')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v7')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v6')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v5')||'null'),
@@ -368,6 +372,7 @@ let st=migrateFrom(
 let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack',
     winsBy=st.winsBy, mixBase=st.mixBase??0, orch=st.orch, q=st.q, breath=st.breath;
 PULSE=st.pulse??0.25;
+materializeComposites();          // resolve composite tabs from their sources on load
 let wins=winsBy[mixBase];        // bound to the selected mix's window list
 let sel=null, osel=null, curLane=0, selChain=null, tlSel=null, subGh=false;
 let tlCells={}, phKey=null;      // timeline cell refs + current playhead cell
@@ -398,10 +403,36 @@ function copyRange(obj, start, len){
     if(k>=start&&k<start+len) adds[k+len]=(v&&typeof v==='object')?JSON.parse(JSON.stringify(v)):v; });
   Object.assign(obj, adds);
 }
-function persist(){ localStorage.setItem(KEY,JSON.stringify({v:10,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE,breath})); }
+function persist(){ localStorage.setItem(KEY,JSON.stringify({v:11,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE,breath})); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
+function materializeComposites(){
+  // A composite tab (has .compose = [srcTabIndex,...]) derives its motif/
+  // children/flex LIVE from its source tabs' cells, concatenated; it keeps its
+  // OWN periods/offs/steps/phase/orns. After this a composite IS a base stack.
+  const assemble=(tab, seen)=>{
+    const motif=[], children={}, flex={}; let off=0;
+    (tab.compose||[]).forEach(si=>{
+      const src=stacks[si]; if(!src||seen.has(si)) return;   // missing/cycle -> skip
+      const a = src.compose ? assemble(src, new Set(seen).add(si))
+                            : {motif:src.motif||[], children:src.children||{}, flex:src.flex||{}};
+      a.motif.forEach(m=>motif.push(m));
+      Object.entries(a.children).forEach(([k,v])=>children[+k+off]=JSON.parse(JSON.stringify(v)));
+      Object.entries(a.flex).forEach(([k,v])=>flex[+k+off]=v);
+      off+=a.motif.length;
+    });
+    return {motif, children, flex};
+  };
+  stacks.forEach((t,i)=>{
+    if(!t.compose) return;
+    const a=assemble(t, new Set([i]));
+    t.motif=a.motif.length?a.motif:[0];              // never empty (fold needs >=1)
+    t.children=a.children;
+    if(Object.keys(a.flex).length) t.flex=a.flex; else delete t.flex;
+    t.mseg=[t.motif.length];                          // composites carry no variants
+  });
+}
 function fold(t,stack,b=0){
   // each level may carry an offset INTO the level below: x = x%P + o
   // (wrap happens naturally at the next level's modulo). Offsets may STEP
@@ -594,7 +625,7 @@ function drawTabs(){
   stacks.forEach((s,i)=>{
     const b=document.createElement('button');
     b.className=`tab t${TABN[i]}`+((view==='stack'&&cur===i)?' on':'');
-    b.textContent=TABN[i];
+    b.textContent=TABN[i]+(s.compose?'◇':'');       // ◇ = composite tab
     b.onclick=()=>{ view='stack'; cur=i; sel=null; curLane=0; loSel=null; mSel=0; msSel=0;
       if(playing&&playTarget&&playTarget.view==='stack')
         playTarget={view:'stack', cur:i};   // live-switch, aligned (window audition)
@@ -612,6 +643,15 @@ function drawTabs(){
       show('duplicated '+TABN[cur-0]);
     };
     tb.appendChild(p);
+    const pc=document.createElement('button'); pc.className='tab plus'; pc.textContent='+◇';
+    pc.title='new composite tab (built from other tabs)';
+    pc.onclick=()=>{
+      stacks.push({compose:[], periods:[16], children:{}, motif:[0], orns:[], mseg:[1]});
+      winsBy.push([]);
+      view='stack'; cur=stacks.length-1; sel=null; curLane=0; loSel=null; mSel=0; msSel=0;
+      changed(); show('new composite '+TABN[cur]);
+    };
+    tb.appendChild(pc);
   }
   if(stacks.length>1){
     const m=document.createElement('button');
@@ -682,6 +722,9 @@ function deleteTab(i){
     return up===i?'A':(up>i?UPS[up-1]:L);
   };
   orch.chains.forEach(c=>{ c.seq=c.seq.map(remap); });
+  // composite tabs: drop refs to the deleted tab, shift higher refs down
+  stacks.forEach(t=>{ if(t.compose){ t.compose=t.compose.filter(x=>x!==i).map(x=>x>i?x-1:x);
+    if(!t.compose.length) delete t.compose; } });
   if(stacks.length<2&&view!=='stack') view='stack';
   sel=null; curLane=0; selChain=null; tlSel=null; phLog=[];
   changed();
@@ -690,7 +733,34 @@ function deleteTab(i){
 function drawStack(){
   drawLaneStrip();
   const stk=L();
+  const comp=!!stk.compose;                     // composite tab: cells sourced from others
   const lv=document.getElementById('levels'); lv.innerHTML='';
+  if(comp){                                     // ◇ compose editor (its own periods/one-offs stay below)
+    const ce=document.createElement('div'); ce.className='lvl'; ce.style.cssText='flex-wrap:wrap;gap:6px;';
+    const lbl=document.createElement('span'); lbl.className='secs'; lbl.textContent='◇ composed from:';
+    ce.appendChild(lbl);
+    stk.compose.forEach((si,k)=>{
+      const chip=document.createElement('button'); chip.className='dchip';
+      chip.textContent=(stacks[si]?TABN[si]:'?')+' ↻'; chip.title='cycle source tab';
+      chip.onclick=()=>{ const av=stacks.map((_,i)=>i).filter(i=>i!==cur);
+        const j=av.indexOf(si); stk.compose[k]=av[(j+1)%av.length]; changed(); };
+      ce.appendChild(chip);
+      const rm=document.createElement('button'); rm.className='dchip'; rm.textContent='✕';
+      rm.title='remove source'; rm.onclick=()=>{ stk.compose.splice(k,1); changed(); };
+      ce.appendChild(rm);
+      if(k<stk.compose.length-1){ const sw=document.createElement('button'); sw.className='dchip';
+        sw.textContent='⇄'; sw.title='swap with next';
+        sw.onclick=()=>{ const t=stk.compose[k]; stk.compose[k]=stk.compose[k+1]; stk.compose[k+1]=t; changed(); };
+        ce.appendChild(sw); }
+    });
+    const addc=document.createElement('button'); addc.className='dchip'; addc.textContent='+ source';
+    addc.onclick=()=>{ const av=stacks.map((_,i)=>i).filter(i=>i!==cur); if(av.length){ stk.compose.push(av[0]); changed(); } };
+    ce.appendChild(addc);
+    const hint=document.createElement('div'); hint.className='secs'; hint.style.cssText='width:100%;color:var(--muted);';
+    hint.textContent=stk.compose.length?'cells below are composed — edit them in their source tabs':'add source tabs to compose';
+    ce.appendChild(hint);
+    lv.appendChild(ce);
+  }
   stk.periods.forEach((P,i)=>{
     const row=document.createElement('div'); row.className='lvl';
     const minus=document.createElement('button'); minus.textContent='−';
@@ -766,7 +836,7 @@ function drawStack(){
   if(mSel>=stk.mseg.length) mSel=0;
   const segStart=stk.mseg.slice(0,mSel).reduce((a,b)=>a+b,0), segLen=stk.mseg[mSel];
   const msr=document.getElementById('msegrow'); msr.innerHTML='';
-  if(stk.mseg.length>1||stk.motif.length*2<=128){
+  if(!comp && (stk.mseg.length>1||stk.motif.length*2<=128)){
     stk.mseg.forEach((L,si)=>{
       const b=document.createElement('button');
       b.textContent='motif '+(si+1);
@@ -813,7 +883,8 @@ function drawStack(){
       b.innerHTML=`${i+1}·&nbsp;·${stk.children[i]?'<span class="star">✱</span>':''}${flexSup}`;
     }
     if(sel===i) b.classList.add('sel');
-    b.onclick=()=>{
+    if(comp) b.style.cursor='default';          // composite cells are read-only (edit in source)
+    else b.onclick=()=>{
       if(sel===i){                              // cycle magnitude 1..N then rest, keep ghost sign
         const next=(Math.abs(sym)+1)%(SOUNDS.length+1);
         stk.motif[i]=next===0?0:(sym<0?-next:next);
@@ -823,22 +894,25 @@ function drawStack(){
     };
     mr.appendChild(b);
   }
-  const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
-  add.onclick=()=>{ if(segLen<32&&stk.motif.length<128){
-    shiftChildren(stk, segStart+segLen, 1);
-    if(stk.flex) stk.flex=shiftMap(stk.flex, segStart+segLen, 1);
-    stk.motif.splice(segStart+segLen,0,1);
-    stk.mseg[mSel]++; changed(); } };
-  const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
-  rem.onclick=()=>{ if(segLen>1){
-    const idx=segStart+segLen-1;
-    if(sel===idx) sel=null;
-    stk.motif.splice(idx,1);
-    shiftChildren(stk, idx, -1);
-    if(stk.flex) stk.flex=shiftMap(stk.flex, idx, -1);
-    stk.mseg[mSel]--; changed(); } };
-  mr.append(add,rem);
+  if(!comp){                                    // composed cells: no add/remove here
+    const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
+    add.onclick=()=>{ if(segLen<32&&stk.motif.length<128){
+      shiftChildren(stk, segStart+segLen, 1);
+      if(stk.flex) stk.flex=shiftMap(stk.flex, segStart+segLen, 1);
+      stk.motif.splice(segStart+segLen,0,1);
+      stk.mseg[mSel]++; changed(); } };
+    const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
+    rem.onclick=()=>{ if(segLen>1){
+      const idx=segStart+segLen-1;
+      if(sel===idx) sel=null;
+      stk.motif.splice(idx,1);
+      shiftChildren(stk, idx, -1);
+      if(stk.flex) stk.flex=shiftMap(stk.flex, idx, -1);
+      stk.mseg[mSel]--; changed(); } };
+    mr.append(add,rem);
+  }
 
+  if(comp) sel=null;                            // no per-cell authoring panel on composites
   const sp=document.getElementById('spoted');
   if(sel===null){ sp.className=''; sp.innerHTML=''; }
   else{
@@ -1390,7 +1464,7 @@ function draw(){
   if(view==='stack'){ drawStack(); drawLoopOrns(); }
   else if(view==='mix') drawMix(); else drawOrch();
 }
-function changed(){ persist(); draw(); dirty=true; }
+function changed(){ materializeComposites(); persist(); draw(); dirty=true; }
 
 // --- audio ---
 const SF='https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus/percussion';
@@ -1626,8 +1700,8 @@ function tabBlob(s){
 }
 document.getElementById('copy').onclick=async()=>{
   // the ENTIRE configuration: the persisted state is the canonical form
-  const text='hnote setup v10 '+JSON.stringify(
-    {v:10,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE,breath});
+  const text='hnote setup v11 '+JSON.stringify(
+    {v:11,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE,breath});
   try{ await navigator.clipboard.writeText(text); show('setup copied'); }
   catch(e){ prompt('copy this:', text); }
 };
@@ -1638,7 +1712,7 @@ document.getElementById('loadbtn').onclick=()=>{
     const m=raw.match(/\{[\s\S]*\}/);            // tolerate the "hnote setup vN " prefix
     const obj=JSON.parse(m?m[0]:raw);
     const args=[null,null,null,null,null,null,null,null];
-    const slot={10:0,9:0,8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
+    const slot={11:0,10:0,9:0,8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
     if(slot!=null) args[slot]=obj; else args[6]=obj;    // v2-shaped fallback
     const st2=migrateFrom(...args);               // the migration chain validates + clamps
     if(playing){ playing=false; clearInterval(timer);
@@ -1647,6 +1721,7 @@ document.getElementById('loadbtn').onclick=()=>{
     stacks=st2.stacks; cur=st2.cur??0; view=st2.view??'stack';
     winsBy=st2.winsBy; mixBase=st2.mixBase??0; orch=st2.orch; q=st2.q;
     PULSE=st2.pulse??0.25; wins=winsBy[mixBase]; breath=st2.breath;
+    materializeComposites();
     sel=null; osel=null; curLane=0; selChain=null; tlSel=null;
     dirty=true; persist(); drawBpm(); draw(); updateRec();
     show('setup loaded');
