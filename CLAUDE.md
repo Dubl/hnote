@@ -203,7 +203,7 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   and flex are orthogonal axes — pulse-space vs seconds-map). Stack/mix
   audition stays flat (unequal lengths → no coherent period). Breath is
   read LIVE (no cache rebuild — depth/n/phase ear-dial-able mid-play);
-  `breath={on,depth≤0.2,n1..8,phase}` in state, Breathe panel in orch view.
+  `breath={on,depth≤0.2,n1..32,phase}` in state, Breathe panel in orch view.
   Recorded `take` exports breathe; MIDI tempo-track is deferred with orch
   compilation (apply_orch, parked). orch_sim mirrors the warp in its oracle
   (dual-verify) + V12 (warp/drift-free/off-grid/content-identity) + V13
