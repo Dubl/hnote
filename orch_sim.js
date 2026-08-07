@@ -489,6 +489,28 @@ console.log('V14 composite tab (live: cells assembled from source tabs)');
   check('V14:live', C.motif[0] === 7, 'composite did not track source edit');
 }
 
+console.log('V15 composite multi-lane (compose every lane, rest-pad the missing)');
+{
+  const eng = makeEngine();
+  const A = { ...stack([1,2,3,4],[4]), lanes:[ stack([7,7],[2]) ] };  // A has a 2nd lane
+  const B = stack([5,6,7],[3]);                                        // B is single-lane
+  const C = { compose:[0,1], periods:[10], children:{}, motif:[0], orns:[] };
+  eng.api.init({ stacks:[A,B,C], winsBy:[[],[],[]], orch:{motif:[1],chains:[CH('C')]}, q:'bar', t0:0 });
+  check('V15:ruler', JSON.stringify(C.motif) === JSON.stringify([1,2,3,4,5,6,7]), JSON.stringify(C.motif));
+  // lane 2 = A.lane2 ++ B rest-pad (B has no lane2 -> 3 rests = B's ruler length)
+  check('V15:lane', C.lanes && C.lanes.length === 1
+    && JSON.stringify(C.lanes[0].motif) === JSON.stringify([7,7,0,0,0]),
+    'composed lane wrong: ' + JSON.stringify(C.lanes && C.lanes[0] && C.lanes[0].motif));
+  // authored lane period survives a re-materialize (only cells refresh)
+  C.lanes[0].periods = [8]; eng.api.materialize();
+  check('V15:keepPeriod', C.lanes[0].periods[0] === 8
+    && JSON.stringify(C.lanes[0].motif) === JSON.stringify([7,7,0,0,0]),
+    'lane period not preserved: ' + JSON.stringify(C.lanes[0].periods));
+  // sources go single-lane -> composite drops the derived lane
+  delete A.lanes; eng.api.materialize();
+  check('V15:shrink', !C.lanes, 'composite lane not dropped when all sources single-lane');
+}
+
 console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp)');
 {
   const eng = makeEngine();

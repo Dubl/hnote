@@ -229,11 +229,18 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   above regenerate (live = the driver). `deleteTab` patches `compose` indices
   like it patches chain letters. UI: compose editor (cycle/remove/swap/add
   source chips) in drawStack; the composed cells + child/flex authoring go
-  READ-ONLY (edit them in the source tab), periods/offsets/steps/phase +
-  loop one-offs stay editable. v1 composes each source's PRIMARY motif only
-  (source lanes ignored; composite has none) and shares the 8 A–H tab slots
-  (both deferred). orch_sim V14 asserts assembly + Jon's fold + child-merge
-  offset + live source-tracking; a composite Copy-setup blob closed-loops 4/4.
+  READ-ONLY (edit them in the source tab), per-lane periods/offsets/steps/
+  phase + loop one-offs stay editable; composite lanes aren't hand-added
+  (the `+lane`/`✕lane` strip is hidden). **Multi-lane** (2026-08-07):
+  materialize composes EVERY lane — lane k = that lane concatenated across the
+  sources, and a source lacking lane k contributes a REST-run of its ruler
+  length (rest-pad); the composite gains as many lanes as its deepest source,
+  each with its own authored period, preserved across re-materialize (only
+  cells refresh). Composites still share the 8 A–H tab slots (deferred).
+  orch_sim V14 asserts assembly + Jon's fold + child-merge offset + live
+  tracking; V15 asserts multi-lane compose + rest-pad + period-preservation +
+  lane-shrink; single- and multi-lane composite Copy-setup blobs closed-loop
+  `apply_stack` 4/4.
   `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
   phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
   transcription table; amen_kit.mp3 on the index.

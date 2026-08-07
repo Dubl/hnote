@@ -408,29 +408,54 @@ function S(){ return stacks[cur]; }
 
 // --- realization ---
 function materializeComposites(){
-  // A composite tab (has .compose = [srcTabIndex,...]) derives its motif/
-  // children/flex LIVE from its source tabs' cells, concatenated; it keeps its
-  // OWN periods/offs/steps/phase/orns. After this a composite IS a base stack.
-  const assemble=(tab, seen)=>{
-    const motif=[], children={}, flex={}; let off=0;
-    (tab.compose||[]).forEach(si=>{
-      const src=stacks[si]; if(!src||seen.has(si)) return;   // missing/cycle -> skip
-      const a = src.compose ? assemble(src, new Set(seen).add(si))
-                            : {motif:src.motif||[], children:src.children||{}, flex:src.flex||{}};
-      a.motif.forEach(m=>motif.push(m));
-      Object.entries(a.children).forEach(([k,v])=>children[+k+off]=JSON.parse(JSON.stringify(v)));
-      Object.entries(a.flex).forEach(([k,v])=>flex[+k+off]=v);
-      off+=a.motif.length;
+  // A composite tab (.compose = [srcTabIndex,...]) derives ALL its lanes' cells
+  // LIVE from its sources: lane k = that lane concatenated across the sources
+  // (a source lacking lane k contributes a rest-run of its ruler length). It
+  // keeps its OWN per-lane periods/offs/steps/phase and its one-offs.
+  const laneData=ln=>({motif:(ln&&ln.motif)||[], children:(ln&&ln.children)||{}, flex:(ln&&ln.flex)||{}});
+  function lanesOf(src, seen){                        // per-lane data, index 0 = ruler
+    return src.compose ? assemble(src, seen) : [laneData(src), ...((src.lanes||[]).map(laneData))];
+  }
+  function assemble(tab, seen){                       // -> [{motif,children,flex}, ...] per lane
+    const srcLanes=(tab.compose||[]).map(si=>{
+      const src=stacks[si]; if(!src||seen.has(si)) return null;   // missing/cycle -> skip
+      return lanesOf(src, new Set(seen).add(si));
     });
-    return {motif, children, flex};
-  };
+    const nLanes=Math.max(1, ...srcLanes.map(sl=>sl?sl.length:0));
+    const out=[];
+    for(let k=0;k<nLanes;k++){
+      const motif=[], children={}, flex={}; let off=0;
+      srcLanes.forEach(sl=>{
+        if(!sl) return;
+        const rulerLen=sl[0]?sl[0].motif.length:0;
+        const ld=sl[k]||{motif:new Array(rulerLen).fill(0), children:{}, flex:{}};  // rest-pad
+        ld.motif.forEach(m=>motif.push(m));
+        Object.entries(ld.children).forEach(([kk,v])=>children[+kk+off]=JSON.parse(JSON.stringify(v)));
+        Object.entries(ld.flex).forEach(([kk,v])=>flex[+kk+off]=v);
+        off+=ld.motif.length;
+      });
+      out.push({motif:motif.length?motif:[0], children, flex});
+    }
+    return out;
+  }
   stacks.forEach((t,i)=>{
     if(!t.compose) return;
-    const a=assemble(t, new Set([i]));
-    t.motif=a.motif.length?a.motif:[0];              // never empty (fold needs >=1)
-    t.children=a.children;
-    if(Object.keys(a.flex).length) t.flex=a.flex; else delete t.flex;
-    t.mseg=[t.motif.length];                          // composites carry no variants
+    const lanes=assemble(t, new Set([i]));
+    const r=lanes[0];                                 // lane 0 = the tab itself
+    t.motif=r.motif; t.children=r.children;
+    if(Object.keys(r.flex).length) t.flex=r.flex; else delete t.flex;
+    t.mseg=[t.motif.length];
+    t.lanes=t.lanes||[];                              // lanes 1.. : keep authored periods, refresh cells
+    for(let k=1;k<lanes.length;k++){
+      const ld=lanes[k], ex=t.lanes[k-1];
+      if(ex){ ex.motif=ld.motif; ex.children=ld.children; ex.mseg=[ld.motif.length];
+        if(Object.keys(ld.flex).length) ex.flex=ld.flex; else delete ex.flex; }
+      else t.lanes[k-1]=Object.assign({motif:ld.motif, children:ld.children, phase:0,
+        periods:[Math.max(2,ld.motif.length)], mseg:[ld.motif.length]},
+        Object.keys(ld.flex).length?{flex:ld.flex}:{});
+    }
+    t.lanes.length=Math.max(0,lanes.length-1);        // drop lanes beyond the composed count
+    if(!t.lanes.length) delete t.lanes;
   });
 }
 function fold(t,stack,b=0){
@@ -680,7 +705,7 @@ function drawLaneStrip(){
     b.onclick=()=>{ curLane=i; sel=null; mSel=0; msSel=0; draw(); };
     ls.appendChild(b);
   });
-  if(all.length<4){
+  if(all.length<4&&!S().compose){               // composite lanes are derived from sources
     const p=document.createElement('button'); p.textContent='+ lane';
     p.onclick=()=>{
       (S().lanes=S().lanes||[]).push({motif:[1],periods:[topPeriod(S())],children:{},phase:0});
@@ -688,7 +713,7 @@ function drawLaneStrip(){
     };
     ls.appendChild(p);
   }
-  if(curLane>0){
+  if(curLane>0&&!S().compose){
     const x=document.createElement('button'); x.textContent='✕ lane';
     x.onclick=()=>{ S().lanes.splice(curLane-1,1); curLane=0; sel=null; changed(); };
     ls.appendChild(x);
@@ -733,31 +758,31 @@ function deleteTab(i){
 function drawStack(){
   drawLaneStrip();
   const stk=L();
-  const comp=!!stk.compose;                     // composite tab: cells sourced from others
+  const ctab=S(), comp=!!ctab.compose;          // whole tab composite -> every lane's cells read-only
   const lv=document.getElementById('levels'); lv.innerHTML='';
-  if(comp){                                     // ◇ compose editor (its own periods/one-offs stay below)
+  if(comp){                                     // ◇ compose editor (per-lane periods/one-offs stay editable)
     const ce=document.createElement('div'); ce.className='lvl'; ce.style.cssText='flex-wrap:wrap;gap:6px;';
     const lbl=document.createElement('span'); lbl.className='secs'; lbl.textContent='◇ composed from:';
     ce.appendChild(lbl);
-    stk.compose.forEach((si,k)=>{
+    ctab.compose.forEach((si,k)=>{
       const chip=document.createElement('button'); chip.className='dchip';
       chip.textContent=(stacks[si]?TABN[si]:'?')+' ↻'; chip.title='cycle source tab';
       chip.onclick=()=>{ const av=stacks.map((_,i)=>i).filter(i=>i!==cur);
-        const j=av.indexOf(si); stk.compose[k]=av[(j+1)%av.length]; changed(); };
+        const j=av.indexOf(si); ctab.compose[k]=av[(j+1)%av.length]; changed(); };
       ce.appendChild(chip);
       const rm=document.createElement('button'); rm.className='dchip'; rm.textContent='✕';
-      rm.title='remove source'; rm.onclick=()=>{ stk.compose.splice(k,1); changed(); };
+      rm.title='remove source'; rm.onclick=()=>{ ctab.compose.splice(k,1); changed(); };
       ce.appendChild(rm);
-      if(k<stk.compose.length-1){ const sw=document.createElement('button'); sw.className='dchip';
+      if(k<ctab.compose.length-1){ const sw=document.createElement('button'); sw.className='dchip';
         sw.textContent='⇄'; sw.title='swap with next';
-        sw.onclick=()=>{ const t=stk.compose[k]; stk.compose[k]=stk.compose[k+1]; stk.compose[k+1]=t; changed(); };
+        sw.onclick=()=>{ const t=ctab.compose[k]; ctab.compose[k]=ctab.compose[k+1]; ctab.compose[k+1]=t; changed(); };
         ce.appendChild(sw); }
     });
     const addc=document.createElement('button'); addc.className='dchip'; addc.textContent='+ source';
-    addc.onclick=()=>{ const av=stacks.map((_,i)=>i).filter(i=>i!==cur); if(av.length){ stk.compose.push(av[0]); changed(); } };
+    addc.onclick=()=>{ const av=stacks.map((_,i)=>i).filter(i=>i!==cur); if(av.length){ ctab.compose.push(av[0]); changed(); } };
     ce.appendChild(addc);
     const hint=document.createElement('div'); hint.className='secs'; hint.style.cssText='width:100%;color:var(--muted);';
-    hint.textContent=stk.compose.length?'cells below are composed — edit them in their source tabs':'add source tabs to compose';
+    hint.textContent=ctab.compose.length?'lanes composed from sources — edit cells there; periods here are yours':'add source tabs to compose';
     ce.appendChild(hint);
     lv.appendChild(ce);
   }
