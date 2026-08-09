@@ -142,6 +142,8 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
   <button class="dchip" id="bpmp10">+10</button>
 </div>
 
+<div class="bar" id="midibar" style="padding:8px 12px; flex-wrap:wrap; gap:6px;"></div>
+
 <div id="stackview">
   <div class="mixrow" id="lanestrip" style="margin-bottom:8px;"></div>
   <div class="panel">
@@ -1811,6 +1813,46 @@ document.getElementById('brNp').onclick=()=>setBreath({n:Math.min(32,breath.n+1)
 document.getElementById('brPm').onclick=()=>setBreath({phase:Math.max(0,Math.round((breath.phase-0.05)*100)/100)});
 document.getElementById('brPp').onclick=()=>setBreath({phase:Math.min(1,Math.round((breath.phase+0.05)*100)/100)});
 drawBreath();
+// --- MIDI out (probe): detect Web MIDI, list output ports, send a test note ---
+let midiAccess=null, midiOut=null, midiOutId=null, midiCh=10, midiNote=36;
+async function enableMidi(){
+  if(!navigator.requestMIDIAccess) return;         // Safari: no Web MIDI
+  try{ midiAccess=await navigator.requestMIDIAccess({sysex:false});
+    midiAccess.onstatechange=drawMidi; }           // ports (un)plugged -> refresh live
+  catch(e){ midiAccess=null; show('MIDI blocked'); }
+  drawMidi();
+}
+function midiOuts(){ return midiAccess?[...midiAccess.outputs.values()]:[]; }
+function drawMidi(){
+  const el=document.getElementById('midibar'); if(!el) return;
+  el.innerHTML='';
+  const mk=(txt,fn,on)=>{ const b=document.createElement('button'); b.className='dchip'+(on?' on':'');
+    b.textContent=txt; if(fn) b.onclick=fn; el.appendChild(b); return b; };
+  const say=t=>{ const s=document.createElement('span');
+    s.style.cssText='color:var(--muted);align-self:center;font-size:12px;'; s.textContent=t; el.appendChild(s); };
+  if(!navigator.requestMIDIAccess){
+    say('MIDI out — open HNote in MIDIWeb Browser / Web MIDI Browser (App Store); Safari has no Web MIDI'); return; }
+  if(!midiAccess){ say('MIDI out'); mk('Enable MIDI', enableMidi); return; }
+  const outs=midiOuts();
+  say('MIDI →');
+  if(!outs.length){ say('no output ports — plug in your interface'); mk('↻', drawMidi); return; }
+  if(!outs.find(o=>o.id===midiOutId)){ midiOut=outs[0]; midiOutId=outs[0].id; }
+  outs.forEach(o=>mk(o.name||'port', ()=>{ midiOut=o; midiOutId=o.id; drawMidi(); }, o.id===midiOutId));
+  say('· ch'); mk('−',()=>{ midiCh=midiCh<=1?16:midiCh-1; drawMidi(); }); say(String(midiCh));
+  mk('+',()=>{ midiCh=midiCh>=16?1:midiCh+1; drawMidi(); });
+  say('· note'); mk('−',()=>{ midiNote=Math.max(0,midiNote-1); drawMidi(); }); say(String(midiNote));
+  mk('+',()=>{ midiNote=Math.min(127,midiNote+1); drawMidi(); });
+  mk('▸ test note', testNoteOut);
+}
+function testNoteOut(){
+  if(!midiOut) return;
+  const ch=(midiCh-1)&15, n=midiNote&127;
+  try{ midiOut.send([0x90|ch, n, 100]);
+    midiOut.send([0x80|ch, n, 0], performance.now()+300);   // note off after 300ms
+    show('sent note '+n+' · ch'+midiCh+' → '+(midiOut.name||'port')); }
+  catch(e){ show('send failed'); }
+}
+drawMidi();
 function show(m){ const f=document.getElementById('flash');
   f.textContent=m; f.style.opacity=1; setTimeout(()=>f.style.opacity=0,800); }
 draw();
