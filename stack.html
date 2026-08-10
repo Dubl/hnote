@@ -1531,10 +1531,16 @@ async function initAudio(){
 }
 function playHit(at,p,v){
   const buf=samples[p];
-  if(buf){
+  if(buf && !midiMuteAudio){
     const s=actx.createBufferSource(); s.buffer=buf;
     const g=actx.createGain(); g.gain.value=v/111;
     s.connect(g); g.connect(actx.destination); s.start(at);
+  }
+  if(midiSend && midiOut){                                  // mirror the hit as MIDI to external gear
+    const note=(midimap[p]??p)&127, ch=(midiCh-1)&15, vel=Math.max(1,Math.min(127,v|0));
+    const tMs=performance.now()+(at-actx.currentTime)*1000; // audio clock -> performance.now() domain
+    try{ midiOut.send([0x90|ch, note, vel], tMs);
+      midiOut.send([0x80|ch, note, 0], tMs+90); }catch(e){} // note off after a 90ms trigger gate
   }
   if(takeStart===null) takeStart=at;
   take.push([at-takeStart,p,v]);
@@ -1813,8 +1819,16 @@ document.getElementById('brNp').onclick=()=>setBreath({n:Math.min(32,breath.n+1)
 document.getElementById('brPm').onclick=()=>setBreath({phase:Math.max(0,Math.round((breath.phase-0.05)*100)/100)});
 document.getElementById('brPp').onclick=()=>setBreath({phase:Math.min(1,Math.round((breath.phase+0.05)*100)/100)});
 drawBreath();
-// --- MIDI out (probe): detect Web MIDI, list output ports, send a test note ---
-let midiAccess=null, midiOut=null, midiOutId=null, midiCh=10, midiNote=36;
+// --- MIDI out: detect Web MIDI, per-voice note map, live send to external gear ---
+let midiAccess=null, midiOut=null, midiOutId=null, midiCh=10;
+let midiSend=false, midiMuteAudio=false, midiSel=0;
+const MIDIKEY='hnote_midi';
+let midimap={}; SOUNDS.forEach(([p])=>midimap[p]=p);        // sample pitch -> outbound MIDI note (identity default)
+try{ const m=JSON.parse(localStorage.getItem(MIDIKEY)||'null');
+  if(m){ if(m.map) SOUNDS.forEach(([p])=>{ if(Number.isInteger(m.map[p])) midimap[p]=m.map[p]; });
+    if(m.ch>=1&&m.ch<=16) midiCh=m.ch; midiSend=!!m.send; midiMuteAudio=!!m.mute; } }catch(e){}
+function persistMidi(){ try{ localStorage.setItem(MIDIKEY,
+  JSON.stringify({map:midimap, ch:midiCh, send:midiSend, mute:midiMuteAudio})); }catch(e){} }
 async function enableMidi(){
   if(!navigator.requestMIDIAccess) return;         // Safari: no Web MIDI
   try{ midiAccess=await navigator.requestMIDIAccess({sysex:false});
@@ -1835,21 +1849,27 @@ function drawMidi(){
   if(!midiAccess){ say('MIDI out'); mk('Enable MIDI', enableMidi); return; }
   const outs=midiOuts();
   say('MIDI →');
-  if(!outs.length){ say('no output ports — plug in your interface'); mk('↻', drawMidi); return; }
-  if(!outs.find(o=>o.id===midiOutId)){ midiOut=outs[0]; midiOutId=outs[0].id; }
-  outs.forEach(o=>mk(o.name||'port', ()=>{ midiOut=o; midiOutId=o.id; drawMidi(); }, o.id===midiOutId));
-  say('· ch'); mk('−',()=>{ midiCh=midiCh<=1?16:midiCh-1; drawMidi(); }); say(String(midiCh));
-  mk('+',()=>{ midiCh=midiCh>=16?1:midiCh+1; drawMidi(); });
-  say('· note'); mk('−',()=>{ midiNote=Math.max(0,midiNote-1); drawMidi(); }); say(String(midiNote));
-  mk('+',()=>{ midiNote=Math.min(127,midiNote+1); drawMidi(); });
-  mk('▸ test note', testNoteOut);
+  if(!outs.length){ say('no ports — plug in your interface'); mk('↻', drawMidi); }
+  else{ if(!outs.find(o=>o.id===midiOutId)){ midiOut=outs[0]; midiOutId=outs[0].id; }
+    outs.forEach(o=>mk(o.name||'port', ()=>{ midiOut=o; midiOutId=o.id; drawMidi(); }, o.id===midiOutId)); }
+  say('· ch'); mk('−',()=>{ midiCh=midiCh<=1?16:midiCh-1; persistMidi(); drawMidi(); }); say(String(midiCh));
+  mk('+',()=>{ midiCh=midiCh>=16?1:midiCh+1; persistMidi(); drawMidi(); });
+  mk(midiSend?'send:on':'send:off', ()=>{ midiSend=!midiSend; persistMidi(); drawMidi(); }, midiSend);
+  mk(midiMuteAudio?'audio:muted':'audio:on', ()=>{ midiMuteAudio=!midiMuteAudio; persistMidi(); drawMidi(); }, midiMuteAudio);
+  mk('▸ test', testNoteOut);
+  // per-voice note map: our sound -> outbound MIDI note (tap a voice, then −/+)
+  say('· map');
+  SOUNDS.forEach(([p,lbl],i)=>mk(lbl+' '+(midimap[p]??p), ()=>{ midiSel=i; drawMidi(); }, midiSel===i));
+  const sp=SOUNDS[midiSel][0];
+  mk('−',()=>{ midimap[sp]=Math.max(0,(midimap[sp]??sp)-1); persistMidi(); drawMidi(); });
+  mk('+',()=>{ midimap[sp]=Math.min(127,(midimap[sp]??sp)+1); persistMidi(); drawMidi(); });
 }
 function testNoteOut(){
-  if(!midiOut) return;
-  const ch=(midiCh-1)&15, n=midiNote&127;
+  if(!midiOut){ show('no MIDI port'); return; }
+  const sp=SOUNDS[midiSel][0], n=(midimap[sp]??sp)&127, ch=(midiCh-1)&15;
   try{ midiOut.send([0x90|ch, n, 100]);
-    midiOut.send([0x80|ch, n, 0], performance.now()+300);   // note off after 300ms
-    show('sent note '+n+' · ch'+midiCh+' → '+(midiOut.name||'port')); }
+    midiOut.send([0x80|ch, n, 0], performance.now()+300);
+    show('test '+SOUNDS[midiSel][1]+' → note '+n+' · ch'+midiCh); }
   catch(e){ show('send failed'); }
 }
 drawMidi();
