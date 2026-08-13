@@ -22,6 +22,7 @@ let orch=null, orchCache=null;
 let wi=0, inj=null, activeChain=0, curLetter='A', curLen=1, curHits=[];
 let phLog=[];
 let breath=null, cycLen=0, cycPhase=0, curPhase0=0, curDelta0=0, curWarpLen=1, curRate=1, curInj=false;
+let orchs=[], oo={motif:[]}, curOrch=0;
 `;
 const EPILOGUE = `
 __api.buildCache = () => {
@@ -39,6 +40,7 @@ __api.init = (o) => { stacks=o.stacks; winsBy=o.winsBy||[[],[],[],[]]; orch=o.or
   orchCache=buildOrchCache(); cycLen=orchCache.cycLen;
   advance(t0); };
 __api.materialize = () => materializeComposites();
+__api.buildTop = (os, mot, cur) => { orchs=os; oo={motif:mot}; curOrch=cur||0; return buildTopCache(); };
 __api.tap = (i) => { oQueue=i; };
 __api.get = () => ({t0, schedUntil, segStart, wi, inj: inj?{idx:inj.idx,n:inj.list.length}:null,
   oQueue, curLetter, curLen, activeChain, q});
@@ -511,6 +513,22 @@ console.log('V15 composite multi-lane (compose every lane, rest-pad the missing)
   check('V15:shrink', !C.lanes, 'composite lane not dropped when all sources single-lane');
 }
 
+console.log('V16 orch-orch (concatenate self-contained orchestrations)');
+{
+  const eng = makeEngine();
+  const o1 = { stacks:[stack([1,2],[2])],   winsBy:[[]], orch:{motif:[1],chains:[CH('A')]}, mixBase:0, cur:0 };
+  const o2 = { stacks:[stack([5,6,7],[3])], winsBy:[[]], orch:{motif:[1],chains:[CH('A')]}, mixBase:0, cur:0 };
+  const top = eng.api.buildTop([o1,o2], [1,2], 0);
+  check('V16:count', top.seq.length === 2, 'seq len '+top.seq.length);
+  const p0 = top.seq[0].hits.map(h=>h[1]).sort((a,b)=>a-b);   // orch1 letter A: motif [1,2] -> 36,38
+  const p1 = top.seq[1].hits.map(h=>h[1]).sort((a,b)=>a-b);   // orch2 letter A: motif [5,6,7] -> 75,49,40
+  check('V16:orch1', JSON.stringify(p0) === JSON.stringify([36,38]), 'orch1 hits '+JSON.stringify(p0));
+  check('V16:orch2', JSON.stringify(p1) === JSON.stringify([40,49,75]), 'orch2 hits '+JSON.stringify(p1));
+  check('V16:cycLen', Math.abs(top.cycLen - (0.5+0.75)) < 1e-9, 'cycLen '+top.cycLen);   // 2*.25 + 3*.25
+  const one = eng.api.buildTop([o1], [1], 0);                 // single-orch top == buildOrchCache
+  check('V16:single', one.seq.length===1 && Math.abs(one.cycLen-0.5)<1e-9, 'single cycLen '+one.cycLen);
+}
+
 console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp)');
 {
   const eng = makeEngine();
@@ -521,24 +539,24 @@ console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp
       { seq: ['b','A','a'], orns: [{ li: 1, bar: 0, u: 2, act: 'add', sym: 3 }] },
       { seq: ['B'], orns: [] }] }, q: 'pulse' };
   const m7g = eng.api.migrate(null, JSON.parse(JSON.stringify(v7good)), null, null, null, null, null, null);
-  check('V7:v7', m7g.v === 11 && m7g.pulse === 0.2
-    && m7g.orch.chains[0].seq.join('') === 'BAA'        // lowercase = its own uppercase now
-    && m7g.orch.chains[0].orns.length === 1,
-    JSON.stringify(m7g.orch));
+  check('V7:v7', m7g.v === 12 && m7g.pulse === 0.2
+    && m7g.orchs[0].orch.chains[0].seq.join('') === 'BAA'   // wrapped into orchs[0]; lowercase=uppercase
+    && m7g.orchs[0].orch.chains[0].orns.length === 1,
+    JSON.stringify(m7g.orchs[0].orch));
   const v6good = { v: 6, stacks: [s1, s2], cur: 0, view: 'orch', mixBase: 1, pulse: 0.2,
     winsBy: [[],[{tab:0,a:1,b:2}]],
     orch: { motif: [1,2], chains: [['b','A','B','a','A'],['B']] }, q: 'pulse' };
   const m6 = eng.api.migrate(null, null, JSON.parse(JSON.stringify(v6good)), null, null, null, null, null);
-  check('V7:v6', m6.v === 11 && m6.pulse === 0.2
-    && m6.orch.chains[0].seq.join('') === 'BABA'        // trimmed to 4 + uppercased
-    && m6.orch.chains[0].orns.length === 0 && m6.winsBy[1].length === 1,
-    JSON.stringify(m6.orch));
+  check('V7:v6', m6.v === 12 && m6.pulse === 0.2
+    && m6.orchs[0].orch.chains[0].seq.join('') === 'BABA'   // trimmed to 4 + uppercased
+    && m6.orchs[0].orch.chains[0].orns.length === 0 && m6.orchs[0].winsBy[1].length === 1,
+    JSON.stringify(m6.orchs[0].orch));
   const v4 = { v: 4, stacks: [s1, s2], cur: 0, view: 'mix', mixBase: 1,
     wins: [{tab:0,a:1,b:2}], orch: { motif: [1,2], chains: [['M','A'],['B']] }, q: 'pulse' };
   const m4 = eng.api.migrate(null, null, null, null, v4, null, null, null);
-  check('V7:v4', m4.v === 11 && m4.pulse === 0.25 && m4.winsBy.length === 2
-    && m4.orch.chains[0].seq.join('') === 'BA' && m4.orch.chains[1].seq.join('') === 'B'
-    && m4.q === 'pulse' && m4.mixBase === 1, JSON.stringify(m4.orch));
+  check('V7:v4', m4.v === 12 && m4.pulse === 0.25 && m4.orchs[0].winsBy.length === 2
+    && m4.orchs[0].orch.chains[0].seq.join('') === 'BA' && m4.orchs[0].orch.chains[1].seq.join('') === 'B'
+    && m4.q === 'pulse' && m4.orchs[0].mixBase === 1, JSON.stringify(m4.orchs[0].orch));
   const v3 = { v: 3,
     setups: [
       { stacks: [s1, s2], cur: 0, view: 'stack', wins: [{tab:1,a:1,b:2}], deck: 'A' },
@@ -547,13 +565,13 @@ console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp
     ],
     curSetup: 0, oview: 'orch', orch: { periods: [4], motif: [1, 3, 2] }, opulse: 8, q: 'tick' };
   const m3 = eng.api.migrate(null, null, null, null, null, v3, null, null);
-  check('V7:v3', m3.v === 11 && m3.orch.chains.length === 3
-    && m3.orch.chains[0].seq.join('') === 'A' && m3.orch.chains[2].seq.join('') === 'A'
-    && m3.orch.motif.join() === '1,3,2' && m3.q === 'bar', JSON.stringify(m3.orch));
+  check('V7:v3', m3.v === 12 && m3.orchs[0].orch.chains.length === 3
+    && m3.orchs[0].orch.chains[0].seq.join('') === 'A' && m3.orchs[0].orch.chains[2].seq.join('') === 'A'
+    && m3.orchs[0].orch.motif.join() === '1,3,2' && m3.q === 'bar', JSON.stringify(m3.orchs[0].orch));
   const v2 = { stacks: [s1], cur: 0, view: 'stack', wins: [] };
   const m2 = eng.api.migrate(null, null, null, null, null, null, v2, null);
-  check('V7:v2', m2.v === 11 && m2.orch.chains.length === 1
-    && m2.orch.chains[0].seq.join('') === 'A' && m2.winsBy.length === 1);
+  check('V7:v2', m2.v === 12 && m2.orchs[0].orch.chains.length === 1
+    && m2.orchs[0].orch.chains[0].seq.join('') === 'A' && m2.orchs[0].winsBy.length === 1);
   const v8bad = { v: 8, stacks: [{...s1, lanes:[null, stack([2],[4]), {bogus:1}]}, s2],
     cur: 9, view: 'orch', mixBase: 7, pulse: 9.9,
     winsBy: [[{tab:1,a:0,b:1}]],
@@ -568,13 +586,14 @@ console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp
       { seq: ['B'] },
     ] }, q: 'weird' };
   const m8 = eng.api.migrate(v8bad, null, null, null, null, null, null, null);
-  check('V7:v8clamp', m8.cur === 1 && m8.mixBase === 1 && m8.winsBy.length === 2
-    && m8.pulse === 0.25 && m8.stacks[0].lanes.length === 1
-    && m8.orch.chains[0].seq.join('') === 'AAB'          // Z->A, b->B
-    && m8.orch.chains[0].orns.length === 1
-    && m8.orch.chains[1].orns.length === 0
-    && m8.orch.motif.join() === '1,2,2' && m8.q === 'bar' && m8.view === 'orch',
-    JSON.stringify(m8.orch));
+  const o8 = m8.orchs[0];
+  check('V7:v8clamp', o8.cur === 1 && o8.mixBase === 1 && o8.winsBy.length === 2
+    && m8.pulse === 0.25 && o8.stacks[0].lanes.length === 1
+    && o8.orch.chains[0].seq.join('') === 'AAB'          // Z->A, b->B
+    && o8.orch.chains[0].orns.length === 1
+    && o8.orch.chains[1].orns.length === 0
+    && o8.orch.motif.join() === '1,2,2' && m8.q === 'bar' && m8.view === 'orch',
+    JSON.stringify(o8.orch));
 }
 
 console.log(failures === 0 ? '\nALL GREEN' : `\n${failures} FAILURES`);

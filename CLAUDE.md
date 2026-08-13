@@ -241,6 +241,35 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   tracking; V15 asserts multi-lane compose + rest-pad + period-preservation +
   lane-shrink; single- and multi-lane composite Copy-setup blobs closed-loop
   `apply_stack` 4/4.
+  **Orch-orch** (state v12, 2026-08-12, the driver at the TOP): sequence
+  self-contained **orchestrations**. An orchestration = today's per-config
+  state `{stacks,winsBy,orch,mixBase,cur}`; state now holds `orchs:[…]`,
+  `curOrch`, `oo:{motif:[orchIndex,…]}`. Each orch has its OWN A–H stacks/
+  mixes/chains/arrangement (no A–Z sprawl); the KIT (SOUNDS/samples) + `view`/
+  `q`/`PULSE`/`breath` stay global. The module vars `stacks`/`winsBy`/`orch`
+  are a **live view onto `orchs[curOrch]`** (same refs; only reassigned at the
+  load sites + `selectOrch`), so ALL realization/UI/scheduler code is
+  untouched; `mixBase`/`cur` are primitives synced via `syncOrch()`;
+  `bindOrch()` rebinds; `selectOrch(i)` = sync+bind+materialize+changed.
+  Orch-orch is **plain sequencing** — no one-offs, no fold. `buildTopCache()`
+  (realization region) concatenates each `oo.motif` orch's `buildOrchCache().seq`
+  by SWAPPING the globals to each orch (materialize per-orch) then restoring;
+  the scheduler is UNCHANGED (plays `orchCache.seq`) — `refreshOrch` picks
+  `buildTopCache` when `playTarget.view==='oo'`, else `buildOrchCache`, so
+  **breath's cycLen spans the whole orch-orch cycle** for free. Play routing:
+  `'oo'` joins `'orch'` in refresh/schedule/play-init. UI: **OO** tab-bar
+  button + `#ooview` (`drawOO`: an orch-orch motif editor `#oomrow` + an
+  orchestration list — tap=edit, **+ = deep-clone the ACTIVE orch** (seed a
+  variation), ✕ delete w/ `oo.motif` remap) + an "editing orch N/M ◂▸"
+  nav in `drawOrch`. Migration v11→v12 extracts the per-config normalizer
+  `normOrch` and wraps a single config into `orchs:[{…}]` (your v11 piece
+  loads as orch 1, lossless); apply_stack reads `orchs[curOrch].stacks` for
+  v12 setup blobs. **v1 limits:** breath top-cycle only; live chain-injection
+  + chain-highlight stay current-orch scoped (not per-segment across a
+  multi-orch OO play); no general recursion. orch_sim V16 asserts
+  concatenation (seq = orch1++orch2, cycLen sum, single-orch == buildOrchCache);
+  a v12 Copy-setup blob closed-loops `apply_stack` 4/4; V1–V15 unchanged
+  (proving the state refactor left single-orch behavior intact).
   `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
   phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
   transcription table; amen_kit.mp3 on the index.

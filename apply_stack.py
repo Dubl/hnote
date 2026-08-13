@@ -426,7 +426,9 @@ def parse_blob(blob, tab="A"):
     if s.startswith("hnote setup") or s.startswith("{"):
         # full-page setup blob (Copy setup): compile one tab from the state JSON
         state = json.loads(s[s.find("{"):])
-        t = state["stacks"]["ABCDEFGH".index(tab)]
+        # v12+ nests each orchestration's stacks under orchs[curOrch]; older is flat
+        cfg = state["orchs"][state.get("curOrch", 0)] if isinstance(state.get("orchs"), list) and state["orchs"] else state
+        t = cfg["stacks"]["ABCDEFGH".index(tab)]
         def lane_tuple(l):
             ch = {int(k): dict(v) for k, v in (l.get("children") or {}).items()}
             for c in ch.values():                # coerce sub-flex keys to int

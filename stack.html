@@ -219,6 +219,17 @@ ORCH arranges chains of uberloop bars — a symbol is a phrase like ABA.</div>
   </div>
 </div>
 
+<div id="ooview" style="display:none">
+  <div class="panel">
+    <h2>Orch-orch — the sequence of orchestrations (tap to select, tap again to cycle)</h2>
+    <div class="mrow" id="oomrow"></div>
+  </div>
+  <div class="panel">
+    <h2>Orchestrations — tap to edit · each has its own A–H · + copies the current one</h2>
+    <div id="oolist" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
+  </div>
+</div>
+
 <div class="toolbar">
   <button id="copy">Copy setup</button>
   <button id="loadbtn">Load setup</button>
@@ -232,81 +243,89 @@ let PULSE=0.25;                 // seconds per pulse (a 16th) - persisted, BPM-e
 const SOUNDS=[[36,'K'],[38,'S'],[42,'H'],[46,'O'],[75,'V'],[49,'C'],[40,'N'],[35,'B']];
 const TABN=['A','B','C','D','E','F','G','H'];
 const UPS=TABN.join(''), LOS=UPS.toLowerCase();
-const KEY='hnote_stack_v11';
+const KEY='hnote_stack_v12';
 const CHAINMAX=12;
 const PHRASEMAX=4;               // convention: a chain holds at most 4 letters (phrases)
 /* PURE-STATE-BEGIN */
 function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
   // old keys are never written back - migration only reads
-  if(v8&&(v8.v===8||v8.v===9||v8.v===10||v8.v===11)){  // v9+=flex, v10+=breath, v11+=compose (additive)
-    const v7=v8;   // same shape as v7 except letters are UPPERCASE ONLY
-    if(!v7.stacks||!v7.stacks.length) v7.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
-    v7.cur=Math.min(v7.cur??0, v7.stacks.length-1);
-    v7.stacks.forEach((s,si)=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
-      [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
-        if(l.offs) l.offs=l.offs.map(o=>Math.max(0,o|0));
-        if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
-        if(l.steps) l.steps=l.steps.map(o=>Math.max(0,o|0));
-        const segOk=(g,tot)=>Array.isArray(g)&&g.length>=1&&g.length<=4
-          &&g.every(x=>Number.isInteger(x)&&x>=1)&&g.reduce((a,b)=>a+b,0)===tot;
-        if(l.mseg&&!segOk(l.mseg,l.motif.length)) delete l.mseg;
-        // per-spot flex: sparse map motif-index -> pct in -20..20 (0 omitted)
-        const flexOk=(o,len)=>{ if(!o||typeof o!=='object'||Array.isArray(o)) return null;
-          const nf={}; Object.entries(o).forEach(([k,val])=>{ k=+k;
-            if(Number.isInteger(k)&&k>=0&&k<len&&Number.isInteger(val)&&val>=-20&&val<=20&&val!==0) nf[k]=val; });
-          return Object.keys(nf).length?nf:null; };
-        { const nf=flexOk(l.flex,l.motif.length); if(nf) l.flex=nf; else delete l.flex; }
-        Object.values(l.children||{}).forEach(c=>{
-          if(c&&c.mseg&&!segOk(c.mseg,c.m.length)) delete c.mseg;
-          if(c){ const nf=flexOk(c.flexm,c.m.length); if(nf) c.flexm=nf; else delete c.flexm; } }); });
-      // loop-level one-offs live on the primary stack (li coerced to 0)
-      if(s.orns&&!Array.isArray(s.orns)) delete s.orns;
-      if(s.orns) s.orns=s.orns.filter(o=>o
-        &&Number.isInteger(o.bar)&&o.bar>=0&&Number.isInteger(o.u)&&o.u>=0
-        &&['add','mute','ghost'].includes(o.act)
-        &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length
-        &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
-          &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=8
-          &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
-          &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S))))
-        &&(!o.S||(Number.isInteger(o.S)&&o.S>=1&&o.S<=8
-          &&(o.k==null||(Number.isInteger(o.k)&&o.k>=0&&o.k<o.S)))))
-        .map(o=>Object.assign(o,{li:0}));
-      // composite tab: live source refs (ints in range, no self; deeper cycles caught at runtime)
-      if(s.compose&&!Array.isArray(s.compose)) delete s.compose;
-      if(s.compose){ s.compose=s.compose.filter(x=>Number.isInteger(x)&&x>=0&&x<v7.stacks.length&&x!==si);
-        if(!s.compose.length) delete s.compose; } });
-    v7.winsBy=Array.from({length:v7.stacks.length},(_,i)=>(v7.winsBy&&v7.winsBy[i])||[]);
-    v7.mixBase=Math.min(Math.max(0,v7.mixBase|0), v7.stacks.length-1);
-    v7.orch=(v7.orch&&v7.orch.motif&&v7.orch.motif.length&&v7.orch.chains&&v7.orch.chains.length)
-      ?v7.orch:{motif:[1],chains:[{seq:['A'],orns:[]}]};
-    v7.orch.chains=v7.orch.chains.slice(0,CHAINMAX).map(c=>{
-      const seq=((c&&c.seq&&c.seq.length)?c.seq:['A']).slice(0,PHRASEMAX)
-        .map(L=>{ const lo=LOS.indexOf(L); if(lo>=0) return UPS[lo];
-                  return UPS.includes(L)?L:'A'; });
-      const orns=(c&&Array.isArray(c.orns)?c.orns:[]).filter(o=>o
-        &&Number.isInteger(o.li)&&o.li>=0&&o.li<seq.length
-        &&Number.isInteger(o.bar)&&o.bar>=0&&Number.isInteger(o.u)&&o.u>=0
-        &&['add','mute','ghost'].includes(o.act)
-        &&Number.isInteger(o.sym)&&Math.abs(o.sym)>=1&&Math.abs(o.sym)<=SOUNDS.length
-        &&(!o.ch||(Number.isInteger(o.ch.S)&&o.ch.S>=1&&o.ch.S<=8
-          &&Array.isArray(o.ch.m)&&o.ch.m.length>=1&&o.ch.m.length<=8
-          &&o.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
-          &&(!o.ch.pre||(Number.isInteger(o.ch.pre)&&o.ch.pre>=0&&o.ch.pre<o.ch.S))))
-        &&(!o.S||(Number.isInteger(o.S)&&o.S>=1&&o.S<=8
-          &&(o.k==null||(Number.isInteger(o.k)&&o.k>=0&&o.k<o.S)))));
-      return {seq, orns};
-    });
-    v7.orch.motif=v7.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, v7.orch.chains.length));
-    v7.view=['stack','mix','orch'].includes(v7.view)?v7.view:'stack';
-    if(v7.stacks.length<2&&v7.view!=='stack') v7.view='stack';
-    v7.q=v7.q==='pulse'?'pulse':'bar';
-    v7.pulse=(typeof v7.pulse==='number'&&v7.pulse>=15/220&&v7.pulse<=15/20)?v7.pulse:0.25;
-    // breath: global orch-level tempo swell (additive, v10)
-    { const b=v7.breath||{}; const num=(x,d,lo,hi)=>{ x=+x; return (Number.isFinite(x)&&x>=lo&&x<=hi)?x:d; };
-      v7.breath={ on:!!b.on, depth:num(b.depth,0.03,0,0.2), n:Math.round(num(b.n,1,1,32)), phase:num(b.phase,0,0,1) }; }
-    v7.v=11;
-    return v7;
+  if(v8&&Number.isInteger(v8.v)&&v8.v>=8&&v8.v<=12){  // v9+=flex,v10+=breath,v11+=compose,v12+=orch-orch (additive)
+    const st=v8;
+    const normOrch=(o)=>{                              // normalize ONE orchestration {stacks,winsBy,orch,mixBase,cur}
+      if(!o.stacks||!o.stacks.length) o.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
+      o.cur=Math.min(o.cur??0, o.stacks.length-1);
+      o.stacks.forEach((s,si)=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
+        [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
+          if(l.offs) l.offs=l.offs.map(x=>Math.max(0,x|0));
+          if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
+          if(l.steps) l.steps=l.steps.map(x=>Math.max(0,x|0));
+          const segOk=(g,tot)=>Array.isArray(g)&&g.length>=1&&g.length<=4
+            &&g.every(x=>Number.isInteger(x)&&x>=1)&&g.reduce((a,b)=>a+b,0)===tot;
+          if(l.mseg&&!segOk(l.mseg,l.motif.length)) delete l.mseg;
+          const flexOk=(ob,len)=>{ if(!ob||typeof ob!=='object'||Array.isArray(ob)) return null;
+            const nf={}; Object.entries(ob).forEach(([k,val])=>{ k=+k;
+              if(Number.isInteger(k)&&k>=0&&k<len&&Number.isInteger(val)&&val>=-20&&val<=20&&val!==0) nf[k]=val; });
+            return Object.keys(nf).length?nf:null; };
+          { const nf=flexOk(l.flex,l.motif.length); if(nf) l.flex=nf; else delete l.flex; }
+          Object.values(l.children||{}).forEach(c=>{
+            if(c&&c.mseg&&!segOk(c.mseg,c.m.length)) delete c.mseg;
+            if(c){ const nf=flexOk(c.flexm,c.m.length); if(nf) c.flexm=nf; else delete c.flexm; } }); });
+        if(s.orns&&!Array.isArray(s.orns)) delete s.orns;
+        if(s.orns) s.orns=s.orns.filter(z=>z
+          &&Number.isInteger(z.bar)&&z.bar>=0&&Number.isInteger(z.u)&&z.u>=0
+          &&['add','mute','ghost'].includes(z.act)
+          &&Number.isInteger(z.sym)&&Math.abs(z.sym)>=1&&Math.abs(z.sym)<=SOUNDS.length
+          &&(!z.ch||(Number.isInteger(z.ch.S)&&z.ch.S>=1&&z.ch.S<=8
+            &&Array.isArray(z.ch.m)&&z.ch.m.length>=1&&z.ch.m.length<=8
+            &&z.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
+            &&(!z.ch.pre||(Number.isInteger(z.ch.pre)&&z.ch.pre>=0&&z.ch.pre<z.ch.S))))
+          &&(!z.S||(Number.isInteger(z.S)&&z.S>=1&&z.S<=8
+            &&(z.k==null||(Number.isInteger(z.k)&&z.k>=0&&z.k<z.S)))))
+          .map(z=>Object.assign(z,{li:0}));
+        if(s.compose&&!Array.isArray(s.compose)) delete s.compose;
+        if(s.compose){ s.compose=s.compose.filter(x=>Number.isInteger(x)&&x>=0&&x<o.stacks.length&&x!==si);
+          if(!s.compose.length) delete s.compose; } });
+      o.winsBy=Array.from({length:o.stacks.length},(_,i)=>(o.winsBy&&o.winsBy[i])||[]);
+      o.mixBase=Math.min(Math.max(0,o.mixBase|0), o.stacks.length-1);
+      o.orch=(o.orch&&o.orch.motif&&o.orch.motif.length&&o.orch.chains&&o.orch.chains.length)
+        ?o.orch:{motif:[1],chains:[{seq:['A'],orns:[]}]};
+      o.orch.chains=o.orch.chains.slice(0,CHAINMAX).map(c=>{
+        const seq=((c&&c.seq&&c.seq.length)?c.seq:['A']).slice(0,PHRASEMAX)
+          .map(L=>{ const lo=LOS.indexOf(L); if(lo>=0) return UPS[lo];
+                    return UPS.includes(L)?L:'A'; });
+        const orns=(c&&Array.isArray(c.orns)?c.orns:[]).filter(z=>z
+          &&Number.isInteger(z.li)&&z.li>=0&&z.li<seq.length
+          &&Number.isInteger(z.bar)&&z.bar>=0&&Number.isInteger(z.u)&&z.u>=0
+          &&['add','mute','ghost'].includes(z.act)
+          &&Number.isInteger(z.sym)&&Math.abs(z.sym)>=1&&Math.abs(z.sym)<=SOUNDS.length
+          &&(!z.ch||(Number.isInteger(z.ch.S)&&z.ch.S>=1&&z.ch.S<=8
+            &&Array.isArray(z.ch.m)&&z.ch.m.length>=1&&z.ch.m.length<=8
+            &&z.ch.m.every(x=>Number.isInteger(x)&&Math.abs(x)<=SOUNDS.length)
+            &&(!z.ch.pre||(Number.isInteger(z.ch.pre)&&z.ch.pre>=0&&z.ch.pre<z.ch.S))))
+          &&(!z.S||(Number.isInteger(z.S)&&z.S>=1&&z.S<=8
+            &&(z.k==null||(Number.isInteger(z.k)&&z.k>=0&&z.k<z.S)))));
+        return {seq, orns};
+      });
+      o.orch.motif=o.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, o.orch.chains.length));
+      return {stacks:o.stacks, winsBy:o.winsBy, orch:o.orch, mixBase:o.mixBase, cur:o.cur};
+    };
+    let orchs, curOrch, oo;
+    if(Array.isArray(st.orchs)&&st.orchs.length){       // v12: already multi-orchestration
+      orchs=st.orchs.map(normOrch);
+      curOrch=Math.min(Math.max(0,st.curOrch|0), orchs.length-1);
+      const mot=(st.oo&&Array.isArray(st.oo.motif)&&st.oo.motif.length?st.oo.motif:[1])
+        .map(m=>Math.min(Math.max(1,m|0)||1, orchs.length));
+      oo={motif:mot};
+    } else {                                            // v8..v11: wrap the single config as orchestration 1
+      orchs=[normOrch(st)]; curOrch=0; oo={motif:[1]};
+    }
+    let view=['stack','mix','orch','oo'].includes(st.view)?st.view:'stack';
+    if(orchs[curOrch].stacks.length<2 && (view==='mix'||view==='orch')) view='stack';
+    const q=st.q==='pulse'?'pulse':'bar';
+    const pulse=(typeof st.pulse==='number'&&st.pulse>=15/220&&st.pulse<=15/20)?st.pulse:0.25;
+    const b=st.breath||{}; const num=(x,d,lo,hi)=>{ x=+x; return (Number.isFinite(x)&&x>=lo&&x<=hi)?x:d; };
+    const breath={ on:!!b.on, depth:num(b.depth,0.03,0,0.2), n:Math.round(num(b.n,1,1,32)), phase:num(b.phase,0,0,1) };
+    return {v:12, orchs, curOrch, oo, view, q, pulse, breath};
   }
   if(v7&&v7.v===7){
     // v7 had lowercase mix-letters; under v8 the letter INCLUDES its tab's
@@ -363,7 +382,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
 }
 /* PURE-STATE-END */
 let st=migrateFrom(
-  JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('hnote_stack_v10')||localStorage.getItem('hnote_stack_v9')||localStorage.getItem('hnote_stack_v8')||'null'),
+  JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('hnote_stack_v11')||localStorage.getItem('hnote_stack_v10')||localStorage.getItem('hnote_stack_v9')||localStorage.getItem('hnote_stack_v8')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v7')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v6')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v5')||'null'),
@@ -371,8 +390,10 @@ let st=migrateFrom(
   JSON.parse(localStorage.getItem('hnote_stack_v3')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v2')||'null'),
   JSON.parse(localStorage.getItem('hnote_stack_v1')||'null'));
-let stacks=st.stacks, cur=st.cur??0, view=st.view??'stack',
-    winsBy=st.winsBy, mixBase=st.mixBase??0, orch=st.orch, q=st.q, breath=st.breath;
+let orchs=st.orchs, curOrch=st.curOrch??0, oo=st.oo, view=st.view??'stack', q=st.q, breath=st.breath;
+// stacks/winsBy/orch/mixBase/cur are a LIVE VIEW onto the current orchestration
+let stacks=orchs[curOrch].stacks, winsBy=orchs[curOrch].winsBy, orch=orchs[curOrch].orch,
+    mixBase=orchs[curOrch].mixBase??0, cur=orchs[curOrch].cur??0;
 PULSE=st.pulse??0.25;
 materializeComposites();          // resolve composite tabs from their sources on load
 let wins=winsBy[mixBase];        // bound to the selected mix's window list
@@ -382,6 +403,7 @@ let loSel=null;                  // selected loop one-off address {li:0,bar,u}
 let loCells={}, loPhKey=null;    // loop-grid cell refs + playhead cell
 let mSel=0, msSel=0;             // selected motif segment / sub-motif segment
 let subSel=null;                 // selected sub-cell (global index into ch.m) for flex
+let ooSel=null;                  // selected orch-orch motif cell
 function shiftChildren(stk, from, delta){
   // shift child keys >= from by delta; a negative delta drops keys in the removed range
   stk.children=shiftMap(stk.children, from, delta);
@@ -405,7 +427,21 @@ function copyRange(obj, start, len){
     if(k>=start&&k<start+len) adds[k+len]=(v&&typeof v==='object')?JSON.parse(JSON.stringify(v)):v; });
   Object.assign(obj, adds);
 }
-function persist(){ localStorage.setItem(KEY,JSON.stringify({v:11,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE,breath})); }
+function syncOrch(){                                 // write the live view back into the current orchestration
+  const o=orchs[curOrch]; if(o){ o.stacks=stacks; o.winsBy=winsBy; o.orch=orch; o.mixBase=mixBase; o.cur=cur; }
+}
+function bindOrch(){                                 // point the live view at orchs[curOrch] + reset UI selection
+  const o=orchs[curOrch]; if(!o) return;
+  stacks=o.stacks; winsBy=o.winsBy; orch=o.orch; mixBase=o.mixBase??0; cur=o.cur??0;
+  wins=winsBy[mixBase]||[];
+  curLane=0; sel=null; selChain=null; tlSel=null; loSel=null; mSel=0; msSel=0; subSel=null;
+}
+function selectOrch(i){                              // make orchestration i the current one
+  if(i<0||i>=orchs.length) return;
+  syncOrch(); curOrch=i; bindOrch(); materializeComposites(); changed();
+}
+function persist(){ syncOrch();
+  localStorage.setItem(KEY,JSON.stringify({v:12,orchs,curOrch,oo,view,q,pulse:PULSE,breath})); }
 function S(){ return stacks[cur]; }
 
 // --- realization ---
@@ -636,6 +672,23 @@ function buildOrchCache(){
   const cyc=seq.reduce((s,e)=>s+e.len,0);          // one orch cycle in score-seconds
   return {seq, chainSeqs, cycLen:cyc};
 }
+function buildTopCache(){
+  // orch-orch: concatenate each referenced orchestration's seq. buildOrchCache
+  // reads the live globals, so swap them to each orch (materialize its composites
+  // first), then restore. Breath's cycLen then spans the whole orch-orch cycle.
+  const sv={stacks, winsBy, orch, mixBase};
+  const seq=[]; let chainSeqs=[];
+  ((oo&&oo.motif&&oo.motif.length)?oo.motif:[curOrch+1]).forEach(on=>{
+    const idx=Math.min(Math.max(1,on),orchs.length)-1, o=orchs[idx]; if(!o) return;
+    stacks=o.stacks; winsBy=o.winsBy; orch=o.orch; mixBase=o.mixBase??0;
+    materializeComposites();
+    const c=buildOrchCache();
+    c.seq.forEach(e=>seq.push(e));
+    if(idx===curOrch) chainSeqs=c.chainSeqs;        // current orch's chains (for live injection)
+  });
+  stacks=sv.stacks; winsBy=sv.winsBy; orch=sv.orch; mixBase=sv.mixBase;   // restore current-orch view
+  return {seq, chainSeqs, cycLen: seq.reduce((s,e)=>s+e.len,0)};
+}
 let playTarget=null;      // locked at launch: {view:'mix'} or {view:'stack', cur:i}
 function targetHits(){
   if(!playTarget) return [];
@@ -691,6 +744,11 @@ function drawTabs(){
     o.onclick=()=>{ view='orch'; sel=null; osel=null; changed(); };
     tb.appendChild(o);
   }
+  const ooB=document.createElement('button');       // orch-orch: sequence orchestrations
+  ooB.className='tab mix'+(view==='oo'?' on':''); ooB.textContent='OO';
+  ooB.title='orch-orch — sequence orchestrations';
+  ooB.onclick=()=>{ view='oo'; sel=null; osel=null; changed(); };
+  tb.appendChild(ooB);
 }
 
 // --- stack view ---
@@ -1181,6 +1239,15 @@ function drawMix(){
 function drawOrch(){
   drawBreath();
   const cs=document.getElementById('chains'); cs.innerHTML='';
+  if(orchs.length>1){                           // which orchestration this ORCH view is editing
+    const nav=document.createElement('div'); nav.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:8px;';
+    const prev=document.createElement('button'); prev.className='dchip'; prev.textContent='◂';
+    prev.onclick=()=>selectOrch((curOrch-1+orchs.length)%orchs.length);
+    const lbl=document.createElement('span'); lbl.className='lbl'; lbl.textContent='editing orch '+(curOrch+1)+' / '+orchs.length;
+    const next=document.createElement('button'); next.className='dchip'; next.textContent='▸';
+    next.onclick=()=>selectOrch((curOrch+1)%orchs.length);
+    nav.append(prev,lbl,next); cs.appendChild(nav);
+  }
   const avail=TABN.slice(0,stacks.length);      // a letter includes its tab's mix
   orch.chains.forEach((c,i)=>{
     const row=document.createElement('div'); row.className='sucard';
@@ -1483,13 +1550,58 @@ function markChains(){
     el.classList.toggle('queued', oQueue===i);
   });
 }
+function drawOO(){
+  // orch-orch motif: a sequence of orchestration numbers (1..orchs.length)
+  if(!oo.motif||!oo.motif.length) oo.motif=[curOrch+1];
+  const mr=document.getElementById('oomrow'); mr.innerHTML='';
+  oo.motif.forEach((on,i)=>{
+    const b=document.createElement('button'); b.className='mspot';
+    b.style.background='#2a2635'; b.style.color='var(--text)';
+    b.textContent='O'+Math.min(Math.max(1,on),orchs.length);
+    if(ooSel===i) b.classList.add('sel');
+    b.onclick=()=>{ if(ooSel===i){ oo.motif[i]=(Math.min(Math.max(1,on),orchs.length)%orchs.length)+1; changed(); }
+      else { ooSel=i; draw(); } };
+    mr.appendChild(b);
+  });
+  const add=document.createElement('button'); add.className='mspot add'; add.textContent='+';
+  add.onclick=()=>{ if(oo.motif.length<64){ oo.motif.push(curOrch+1); changed(); } };
+  const rem=document.createElement('button'); rem.className='mspot rem'; rem.textContent='−';
+  rem.onclick=()=>{ if(oo.motif.length>1){ oo.motif.pop(); if(ooSel>=oo.motif.length) ooSel=null; changed(); } };
+  mr.append(add,rem);
+  // the orchestrations
+  const ls=document.getElementById('oolist'); ls.innerHTML='';
+  orchs.forEach((o,i)=>{
+    const b=document.createElement('button'); b.className='dchip'+(i===curOrch?' on':'');
+    b.textContent='orch '+(i+1)+' ('+o.stacks.length+' tabs)';
+    b.onclick=()=>{ if(i!==curOrch) selectOrch(i); view='orch'; ooSel=null; changed(); };
+    ls.appendChild(b);
+    if(orchs.length>1){
+      const x=document.createElement('button'); x.className='dchip'; x.textContent='✕';
+      x.title='delete orch '+(i+1);
+      x.onclick=()=>{ if(orchs.length<2) return;
+        if(!confirm('Delete orch '+(i+1)+'? Its tabs, mixes and arrangement go; orch-orch numbers shift down.')) return;
+        orchs.splice(i,1);
+        oo.motif=oo.motif.map(n=>n===i+1?1:(n>i+1?n-1:n));
+        if(curOrch===i) curOrch=Math.min(i,orchs.length-1); else if(curOrch>i) curOrch--;
+        bindOrch(); materializeComposites(); changed();
+      };
+      ls.appendChild(x);
+    }
+  });
+  const addO=document.createElement('button'); addO.className='dchip'; addO.textContent='+ add (copy current)';
+  addO.title='seed a new orchestration from the active one';
+  addO.onclick=()=>{ syncOrch(); orchs.push(JSON.parse(JSON.stringify(orchs[curOrch])));
+    view='orch'; selectOrch(orchs.length-1); };
+  ls.appendChild(addO);
+}
 function draw(){
   drawTabs();
   document.getElementById('stackview').style.display=view==='stack'?'':'none';
   document.getElementById('mixview').style.display=view==='mix'?'':'none';
   document.getElementById('orchview').style.display=view==='orch'?'':'none';
+  document.getElementById('ooview').style.display=view==='oo'?'':'none';
   if(view==='stack'){ drawStack(); drawLoopOrns(); }
-  else if(view==='mix') drawMix(); else drawOrch();
+  else if(view==='mix') drawMix(); else if(view==='oo') drawOO(); else drawOrch();
 }
 function changed(){ materializeComposites(); persist(); draw(); dirty=true; }
 
@@ -1546,17 +1658,17 @@ function playHit(at,p,v){
   take.push([at-takeStart,p,v]);
 }
 function refreshOrch(){
-  orchCache=buildOrchCache();
-  cycLen=orchCache.cycLen;
+  orchCache=(playTarget&&playTarget.view==='oo') ? buildTopCache() : buildOrchCache();
+  cycLen=orchCache.cycLen;                          // breath: orch-orch cycle when playing OO
   if(wi>=orchCache.seq.length) wi=0;
-  if(playing&&playTarget&&playTarget.view==='orch'){
+  if(playing&&playTarget&&(playTarget.view==='orch'||playTarget.view==='oo')){
     const e=orchCache.seq[(wi-1+orchCache.seq.length)%orchCache.seq.length];
     if(e&&e.L===curLetter){ curHits=e.hits; curLen=e.len;
       curWarpLen=curInj?curRate*curLen:curLen+breathDelta(curPhase0+curLen)-curDelta0; }
   }
 }
 function refresh(){
-  if(playTarget&&playTarget.view==='orch') refreshOrch();
+  if(playTarget&&(playTarget.view==='orch'||playTarget.view==='oo')) refreshOrch();
   else { hits=targetHits(); looplen=targetLen(); }
   dirty=false;
 }
@@ -1628,7 +1740,7 @@ function schedule(){
   if(!playing) return;
   if(dirty) refresh();
   const now=actx.currentTime, until=now+0.18;
-  if(playTarget&&playTarget.view==='orch'){
+  if(playTarget&&(playTarget.view==='orch'||playTarget.view==='oo')){
     scheduleOrch(now,until);
   } else {
     while(schedUntil<until){
@@ -1653,11 +1765,12 @@ document.getElementById('playbtn').onclick=async()=>{
   }
   if(!actx){ btn.disabled=true; await initAudio(); btn.disabled=false; }
   if(actx.state==='suspended') await actx.resume();
-  playTarget = view==='orch' ? {view:'orch'}
-             : (view==='mix' ? {view:'mix'} : {view:'stack', cur});
+  playTarget = view==='oo' ? {view:'oo'}
+             : (view==='orch' ? {view:'orch'}
+             : (view==='mix' ? {view:'mix'} : {view:'stack', cur}));
   refresh();
   playing=true; t0=actx.currentTime+0.12; schedUntil=t0;
-  if(playTarget.view==='orch'){
+  if(playTarget.view==='orch'||playTarget.view==='oo'){
     wi=0; inj=null; oQueue=null; cycPhase=0; advance(t0);
   }
   timer=setInterval(schedule,50);
@@ -1733,8 +1846,9 @@ function tabBlob(s){
 }
 document.getElementById('copy').onclick=async()=>{
   // the ENTIRE configuration: the persisted state is the canonical form
-  const text='hnote setup v11 '+JSON.stringify(
-    {v:11,stacks,cur,view,winsBy,orch,q,mixBase,pulse:PULSE,breath});
+  syncOrch();
+  const text='hnote setup v12 '+JSON.stringify(
+    {v:12,orchs,curOrch,oo,view,q,pulse:PULSE,breath});
   try{ await navigator.clipboard.writeText(text); show('setup copied'); }
   catch(e){ prompt('copy this:', text); }
 };
@@ -1745,15 +1859,16 @@ document.getElementById('loadbtn').onclick=()=>{
     const m=raw.match(/\{[\s\S]*\}/);            // tolerate the "hnote setup vN " prefix
     const obj=JSON.parse(m?m[0]:raw);
     const args=[null,null,null,null,null,null,null,null];
-    const slot={11:0,10:0,9:0,8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
+    const slot={12:0,11:0,10:0,9:0,8:0,7:1,6:2,5:3,4:4,3:5}[obj.v];
     if(slot!=null) args[slot]=obj; else args[6]=obj;    // v2-shaped fallback
     const st2=migrateFrom(...args);               // the migration chain validates + clamps
     if(playing){ playing=false; clearInterval(timer);
       document.getElementById('playbtn').textContent='▸ Play'; }
     oQueue=null; inj=null; phLog=[];
-    stacks=st2.stacks; cur=st2.cur??0; view=st2.view??'stack';
-    winsBy=st2.winsBy; mixBase=st2.mixBase??0; orch=st2.orch; q=st2.q;
-    PULSE=st2.pulse??0.25; wins=winsBy[mixBase]; breath=st2.breath;
+    orchs=st2.orchs; curOrch=st2.curOrch??0; oo=st2.oo; view=st2.view??'stack'; q=st2.q; breath=st2.breath;
+    stacks=orchs[curOrch].stacks; winsBy=orchs[curOrch].winsBy; orch=orchs[curOrch].orch;
+    mixBase=orchs[curOrch].mixBase??0; cur=orchs[curOrch].cur??0;
+    PULSE=st2.pulse??0.25; wins=winsBy[mixBase];
     materializeComposites();
     sel=null; osel=null; curLane=0; selChain=null; tlSel=null;
     dirty=true; persist(); drawBpm(); draw(); updateRec();
