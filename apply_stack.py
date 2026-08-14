@@ -429,6 +429,9 @@ def parse_blob(blob, tab="A"):
         # v12+ nests each orchestration's stacks under orchs[curOrch]; older is flat
         cfg = state["orchs"][state.get("curOrch", 0)] if isinstance(state.get("orchs"), list) and state["orchs"] else state
         t = cfg["stacks"]["ABCDEFGH".index(tab)]
+        if t.get("rev"):        # reverse is a page/take-level reflection, not built into the static tree
+            print(f"WARNING: tab {tab} has reverse set; the offline compiler renders it FORWARD. "
+                  f"Record a MIDI take from the page to capture reverse.", file=sys.stderr)
         def lane_tuple(l):
             ch = {int(k): dict(v) for k, v in (l.get("children") or {}).items()}
             for c in ch.values():                # coerce sub-flex keys to int

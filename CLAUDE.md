@@ -270,6 +270,22 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   concatenation (seq = orch1++orch2, cycLen sum, single-orch == buildOrchCache);
   a v12 Copy-setup blob closed-loops `apply_stack` 4/4; V1–V15 unchanged
   (proving the state refactor left single-orch behavior intact).
+  **Reverse** (per-tab `rev`, 2026-08-14): flip a stack's orientation in time
+  — it "cycles in reverse" but is still heard going forward. ONE seam in
+  `realizeTabHits`: after the whole tab is assembled (ruler + lanes + full
+  step-cycle of length `L=C·bar`), map every hit `τ → (L−τ) mod L`. That
+  mirrors the entire cycle while keeping the downbeat anchored (the loop
+  counter running backward from the same origin: cells go A,D,C,B not
+  D,C,B,A) — so the "1" and its accent stay on the downbeat and only the
+  internal rhythm reverses. Whole-tab (all lanes together); one flag `S().rev`,
+  toggled in the stack-view levels panel (◄/►). Ornaments apply AFTER the
+  reversal (at their addresses, onto the reversed base). Like breath, reverse
+  is a **page/take-level realization feature, NOT built into the offline tree**
+  — it plays live and records correctly into MIDI takes (playHit captures the
+  reversed scheduled times), but `apply_stack` compiles a tab FORWARD and now
+  WARNs if `rev` is set (record a take to capture reverse). orch_sim V17
+  asserts the reflection (36@0,46@250,42@500,38@750) and that toggling off
+  restores forward. Migration coerces `rev` per stack (additive, still v12).
   `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
   phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
   transcription table; amen_kit.mp3 on the index.

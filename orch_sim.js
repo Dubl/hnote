@@ -529,6 +529,22 @@ console.log('V16 orch-orch (concatenate self-contained orchestrations)');
   check('V16:single', one.seq.length===1 && Math.abs(one.cycLen-0.5)<1e-9, 'single cycLen '+one.cycLen);
 }
 
+console.log('V17 reverse (whole stack cycles backward, downbeat anchored)');
+{
+  const eng = makeEngine();
+  const A = { ...stack([1,2,3,4],[4]), rev:true };     // pulses 0,1,2,3 (36,38,42,46), barLen 1.0
+  eng.api.init({ stacks:[A], winsBy:[[]], orch:{motif:[1],chains:[CH('A')]}, q:'bar', t0:0 });
+  const hs = eng.api.letterHits('A');
+  const at = p => { const h=hs.find(h=>h[1]===p); return h?Math.round(h[0]*1000):null; };
+  // forward 36@0 38@250 42@500 46@750  ->  reverse tau->(1-tau)%1: 36@0 46@250 42@500 38@750
+  check('V17', at(36)===0 && at(46)===250 && at(42)===500 && at(38)===750,
+    'reverse: 36@'+at(36)+' 46@'+at(46)+' 42@'+at(42)+' 38@'+at(38));
+  A.rev=false;                                         // toggling off restores the forward pattern
+  const f = eng.api.letterHits('A');
+  const af = p => { const h=f.find(h=>h[1]===p); return h?Math.round(h[0]*1000):null; };
+  check('V17:off', af(36)===0 && af(38)===250 && af(42)===500 && af(46)===750, 'rev off should be forward');
+}
+
 console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp)');
 {
   const eng = makeEngine();

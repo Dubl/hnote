@@ -254,7 +254,8 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
     const normOrch=(o)=>{                              // normalize ONE orchestration {stacks,winsBy,orch,mixBase,cur}
       if(!o.stacks||!o.stacks.length) o.stacks=[{motif:[1,2,3],periods:[16,8],children:{}}];
       o.cur=Math.min(o.cur??0, o.stacks.length-1);
-      o.stacks.forEach((s,si)=>{ if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
+      o.stacks.forEach((s,si)=>{ if(s.rev) s.rev=true; else delete s.rev;    // reverse: whole-tab time-flip
+        if(s.lanes) s.lanes=s.lanes.filter(l=>l&&l.motif&&l.motif.length).slice(0,3);
         [s,...(s.lanes||[])].forEach(l=>{ if(l.offs&&!Array.isArray(l.offs)) delete l.offs;
           if(l.offs) l.offs=l.offs.map(x=>Math.max(0,x|0));
           if(l.steps&&!Array.isArray(l.steps)) delete l.steps;
@@ -569,6 +570,10 @@ function realizeTabHits(tab){
       for(let bb=0;bb<bar-1e-9;bb+=lb)
         for(const [t,p,v] of lh){ const at=bb+t; if(at<bar-1e-9) out.push([base+at,p,v]); }
     });
+  }
+  if(tab.rev){                                    // reverse: the whole stack cycles backward,
+    const L=C*bar;                                // played forward. tau -> (L-tau) mod L mirrors
+    for(const h of out) h[0]=((L-h[0])%L+L)%L;    // the cycle while keeping the downbeat anchored.
   }
   return out.sort((a,b)=>a[0]-b[0]);
 }
@@ -888,6 +893,16 @@ function drawStack(){
   const ps=document.createElement('div'); ps.className='secs';
   ps.textContent='phase — the pulse the loop starts on';
   phrow.append(pm,pn,pp,ps); lv.appendChild(phrow);
+  const rvrow=document.createElement('div'); rvrow.className='lvl';    // reverse is whole-tab
+  const rvb=document.createElement('button'); rvb.textContent=ctab.rev?'◄':'►';
+  if(ctab.rev){ rvb.style.background='#2e7d5b'; rvb.style.color='#fff'; }
+  rvb.title='reverse the whole stack in time';
+  rvb.onclick=()=>{ if(ctab.rev) delete ctab.rev; else ctab.rev=true; changed(); };
+  const rvn=document.createElement('div'); rvn.className='num'; rvn.style.color='var(--muted)';
+  rvn.textContent=ctab.rev?'rev':'fwd';
+  const rvs=document.createElement('div'); rvs.className='secs';
+  rvs.textContent='reverse — cycle the whole stack backward (still heard forward)';
+  rvrow.append(rvb,rvn,rvs); lv.appendChild(rvrow);
   document.getElementById('addlvl').onclick=()=>{
     stk.periods.unshift(Math.max(2,topPeriod(stk)*2));
     if(stk.offs) stk.offs.unshift(0);
