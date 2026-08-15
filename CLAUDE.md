@@ -286,6 +286,17 @@ shipped in July 2026 (tracks 1–6 on the Pages site).
   WARNs if `rev` is set (record a take to capture reverse). orch_sim V17
   asserts the reflection (36@0,46@250,42@500,38@750) and that toggling off
   restores forward. Migration coerces `rev` per stack (additive, still v12).
+  **One-off flex** (2026-08-15): an `add` one-off carries an optional `flex`
+  ∈ −20..20 % — the same timing nudge as loop flex (`stack.flex`), but on a
+  one-off's placed note. In `applyOrnList` one term `fx=(flex/100)·PULSE`
+  shifts a plain add's onset (wrapped mod totLen) or the whole burst's anchor
+  (all sub-notes ride along; prenote/spill preserved). Editor: an f−5/f−/val/
+  f+/f+5 chip stepper on any add one-off (shared drawOrnEdit, both loop and
+  chain one-offs). Migration validates `flex` at BOTH orn sites (loop-orns on
+  stacks, chain-orns on chains), dropping it unless `act==='add'` and in range
+  (additive, still v12). Ornaments stay score-layer — NOT compiled by
+  apply_stack (like all orns); records into takes via playHit. orch_sim V18
+  asserts a +10% add lands at pulse·PULSE+0.10·PULSE and flex 0 = on-grid.
   `amen_test.py` = acceptance test: the Amen break as 3 tabs (bar 4 = lane
   phase 14 displacement), 136 bpm, verified onset+pitch+velocity vs the
   transcription table; amen_kit.mp3 on the index.

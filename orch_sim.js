@@ -545,6 +545,20 @@ console.log('V17 reverse (whole stack cycles backward, downbeat anchored)');
   check('V17:off', af(36)===0 && af(38)===250 && af(42)===500 && af(46)===750, 'rev off should be forward');
 }
 
+console.log('V18 one-off flex (nudge an add ornament +/- % of a pulse)');
+{
+  const eng = makeEngine();
+  const A = { ...stack([1,2,3,4],[4]),                        // ruler 36,38,42,46 at pulses 0..3
+    orns: [{ li:0, bar:0, u:2, act:'add', sym:6, flex:10 }] };  // add crash(49) @ pulse 2, +10% of a pulse
+  eng.api.init({ stacks:[A], winsBy:[[]], orch:{motif:[1],chains:[CH('A')]}, q:'bar', t0:0 });
+  const cr = eng.api.letterHits('A').find(h=>h[1]===49);
+  // pulse 2 = 0.5s; +10% of PULSE(0.25) = +0.025 -> 0.525
+  check('V18', cr && Math.abs(cr[0]-0.525)<1e-9, 'flexed add at '+(cr&&cr[0]));
+  A.orns[0].flex = 0;                                          // flex 0 = exactly on the grid
+  const cr0 = eng.api.letterHits('A').find(h=>h[1]===49);
+  check('V18:zero', cr0 && Math.abs(cr0[0]-0.5)<1e-9, 'no-flex add at '+(cr0&&cr0[0]));
+}
+
 console.log('V7 migration (v7 lowercase->upper, v6 wrap+trim, v4/v3/v2, v8 clamp)');
 {
   const eng = makeEngine();

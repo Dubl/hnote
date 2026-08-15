@@ -282,7 +282,8 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
             &&(!z.ch.pre||(Number.isInteger(z.ch.pre)&&z.ch.pre>=0&&z.ch.pre<z.ch.S))))
           &&(!z.S||(Number.isInteger(z.S)&&z.S>=1&&z.S<=8
             &&(z.k==null||(Number.isInteger(z.k)&&z.k>=0&&z.k<z.S)))))
-          .map(z=>Object.assign(z,{li:0}));
+          .map(z=>{ if(!(z.act==='add'&&Number.isInteger(z.flex)&&z.flex>=-20&&z.flex<=20&&z.flex!==0)) delete z.flex;
+                    return Object.assign(z,{li:0}); });
         if(s.compose&&!Array.isArray(s.compose)) delete s.compose;
         if(s.compose){ s.compose=s.compose.filter(x=>Number.isInteger(x)&&x>=0&&x<o.stacks.length&&x!==si);
           if(!s.compose.length) delete s.compose; } });
@@ -305,6 +306,7 @@ function migrateFrom(v8,v7,v6,v5,v4,v3,v2,v1){
             &&(!z.ch.pre||(Number.isInteger(z.ch.pre)&&z.ch.pre>=0&&z.ch.pre<z.ch.S))))
           &&(!z.S||(Number.isInteger(z.S)&&z.S>=1&&z.S<=8
             &&(z.k==null||(Number.isInteger(z.k)&&z.k>=0&&z.k<z.S)))));
+        orns.forEach(z=>{ if(!(z.act==='add'&&Number.isInteger(z.flex)&&z.flex>=-20&&z.flex<=20&&z.flex!==0)) delete z.flex; });
         return {seq, orns};
       });
       o.orch.motif=o.orch.motif.slice(0,32).map(m=>Math.min(Math.max(1,m|0)||1, o.orch.chains.length));
@@ -630,19 +632,20 @@ function applyOrnList(hits,bp,totLen,orns){
     if(o.bar*bp+o.u>=totPulses) return;   // out-of-range = ORPHANED: silent (and listed in the UI)
     const t0=(o.bar*bp+o.u)*PULSE, t1=t0+PULSE;
     const sd=SOUNDS[Math.abs(o.sym)-1]; if(!sd) return;
+    const fx=((o.flex||0)/100)*PULSE;                // flex: nudge this one-off ± % of a pulse
     if(o.act==='add'&&o.ch&&o.ch.S){                 // one-off sub-motif cell
-      const sub=PULSE/o.ch.S, pre=o.ch.pre||0;
+      const sub=PULSE/o.ch.S, pre=o.ch.pre||0, anchor=t0+fx;   // flex shifts the whole burst
       const N=Math.max(o.ch.S, o.ch.m.length);       // extra notes spill past the cell
       for(let j=0;j<N;j++){
         const s2=o.ch.m[(j+(o.ch.p||0))%o.ch.m.length];
         if(!s2) continue;
         const sd2=SOUNDS[Math.abs(s2)-1]; if(!sd2) continue;
-        let at=t0+(j-pre)*sub;                       // prenotes lead into the address
+        let at=anchor+(j-pre)*sub;                   // prenotes lead into the address
         at=((at%totLen)+totLen)%totLen;              // wrap both directions
         out.push([at, sd2[0], s2<0?52:(j===pre?96:70)]);
       }
     }
-    else if(o.act==='add') out.push([t0, sd[0], o.sym<0?52:96]);
+    else if(o.act==='add') out.push([((t0+fx)%totLen+totLen)%totLen, sd[0], o.sym<0?52:96]);
     else if(o.act==='mute'||o.act==='ghost'){
       const Ss=(o.S&&o.S>1)?o.S:1;                   // optional sub-tick window
       const ta=t0+((o.k||0)%Ss)*(PULSE/Ss), tb=ta+PULSE/Ss;
@@ -1528,6 +1531,14 @@ function drawOrnEdit(c, selAddr, elId, getHits){
     if(o.act==='mute'||o.act==='ghost'){              // sub-tick targeting
       mk('S'+(o.S||1),()=>{ o.S=((o.S||1)%8)+1; o.k=(o.k||0)%o.S; changed(); }, (o.S||1)>1);
       if((o.S||1)>1) mk('k'+(o.k||0),()=>{ o.k=((o.k||0)+1)%o.S; changed(); });
+    }
+    if(o.act==='add'){                                        // flex: nudge the one-off (or its burst) ± % of a pulse
+      const fv=o.flex||0;
+      const setFx=d=>{ const nv=(d==null)?0:Math.max(-20,Math.min(20,(o.flex||0)+d));
+        if(nv) o.flex=nv; else delete o.flex; changed(); };
+      mk('f−5',()=>setFx(-5)); mk('f−',()=>setFx(-1));
+      mk((fv>0?'+':'')+fv+'%',()=>setFx(null), fv!==0);
+      mk('f+',()=>setFx(1)); mk('f+5',()=>setFx(5));
     }
     if(o.act==='add'){                                        // one-off sub-motif (a burst)
       if(!o.ch){
